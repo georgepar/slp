@@ -1,5 +1,6 @@
 import logging
 import logging.handlers
+import sys
 
 
 LEVEL = logging.INFO
@@ -14,7 +15,8 @@ DEFAULT_LOGGING = {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'default'
+            'formatter': 'default',
+            'stream': sys.stdout
         },
         'logfile': {
             'level': 'DEBUG',
