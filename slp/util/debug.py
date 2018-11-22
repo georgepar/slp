@@ -5,9 +5,12 @@ import slp.util.log as log
 LOGGER = log.getLogger('slp')
 
 try:
-    import web_pdb as pdb
+    #import web_pdb as pdb
+    # Use socket-based rpdb because web_pdb cannot handle large structures
+    import rpdb
+    pdb = rpdb.Rpdb(addr='0.0.0.0')
 except ImportError:
-    LOGGER.warning('web_pdb is not installed.'
+    LOGGER.warning('rpdb is not installed.'
                    'Remote debugging not available')
     import pdb
 

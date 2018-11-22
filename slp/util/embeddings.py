@@ -5,6 +5,7 @@ import numpy as np
 
 import slp.util.system as sys_util
 import slp.util.log as log
+import slp.util.debug as debug
 
 
 class EmbeddingsLoader(object):
@@ -17,13 +18,15 @@ class EmbeddingsLoader(object):
     def _get_cache_name(self):
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
-        return os.path.join(head, f'{filename}.p')
+        cache_name = os.path.join(head, f'{filename}.p')
+        self.logger.info(f'Cache: {cache_name}')
+        return cache_name
 
     def _dump_cache(self, data):
-        sys_util.pickle_dump(self.cache_, data)
+        sys_util.pickle_dump(data, self.cache_)
 
     def _load_cache(self):
-        sys_util.pickle_load(self.cache_)
+        return sys_util.pickle_load(self.cache_)
 
     def load(self):
         """
@@ -36,6 +39,8 @@ class EmbeddingsLoader(object):
         # in order to avoid this time consuming operation, cache the results
         try:
             cache = self._load_cache()
+            # DEBUG
+            breakpoint()
             self.logger.info("Loaded word embeddings from cache.")
             return cache
         except OSError:
@@ -65,6 +70,9 @@ class EmbeddingsLoader(object):
         # has a header
         header = False
 
+        # DEBUG
+        breakpoint()
+
         # read file, line by line
         with open(self.embeddings_file, "r", encoding="utf-8") as f:
             for i, line in enumerate(f, 1):
@@ -85,6 +93,9 @@ class EmbeddingsLoader(object):
                 word2idx[word] = index
                 embeddings.append(vector)
 
+                # DEBUG
+                breakpoint()
+
             # add an unk token, for OOV words
             if "<unk>" not in word2idx:
                 idx2word[len(idx2word) + 1] = "<unk>"
@@ -94,6 +105,9 @@ class EmbeddingsLoader(object):
 
             self.logger.info(set([len(x) for x in embeddings]))
 
+            # DEBUG
+            breakpoint()
+
             self.logger.info('Found %s word vectors.' % len(embeddings))
             embeddings = np.array(embeddings, dtype='float32')
 
@@ -101,3 +115,8 @@ class EmbeddingsLoader(object):
         self._dump_cache((word2idx, idx2word, embeddings))
 
         return word2idx, idx2word, embeddings
+
+
+if __name__ == '__main__':
+    loader = EmbeddingsLoader('/home/geopar/projects/VQA/data/glove/glove.6B.300d.txt', 300)
+    embeddings = loader.load()
