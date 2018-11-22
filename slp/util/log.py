@@ -1,11 +1,11 @@
 import logging
 import logging.config
 import logging.handlers
-import slp.config.log as log_config
+import slp.config as config
 
 
 def getLogger(name):
-    logging.config.dictConfig(log_config.DEFAULT_LOGGING)
+    logging.config.dictConfig(config.DEFAULT_LOGGING)
     log = logging.getLogger(name)
     return log
 

@@ -14,8 +14,7 @@ DEFAULT_LOGGING = {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'default',
-            'stream': 'ext://sys.stdout'
+            'formatter': 'default'
         },
         'logfile': {
             'level': 'DEBUG',
@@ -32,12 +31,6 @@ DEFAULT_LOGGING = {
             'formatter': 'default',
             'host': '0.0.0.0',
             'port': logging.handlers.DEFAULT_TCP_LOGGING_PORT
-        }
-    },
-    'loggers': {
-        'default': {
-            'level': LEVEL,
-            'handlers': ['console', 'logfile', 'remote']
         }
     },
     'root': {

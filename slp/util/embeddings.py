@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-import slp.util.sys as sys_util
+import slp.util.system as sys_util
 import slp.util.log as log
 
 
