@@ -9,6 +9,7 @@ def strip_punctuation(s):
 
 
 def preprocess(s):
+    # flake8: noqa W605
     return re.sub('\s+', ' ', strip_punctuation(s).lower())
 
 

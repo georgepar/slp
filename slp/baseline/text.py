@@ -5,7 +5,6 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import f1_score, recall_score, precision_score, \
     accuracy_score, jaccard_similarity_score
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import Normalizer
 from sklearn.svm import SVR, SVC
 
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
@@ -69,7 +68,7 @@ def bow_preprocessor(
         else:
             tokenizer_fn = text_transforms.SplitTokenizer().transform
 
-    feature_extractor =  TfidfVectorizer(
+    feature_extractor = TfidfVectorizer(
         input=input, encoding=encoding, decode_error=decode_error,
         strip_accents=strip_accents, lowercase=lowercase,
         preprocessor=preprocessor, tokenizer=tokenizer_fn, analyzer=analyzer,
@@ -83,8 +82,8 @@ def bow_preprocessor(
 
 
 def nbow_preprocessor(embeddings, word2idx, aggregation='mean',
-        lowercase=True, tokenizer=None, stopwords=True,
-        strip_punctuation=False):
+                      lowercase=True, tokenizer=None, stopwords=True,
+                      strip_punctuation=False):
     tokenizer_fn = SklIdentityTransformer().transform
     punct = SklIdentityTransformer()
     if strip_punctuation:

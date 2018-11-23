@@ -2,7 +2,6 @@ import nltk
 import numpy as np
 import spacy
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.utils import check_array
 
 import slp.util.debug as slpdb
@@ -97,4 +96,3 @@ class NBOWVectorizer(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         return self
-

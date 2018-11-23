@@ -69,7 +69,8 @@ def run_cmd(command):
                             stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
 
-    stdout = ''.join([line.decode("utf-8") for line in iter(pipe.stdout.readline, b'')])
+    stdout = ''.join([line.decode("utf-8")
+                      for line in iter(pipe.stdout.readline, b'')])
     pipe.stdout.close()
     returncode = pipe.wait()
     return returncode, stdout
@@ -143,4 +144,3 @@ def json_load(fname):
 def json_dump(data, fname):
     with open(fname, 'w') as fd:
         json.dump(data, fd)
-

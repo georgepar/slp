@@ -118,5 +118,6 @@ class EmbeddingsLoader(object):
 
 
 if __name__ == '__main__':
-    loader = EmbeddingsLoader('/home/geopar/projects/VQA/data/glove/glove.6B.300d.txt', 300)
+    loader = EmbeddingsLoader(
+        '/home/geopar/projects/VQA/data/glove/glove.6B.300d.txt', 300)
     embeddings = loader.load()
