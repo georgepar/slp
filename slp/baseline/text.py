@@ -105,8 +105,73 @@ def nbow_preprocessor(embeddings, word2idx, aggregation='mean',
     return SklComposer([punct, feature_extractor])
 
 
+class BaseTextClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, preprocessor=None,
+                 classifier='lr',
+                 eval_fn=accuracy_score,
+                 **classifier_params):
+        self.clf_ = LogisticRegression(**classifier_params)
+        if classifier == 'svm':
+            self.clf_ = SVC(**classifier_params)
 
-class BowClassifier(BaseEstimator, ClassifierMixin):
+        self.preprocessor_ = SklIdentityTransformer()
+        if preprocessor is not None:
+            self.preprocessor_ = preprocessor
+
+        self.model_ = Pipeline(
+            [('preprocessor', self.preprocessor_), ('classifier', self.clf_)]
+        )
+
+        self.scores_ = None
+        self.eval_fn_ = eval_fn
+
+    def fit(self, X, y):
+        self.model_ = self.model_.fit(X, y)
+        return self
+
+    def predict(self, X):
+        return self.model_.predict(X)
+
+    def score(self, X, y, sample_weight=None):
+        y_pred = self.predict(X)
+        self.scores_ = self.eval_fn_(y, y_pred)
+        return self.model_.score(y, y_pred)
+
+
+class BaseTextRegressor(BaseEstimator, RegressorMixin):
+    def __init__(self, preprocessor=None,
+                 regressor='svr',
+                 eval_fn=pearsonr,
+                 **regressor_params):
+        self.reg_ = LinearRegression(**regressor_params)
+        if regressor == 'svr':
+            self.reg_ = SVR(**regressor_params)
+
+        self.preprocessor_ = SklIdentityTransformer()
+        if preprocessor is not None:
+            self.preprocessor_ = preprocessor
+
+        self.model_ = Pipeline(
+            [('preprocessor', self.preprocessor_), ('regressor', self.reg_)]
+        )
+
+        self.scores_ = None
+        self.eval_fn_ = eval_fn
+
+    def fit(self, X, y):
+        self.model_ = self.model_.fit(X, y)
+        return self
+
+    def predict(self, X):
+        return self.model_.predict(X)
+
+    def score(self, X, y, sample_weight=None):
+        y_pred = self.predict(X)
+        self.scores_ = self.eval_fn_(y, y_pred)
+        return self.model_.score(y, y_pred)
+
+
+class BowClassifier(BaseTextClassifier):
     def __init__(
             self, input='content', encoding='utf-8', decode_error='strict',
             strip_accents=None, lowercase=True, preprocessor=None,
@@ -115,10 +180,7 @@ class BowClassifier(BaseEstimator, ClassifierMixin):
             min_df=5, max_features=10000, vocabulary=None, binary=False,
             dtype=np.float64, norm='l2', use_idf=True, smooth_idf=True,
             sublinear_tf=True, strip_punctuation=False, classifier='lr',
-            **classifier_params):
-        clf = LogisticRegression(**classifier_params)
-        if classifier == 'svm':
-            clf = SVC(**classifier_params)
+            eval_fn=eval_clf, **classifier_params):
 
         preprocessor = bow_preprocessor(
             input=input, encoding=encoding, decode_error=decode_error,
@@ -130,26 +192,14 @@ class BowClassifier(BaseEstimator, ClassifierMixin):
             dtype=dtype, norm=norm, use_idf=use_idf, smooth_idf=smooth_idf,
             sublinear_tf=sublinear_tf, strip_punctuation=strip_punctuation)
 
-        self.scores_ = None
-
-        self.model_ = Pipeline(
-            [('preprocessor', preprocessor), ('classifier', clf)]
-        )
-
-    def fit(self, X, y):
-        self.model_ = self.model_.fit(X, y)
-        return self
-
-    def predict(self, X):
-        return self.model_.predict(X)
-
-    def score(self, X, y, sample_weight=None):
-        y_pred = self.predict(X)
-        self.scores_ = eval_clf(y, y_pred)
-        return self.model_.score(y, y_pred)
+        super(BowClassifier, self).__init__(
+            preprocessor=preprocessor,
+            eval_fn=eval_fn,
+            classifier=classifier,
+            **classifier_params)
 
 
-class BowRegressor(BaseEstimator, RegressorMixin):
+class BowRegressor(BaseTextRegressor):
     def __init__(
             self, input='content', encoding='utf-8', decode_error='strict',
             strip_accents=None, lowercase=True, preprocessor=None,
@@ -158,11 +208,7 @@ class BowRegressor(BaseEstimator, RegressorMixin):
             min_df=5, max_features=10000, vocabulary=None, binary=False,
             dtype=np.float64, norm='l2', use_idf=True, smooth_idf=True,
             sublinear_tf=True, strip_punctuation=False, regressor='svr',
-            **regressor_params):
-        reg = SVR(**regressor_params)
-        if regressor == 'linear':
-            reg = LinearRegression(**regressor_params)
-
+            eval_fn=eval_reg, **regressor_params):
         preprocessor = bow_preprocessor(
             input=input, encoding=encoding, decode_error=decode_error,
             strip_accents=strip_accents, lowercase=lowercase,
@@ -173,53 +219,42 @@ class BowRegressor(BaseEstimator, RegressorMixin):
             dtype=dtype, norm=norm, use_idf=use_idf, smooth_idf=smooth_idf,
             sublinear_tf=sublinear_tf, strip_punctuation=strip_punctuation)
 
-        self.scores_ = None
-
-        self.model_ = Pipeline(
-            [('preprocessor', preprocessor), ('regressor', reg)]
-        )
-
-    def fit(self, X, y):
-        self.model_ = self.model_.fit(X, y)
-        return self
-
-    def predict(self, X):
-        return self.model_.predict(X)
-
-    def score(self, X, y, sample_weight=None):
-        y_pred = self.predict(X)
-        self.scores_ = eval_reg(y, y_pred)
-        return self.model_.score(y, y_pred)
+        super(BowRegressor, self).__init__(
+            preprocessor=preprocessor,
+            eval_fn=eval_fn,
+            regressor=regressor,
+            **regressor_params)
 
 
-class NbowClassifier(BaseEstimator, ClassifierMixin):
+class NbowClassifier(BaseTextClassifier):
     def __init__(self, embeddings, word2idx, aggregation='mean',
                  lowercase=True, tokenizer=None, stopwords=True,
-                 strip_punctuation=False, classifier='lr',
+                 strip_punctuation=False, classifier='lr', eval_fn=eval_clf,
                  **classifier_params):
         preprocessor = nbow_preprocessor(
             embeddings, word2idx, aggregation=aggregation, lowercase=lowercase,
             tokenizer=tokenizer, stopwords=stopwords,
             strip_punctuation=strip_punctuation)
 
-        clf = LogisticRegression(**classifier_params)
-        if classifier == 'svm':
-            clf = SVC(**classifier_params)
+        super(NbowClassifier, self).__init__(
+            preprocessor=preprocessor,
+            eval_fn=eval_fn,
+            classifier=classifier,
+            **classifier_params)
 
-        self.scores_ = None
 
-        self.model_ = Pipeline(
-            [('preprocessor', preprocessor), ('classifier', clf)]
-        )
+class NbowRegressor(BaseTextRegressor):
+    def __init__(self, embeddings, word2idx, aggregation='mean',
+                 lowercase=True, tokenizer=None, stopwords=True,
+                 strip_punctuation=False, regressor='svr', eval_fn=eval_reg,
+                 **regressor_params):
+        preprocessor = nbow_preprocessor(
+            embeddings, word2idx, aggregation=aggregation, lowercase=lowercase,
+            tokenizer=tokenizer, stopwords=stopwords,
+            strip_punctuation=strip_punctuation)
 
-    def fit(self, X, y):
-        self.model_ = self.model_.fit(X, y)
-        return self
-
-    def predict(self, X):
-        return self.model_.predict(X)
-
-    def score(self, X, y, sample_weight=None):
-        y_pred = self.predict(X)
-        self.scores_ = eval_clf(y, y_pred)
-        return self.model_.score(y, y_pred)
+        super(NbowRegressor, self).__init__(
+            preprocessor=preprocessor,
+            eval_fn=eval_fn,
+            regressor=regressor,
+            **regressor_params)

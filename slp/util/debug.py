@@ -36,12 +36,12 @@ if __name__ == '__main__':
 
     # Should not stop execution here
     breakpoint()
-    
+
     print('world')
 
     config.DEBUG = True
 
     # Should stop execution here
     breakpoint()
-    
+
     print('!!!')
