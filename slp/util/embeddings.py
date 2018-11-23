@@ -5,7 +5,7 @@ import numpy as np
 
 import slp.util.system as sys_util
 import slp.util.log as log
-import slp.util.debug as debug
+import slp.util.debug as slpdb
 
 
 class EmbeddingsLoader(object):
@@ -40,7 +40,7 @@ class EmbeddingsLoader(object):
         try:
             cache = self._load_cache()
             # DEBUG
-            breakpoint()
+            slpdb.set_trace()
             self.logger.info("Loaded word embeddings from cache.")
             return cache
         except OSError:
@@ -71,7 +71,7 @@ class EmbeddingsLoader(object):
         header = False
 
         # DEBUG
-        breakpoint()
+        slpdb.set_trace()
 
         # read file, line by line
         with open(self.embeddings_file, "r", encoding="utf-8") as f:
@@ -94,7 +94,7 @@ class EmbeddingsLoader(object):
                 embeddings.append(vector)
 
                 # DEBUG
-                breakpoint()
+                slpdb.set_trace()
 
             # add an unk token, for OOV words
             if "<unk>" not in word2idx:
@@ -106,7 +106,7 @@ class EmbeddingsLoader(object):
             self.logger.info(set([len(x) for x in embeddings]))
 
             # DEBUG
-            breakpoint()
+            slpdb.set_trace()
 
             self.logger.info('Found %s word vectors.' % len(embeddings))
             embeddings = np.array(embeddings, dtype='float32')
