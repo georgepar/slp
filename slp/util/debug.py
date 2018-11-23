@@ -31,12 +31,17 @@ sys.breakpointhook = set_trace
 
 if __name__ == '__main__':
     print('hello')
+
+    config.DEBUG = False
+
     # Should not stop execution here
     breakpoint()
+    
     print('world')
 
     config.DEBUG = True
 
     # Should stop execution here
     breakpoint()
+    
     print('!!!')
