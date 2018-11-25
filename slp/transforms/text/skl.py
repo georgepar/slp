@@ -4,7 +4,6 @@ import spacy
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array
 
-import slp.util.debug as slpdb
 import slp.transforms.text.functional as functional
 
 
@@ -89,8 +88,6 @@ class NBOWVectorizer(BaseEstimator, TransformerMixin):
                                               aggregation=self.aggregation)
             docs.append(feats)
 
-        # DEBUG
-        slpdb.set_trace()
         assert len(docs) == X.shape[0]
         return check_array(docs)
 

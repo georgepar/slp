@@ -1,7 +1,6 @@
 import numpy as np
 import re
 from sklearn.utils import check_array
-import slp.util.debug as slpdb
 
 
 def strip_punctuation(s):
@@ -39,6 +38,4 @@ def aggregate_vecs(vectors, aggregation='mean'):
             feats.append(np.amin(vectors, axis=0))
         if method == "max":
             feats.append(np.amax(vectors, axis=0))
-    # DEBUG
-    slpdb.set_trace()
     return np.hstack(feats)
