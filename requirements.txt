@@ -1,0 +1,7 @@
+scipy==1.1.0
+spacy==2.0.16
+numpy==1.15.1
+rpdb==0.1.6
+ujson==1.35
+nltk==3.3
+scikit_learn==0.20.1
