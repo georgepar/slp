@@ -5,7 +5,7 @@ class SklComposer(BaseEstimator, TransformerMixin):
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def tranform(self, X, y=None):
+    def transform(self, X, y=None):
         for trans in self.transforms:
             X = trans.transform(X)
 

@@ -82,7 +82,7 @@ class NBOWVectorizer(BaseEstimator, TransformerMixin):
                 if not self.stopwords and word in self.stops:
                     continue
                 vectors.append(self.embeddings[self.word2idx[word]])
-            if vectors == 0:
+            if not vectors:
                 vectors.append(np.zeros(self.dim))
             feats = functional.aggregate_vecs(np.array(vectors),
                                               aggregation=self.aggregation)
