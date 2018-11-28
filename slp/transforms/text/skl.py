@@ -88,7 +88,7 @@ class NBOWVectorizer(BaseEstimator, TransformerMixin):
                                               aggregation=self.aggregation)
             docs.append(feats)
 
-        assert len(docs) == X.shape[0]
+        assert len(docs) == len(X)
         return check_array(docs)
 
     def fit(self, X, y=None):
