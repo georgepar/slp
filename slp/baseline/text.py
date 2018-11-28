@@ -134,7 +134,7 @@ class BaseTextClassifier(BaseEstimator, ClassifierMixin):
     def score(self, X, y, sample_weight=None):
         y_pred = self.predict(X)
         self.scores_ = self.eval_fn_(y, y_pred)
-        return self.clf_.score(y, y_pred)
+        return self.model_.score(X, y)
 
 
 class BaseTextRegressor(BaseEstimator, RegressorMixin):
@@ -167,7 +167,7 @@ class BaseTextRegressor(BaseEstimator, RegressorMixin):
     def score(self, X, y, sample_weight=None):
         y_pred = self.predict(X)
         self.scores_ = self.eval_fn_(y, y_pred)
-        return self.reg_.score(y, y_pred)
+        return self.model_.score(X, y)
 
 
 class BowClassifier(BaseTextClassifier):
