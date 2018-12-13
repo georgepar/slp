@@ -65,7 +65,7 @@ class NBOWVectorizer(BaseEstimator, TransformerMixin):
         self.stopwords = stopwords
         self.stops = set(nltk.corpus.stopwords.words('english'))
         self.lowercase = lowercase
-        if tokenizer is not None:
+        if tokenizer is None:
             self.tokenizer = lambda x: x
         else:
             self.tokenizer = tokenizer
