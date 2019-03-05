@@ -17,6 +17,12 @@ except ImportError:
     import json
 
 
+def is_subpath(child, parent):
+    parent = os.path.abspath(parent)
+    child = os.path.abspath(child)
+    return os.path.commonpath([parent]) == os.path.commonpath([parent, child])
+
+
 def safe_mkdirs(path):
     """! Makes recursively all the directory in input path """
     if not os.path.exists(path):
