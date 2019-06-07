@@ -1,7 +1,7 @@
 import numpy as np
 import re
 from sklearn.utils import check_array
-
+import torch
 
 def strip_punctuation(s):
     return re.sub(r'[^a-zA-Z\s]', ' ', s)
@@ -9,7 +9,7 @@ def strip_punctuation(s):
 
 def preprocess(s):
     # flake8: noqa W605
-    return re.sub('\s+', ' ', strip_punctuation(s).lower())
+    return re.sub(r'\s+', ' ', strip_punctuation(s).lower())
 
 
 def split_tokenizer(x):
