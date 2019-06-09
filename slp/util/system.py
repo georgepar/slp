@@ -6,15 +6,26 @@ import subprocess
 import sys
 import time
 import urllib
+import validators
 
 import slp.util.log as log
 
+
+ERROR_INVALID_NAME = 123
 LOGGER = log.getLogger('default')
 
 try:
     import ujson as json
 except ImportError:
     import json
+
+
+def is_url(inp):
+    return validators.url(inp)
+
+
+def is_file(inp):
+    return os.path.isfile(inp)
 
 
 def is_subpath(child, parent):

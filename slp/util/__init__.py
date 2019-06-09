@@ -1,4 +1,7 @@
 import torch
+import warnings
+
+import slp.util.system as _sysutil
 
 
 def t_(data, dtype=torch.float, device='cpu', requires_grad=False):
@@ -14,9 +17,9 @@ def t_(data, dtype=torch.float, device='cpu', requires_grad=False):
     :return: torch.Tensor: A tensor of appropriate dtype, device and
                            requires_grad containing data
     """
-    t = (torch.as_tensor(data, dtype=dtype, device=device)
+    tt = (torch.as_tensor(data, dtype=dtype, device=device)
          .requires_grad_(requires_grad=requires_grad))
-    return t
+    return tt
 
 
 def t(data, dtype=torch.float, device='cpu', requires_grad=False):
@@ -32,9 +35,9 @@ def t(data, dtype=torch.float, device='cpu', requires_grad=False):
     :return: torch.Tensor: A tensor of appropriate dtype, device and
                            requires_grad containing data
     """
-    t = torch.tensor(data, dtype=dtype, device=device,
-                     requires_grad=requires_grad)
-    return t
+    tt = torch.tensor(data, dtype=dtype, device=device,
+                      requires_grad=requires_grad)
+    return tt
 
 
 def mktensor(data, dtype=torch.float, device='cpu',
@@ -55,3 +58,20 @@ def mktensor(data, dtype=torch.float, device='cpu',
     tensor_factory = t if copy else t_
     return tensor_factory(
         data, dtype=dtype, device=device, requires_grad=requires_grad)
+
+
+def from_checkpoint(checkpoint_file, obj, map_location=None):
+    if checkpoint_file is None:
+        return obj
+
+    if not _sysutil.is_file(checkpoint_file):
+        warnings.warn(
+            'The checkpoint {} you are trying to load '
+            'does not exist. Continuing without loading...'
+            .format(checkpoint_file))
+        return obj
+
+    state_dict = torch.load(checkpoint_file,
+                            map_location=map_location)
+    obj.load_state_dict(state_dict)
+    return obj

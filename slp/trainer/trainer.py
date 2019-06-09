@@ -1,43 +1,67 @@
 import os
+import warnings
 
 import torch
-from slp.util import system as sysutil
 import torch.nn as nn
-from slp.util import mktensor
+
+from ignite.handlers import EarlyStopping
+from ignite.contrib.handlers import ProgressBar
+
+from slp.trainer.hanlders import CheckpointHandler
+from slp.util import mktensor, from_checkpoint
+from slp.util import system as sysutil
 
 
-class _BaseTrial(object):
+class Experiment(object):
     def __init__(self,
                  model,
-                 optimizer=None,
+                 optimizer,
                  checkpoint_dir='../../checkpoints',
-                 checkpoint=None,
+                 experiment_name='experiment',
+                 model_checkpoint=None,
+                 optimizer_checkpoint=None,
+                 patience=10,
                  dtype=torch.float,
                  device='cpu'):
         self.dtype = dtype
         self.device = device
-        if checkpoint:
-            model, optimizer = self._load_checkpoint(
-                checkpoint_dir, checkpoint, model, optimizer)
-        self.model = model.type(dtype).to(device)
-        self.optimizer = optimizer
+        self.model = (from_checkpoint(model_checkpoint,
+                                      model,
+                                      map_location=torch.device('cpu'))
+            .type(dtype)
+            .to(device))
+        self.optimizer = from_checkpoint(optimizer_checkpoint,
+                                         optimizer)
+
+        self.pbar = ProgressBar()
+
+        self.checkpoint = CheckpointHandler(
+            checkpoint_dir, experiment_name, score_name='validation_loss',
+            score_function=self._score_fn, n_saved=2,
+            require_empty=False, save_as_state_dict=True)
+
+        self.early_stop = None
+
+        self.patience = patience
+        self.early_stop = EarlyStopping(
+            patience, self._score_fn, self.trainer)
+
+
 
     @staticmethod
-    def _load_checkpoint(checkpoint_dir, checkpoint,
-                         model, optimizer=None):
-        if sysutil.is_subpath(checkpoint, checkpoint_dir):
-            checkpoint = os.path.join(checkpoint_dir, checkpoint)
-        state_dict = torch.load(checkpoint)
-        model_state_dict = state_dict
-        if 'optimizer' in state_dict and optimizer is not None:
-            optimizer.load_state_dict(state_dict['optimizer'])
-        if 'model' in state_dict:
-            model_state_dict = state_dict['model']
-        model.load_state_dict(model_state_dict)
-        return model, optimizer
+    def _score_fn(engine):
+        """Returns the scoring metric for checkpointing and early stopping
+
+        Args:
+            engine (ignite.engine.Engine): The engine that calculates the val loss
+
+        Returns:
+            (float): The validation loss
+        """
+        return -engine.state.metrics['loss']
 
 
-class Trial(_BaseTrial):
+class Trial(Experiment):
     def __init__(self,
                  model,
                  optimizer=None,
