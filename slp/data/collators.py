@@ -6,7 +6,7 @@ from slp.config import SPECIAL_TOKENS
 
 
 class SequenceClassificationCollator(object):
-    def __init__(self, pad_indx=SPECIAL_TOKENS.PAD.value, device='cpu'):
+    def __init__(self, pad_indx=0, device='cpu'):
         self.pad_indx = pad_indx
         self.device = device
 
