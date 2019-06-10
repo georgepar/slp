@@ -49,8 +49,7 @@ def safe_mkdirs(path):
         except Exception as e:
             LOGGER.warning(e)
             raise IOError(
-                ("Failed to create recursive directories: {}"
-                 .format(path)))
+                (f"Failed to create recursive directories: {path}"))
 
 
 def timethis(func):
@@ -65,10 +64,11 @@ def timethis(func):
         ts = time.time()
         result = func(*args, **kwargs)
         te = time.time()
-        elapsed = '{0}'.format(te - ts)
-        LOGGER.info('BENCHMARK: {f}(*{a}, **{kw}) took: {t} sec'.format(
-            f=func.__name__, a=args, kw=kwargs, t=elapsed))
-        return result, elapsed
+        elapsed = f'{te - ts}'
+        LOGGER.info(
+            'BENCHMARK: {f}(*{a}, **{kw}) took: {t} sec'.format(
+                f=func.__name__, a=args, kw=kwargs, t=elapsed))
+        return result
     return timed
 
 
@@ -87,7 +87,7 @@ def run_cmd(command):
     Run given command locally
     Return a tuple with the return code, stdout, and stderr of the command
     """
-    command = '{} -c "{}"'.format(os.getenv('SHELL'), command)
+    command = f'{os.getenv("SHELL")} -c "{command}"'
     pipe = subprocess.Popen(command,
                             shell=True,
                             stdout=subprocess.PIPE,

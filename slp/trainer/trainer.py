@@ -58,8 +58,8 @@ class Trainer(object):
         self.train_evaluator = Engine(self.eval_step)
         self.valid_evaluator = Engine(self.eval_step)
         for name, metric in metrics.items():
-            metric.attach(self.train_evaluator, '{}'.format(name))
-            metric.attach(self.valid_evaluator, '{}'.format(name))
+            metric.attach(self.train_evaluator, name)
+            metric.attach(self.valid_evaluator, name)
 
         self.pbar = ProgressBar()
         self.val_pbar = ProgressBar(desc='Validation')
@@ -87,7 +87,8 @@ class Trainer(object):
         """Returns the scoring metric for checkpointing and early stopping
 
         Args:
-            engine (ignite.engine.Engine): The engine that calculates the val loss
+            engine (ignite.engine.Engine): The engine that calculates
+            the val loss
 
         Returns:
             (float): The validation loss

@@ -23,7 +23,7 @@ class CheckpointHandler(ModelCheckpoint):
             splitted = src.split('_')
             fname_prefix = splitted[0]
             name = splitted[1]
-            dst = '{}_{}.best.pth'.format(fname_prefix, name)
+            dst = f'{fname_prefix}_{name}.best.pth'
             shutil.copy(src, dst)
 
 
@@ -57,4 +57,6 @@ class EvaluationHandler(object):
 
     def attach(self, trainer, evaluator, dataloader, validation=True):
         trainer.add_event_handler(
-            Events.EPOCH_COMPLETED, self, evaluator, dataloader, validation=validation)
+            Events.EPOCH_COMPLETED,
+            self, evaluator, dataloader,
+            validation=validation)

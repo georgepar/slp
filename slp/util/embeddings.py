@@ -8,7 +8,8 @@ import slp.util.log as log
 
 
 class EmbeddingsLoader(object):
-    def __init__(self, embeddings_file, dim):
+    def __init__(self, embeddings_file, dim,
+                 extra_tokens=['<pad>', '<unk>', '<mask>', '<bos>', '<eos>']):
         self.logger = log.getLogger(f'{__name__}.EmbeddingsLoader')
         self.embeddings_file = embeddings_file
         self.cache_ = self._get_cache_name()
@@ -42,16 +43,15 @@ class EmbeddingsLoader(object):
             return cache
         except OSError:
             self.logger.warning(
-                "Didn't find embeddings cache file {}"
-                .format(self.embeddings_file))
+                f"Didn't find embeddings cache file {self.embeddings_file}")
 
         # create the necessary dictionaries and the word embeddings matrix
         if not os.path.exists(self.embeddings_file):
-            self.logger.critical("{} not found!".format(self.embeddings_file))
+            self.logger.critical(f"{self.embeddings_file} not found!")
             raise OSError(errno.ENOENT, os.strerror(errno.ENOENT),
                           self.embeddings_file)
 
-        self.logger.info('Indexing file {} ...'.format(self.embeddings_file))
+        self.logger.info(f'Indexing file {self.embeddings_file} ...')
 
         word2idx = {}  # dictionary of words to ids
         idx2word = {}  # dictionary of ids to words
@@ -94,9 +94,7 @@ class EmbeddingsLoader(object):
                 embeddings.append(np.random.uniform(
                     low=-0.05, high=0.05, size=self.dim_))
 
-            self.logger.info(set([len(x) for x in embeddings]))
-
-            self.logger.info('Found %s word vectors.' % len(embeddings))
+            self.logger.info(f'Found {len(embeddings)} word vectors.')
             embeddings = np.array(embeddings, dtype='float32')
 
         # write the data to a cache file
