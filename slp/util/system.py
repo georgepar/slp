@@ -8,8 +8,7 @@ import time
 import urllib
 import validators
 
-import slp.util.log as log
-
+from slp.util import log
 
 ERROR_INVALID_NAME = 123
 LOGGER = log.getLogger('default')
@@ -18,6 +17,10 @@ try:
     import ujson as json
 except ImportError:
     import json
+
+
+def print_separator(symbol='*', n=10, print_fn=print):
+    print_fn(symbol * n)
 
 
 def is_url(inp):

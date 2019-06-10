@@ -1,7 +1,9 @@
 scipy>=1.0.0
-spacy==2.0.16
+spacy>=2.0.16
 numpy>=1.13.1
-rpdb==0.1.6
-ujson==1.35
+rpdb>=0.1.6
+ujson>=1.35
 nltk>=3.2.4
-scikit_learn==0.20.1
+scikit_learn>=0.20.1
+torch>=1.0.0
+pytorch-ignite>=0.2.0

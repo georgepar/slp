@@ -1,7 +1,11 @@
 import logging
 import logging.config
 import logging.handlers
+
 import slp.config as config
+
+# Patch to avoid annoying ignite logs
+logging.getLogger("ignite").setLevel(logging.WARNING)
 
 
 def getLogger(name):

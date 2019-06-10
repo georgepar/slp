@@ -1,7 +1,14 @@
 import torch
-import warnings
 
-import slp.util.system as _sysutil
+from slp.util import system as _sysutil
+from slp.util import log
+
+
+LOGGER = log.getLogger('default')
+
+
+def to_device(tt, device='cpu', non_blocking=False):
+    return tt.to(device, non_blocking=non_blocking)
 
 
 def t_(data, dtype=torch.float, device='cpu', requires_grad=False):
@@ -65,7 +72,7 @@ def from_checkpoint(checkpoint_file, obj, map_location=None):
         return obj
 
     if not _sysutil.is_file(checkpoint_file):
-        warnings.warn(
+        LOGGER.warn(
             'The checkpoint {} you are trying to load '
             'does not exist. Continuing without loading...'
             .format(checkpoint_file))
