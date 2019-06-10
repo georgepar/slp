@@ -1,2 +1,2 @@
 # flake8: noqa
-from .util import SklIdentityTransformer, SklComposer
+from slp.transforms.util import SklIdentityTransformer, SklComposer

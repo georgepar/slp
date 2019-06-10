@@ -1,3 +1,5 @@
 # flake8: noqa
-from .debug import *
-from .log import DEFAULT_LOGGING
+from slp.config.debug import *
+from slp.config.log import DEFAULT_LOGGING
+
+from slp.config.nlp import SPECIAL_TOKENS
