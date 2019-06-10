@@ -4,30 +4,32 @@ import torch
 from pytorch_pretrained_bert import BertTokenizer
 from spacy.attrs import ORTH
 
+from slp.config import SPECIAL_TOKENS
+from slp.util import mktensor
+
 
 class WordpieceTokenizer(object):
-    def __init__(self, lower=True, bert_model='bert-base-uncased'):
+    def __init__(self, lower=True, bert_model='bert-base-uncased',
+                 specials=SPECIAL_TOKENS):
         self.tokenizer = BertTokenizer.from_pretrained(bert_model,
                                                        do_lower_case=lower)
         self.tokenizer.max_len = 1024  # hack to suppress warnings
+        self.specials = specials
 
     def __call__(self, x):
-        x = ['[CLS]'] + self.tokenizer.tokenize(x)
+        x = [self.specials.CLS.value] + self.tokenizer.tokenize(x)
         return self.tokenizer.convert_tokens_to_ids(x)
 
 
 class SpacyTokenizer(object):
-    def __init__(self, lower=True, bos='<bos>', eos='<eos>',
-                 specials=['<pad>', '<unk>', '<mask>', '<bos>', '<eos>']):
+    def __init__(self, lower=True, specials=SPECIAL_TOKENS):
         self.lower = lower
+        self.specials = SPECIAL_TOKENS
         self.nlp = self.get_nlp(specials=specials)
-        self.bos = bos
-        self.eos = eos
 
-    def get_nlp(name="en_core_web_sm", specials=['<pad>', '<unk>',
-                                                 '<mask>', '<bos>', '<eos>']):
+    def get_nlp(name="en_core_web_sm", specials=SPECIAL_TOKENS):
         nlp = spacy.load(name)
-        for control_token in specials:
+        for control_token in map(lambda x: x.value, specials):
             nlp.tokenizer.add_special_case(
                 control_token, [{ORTH: control_token}])
         return nlp
@@ -36,20 +38,22 @@ class SpacyTokenizer(object):
         if self.lower:
             x = x.lower()
         x = [y.text for y in self.nlp.tokenizer(x)]
-        if self.bos:
-            x = [self.bos] + x
-        if self.eos:
-            x = x + [self.eos]
+        if self.specials.has_token('BOS'):
+            x = [self.specials.BOS.value] + x
+        if self.specials.has_token('EOS'):
+            x = x + [self.specials.EOS.value]
         return x
 
 
-class ToTokensSpacy(object):
-    def __init__(self, vocab):
-        self.vocab = vocab
+class ToTokenIds(object):
+    def __init__(self, word2idx, specials=SPECIAL_TOKENS):
+        self.word2idx = word2idx
+        self.specials = specials
 
     def __call__(self, x):
-        return [self.vocab.stoi[w]
-                if w != '<unk>' else self.vocab.stoi['<oov>']
+        return [self.word2idx[w]
+                if w in self.word2idx
+                else self.word2idx[self.specials.UNK.value]
                 for w in x]
 
 
@@ -59,4 +63,4 @@ class ToTensor(object):
         self.dtype = dtype
 
     def __call__(self, x):
-        return torch.tensor(x, device=self.device, dtype=self.dtype)
+        return mktensor(x, device=self.device, dtype=self.dtype)

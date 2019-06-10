@@ -2,8 +2,14 @@ from enum import Enum
 
 
 class SPECIAL_TOKENS(Enum):
-    PAD = '<pad>'
-    MASK = '<mask>'
-    UNK = '<unk>'
-    BOS = '<bos>'
-    EOS = '<eos>'
+    PAD = '[PAD]'
+    MASK = '[MASK]'
+    UNK = '[UNK]'
+    BOS = '[BOS]'
+    EOS = '[EOS]'
+    CLS = '[CLS]'
+
+    @classmethod
+    def has_token(cls, token):
+        return any(token == t.name or token == t.value
+                   for t in cls)
