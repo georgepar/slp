@@ -9,7 +9,7 @@ DEFAULT_LOGGING = {
     'version': 1,
     'formatters': {
         'default': {
-            'format': '[%(asctime)s] - %(name)s - %(levelname)s -- %(message)s',  # noqa: E501
+            'format': '[%(asctime)s] - slp - %(levelname)s -- %(message)s',  # noqa: E501
             'datefmt': '%Y-%m-%d %H:%M:%S'}
     },
     'handlers': {

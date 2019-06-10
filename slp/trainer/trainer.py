@@ -9,7 +9,7 @@ from ignite.metrics import RunningAverage, Loss
 from slp.trainer.handlers import CheckpointHandler, EvaluationHandler
 from slp.util import from_checkpoint, to_device
 from slp.util import log
-
+from slp.util import system
 
 LOGGER = log.getLogger('default')
 
@@ -37,6 +37,11 @@ class Trainer(object):
         self.validate_every = validate_every
         self.patience = patience
         self.accumulation_steps = accumulation_steps
+        self.checkpoint_dir = checkpoint_dir
+
+        model_checkpoint = self._check_checkpoint(model_checkpoint)
+        optimizer_checkpoint = self._check_checkpoint(optimizer_checkpoint)
+
         if metrics is None:
             metrics = {}
         if 'loss' not in metrics:
@@ -57,6 +62,7 @@ class Trainer(object):
             metric.attach(self.valid_evaluator, '{}'.format(name))
 
         self.pbar = ProgressBar()
+        self.val_pbar = ProgressBar(desc='Validation')
 
         self.checkpoint = CheckpointHandler(
             checkpoint_dir, experiment_name, score_name='validation_loss',
@@ -70,6 +76,11 @@ class Trainer(object):
                                              validate_every=1,
                                              early_stopping=self.early_stop)
         self.attach()
+
+    def _check_checkpoint(self, ckpt):
+        if system.is_url(ckpt):
+            ckpt = system.download_url(ckpt, self.checkpoint_dir)
+        return ckpt
 
     @staticmethod
     def _score_fn(engine):
@@ -133,8 +144,8 @@ class Trainer(object):
         ra = RunningAverage(output_transform=lambda x: x)
         ra.attach(self.trainer, "Train Loss")
         self.pbar.attach(self.trainer, ['Train Loss'])
-        self.pbar.attach(self.train_evaluator)
-        self.pbar.attach(self.valid_evaluator)
+        self.val_pbar.attach(self.train_evaluator)
+        self.val_pbar.attach(self.valid_evaluator)
         self.valid_evaluator.add_event_handler(Events.COMPLETED,
                                                self.early_stop)
         ckpt = {
@@ -195,59 +206,3 @@ class Seq2seqTrainer(SequentialTrainer):
                             device=self.device,
                             non_blocking=self.non_blocking)
         return inputs, inputs, lengths
-
-
-if __name__ == '__main__':
-    from torchvision.transforms import Compose, ToTensor, Normalize
-    from torchvision.datasets import MNIST
-    from torch import nn
-    from torch.utils.data import DataLoader
-    import torch.nn.functional as F
-    from torch.optim import SGD
-    from ignite.metrics import Loss, Accuracy
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    class Net(nn.Module):
-        def __init__(self):
-            super(Net, self).__init__()
-            self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-            self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-            self.conv2_drop = nn.Dropout2d()
-            self.fc1 = nn.Linear(320, 50)
-            self.fc2 = nn.Linear(50, 10)
-
-        def forward(self, x):
-            x = F.relu(F.max_pool2d(self.conv1(x), 2))
-            x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-            x = x.view(-1, 320)
-            x = F.relu(self.fc1(x))
-            x = F.dropout(x, training=self.training)
-            x = self.fc2(x)
-            return F.log_softmax(x, dim=-1)
-
-    def get_data_loaders(train_batch_size, val_batch_size):
-        data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
-        train_loader = DataLoader(
-            MNIST(download=True, root=".",
-                  transform=data_transform,
-                  train=True),
-            batch_size=train_batch_size, shuffle=True)
-        val_loader = DataLoader(
-            MNIST(download=False,
-                  root=".",
-                  transform=data_transform,
-                  train=False),
-            batch_size=val_batch_size, shuffle=False)
-        return train_loader, val_loader
-
-    train_loader, val_loader = get_data_loaders(32, 32)
-    model = Net()
-    optimizer = SGD(model.parameters(), lr=1e-3)
-    criterion = nn.NLLLoss()
-    metrics = {'accuracy': Accuracy(),
-               'loss': Loss(criterion)}
-    trainer = Trainer(model, optimizer, checkpoint_dir='/tmp/ckpt',
-                      metrics=metrics, non_blocking=False,
-                      patience=1, loss_fn=criterion)
-    trainer.fit(train_loader, val_loader, epochs=10)

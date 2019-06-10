@@ -24,10 +24,14 @@ def print_separator(symbol='*', n=10, print_fn=print):
 
 
 def is_url(inp):
+    if not inp:
+        return False
     return validators.url(inp)
 
 
 def is_file(inp):
+    if not inp:
+        return False
     return os.path.isfile(inp)
 
 
@@ -105,15 +109,12 @@ def download_url(url, dest_path):
     Download a file to a destination path given a URL
     """
     name = url.rsplit('/')[-1]
-    dest = dest_path + "/" + name
-    try:
-        response = urllib.request.urlopen(url)
-    except (urllib.error.HTTPError, urllib.error.URLError):
-        return False
-
+    dest = os.path.join(dest_path, name)
+    safe_mkdirs(dest)
+    response = urllib.request.urlopen(url)
     with open(dest, 'wb') as fd:
         shutil.copyfileobj(response, fd)
-    return True
+    return dest
 
 
 def write_wav(byte_str, wav_file):
