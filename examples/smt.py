@@ -63,11 +63,11 @@ class DatasetWrapper(Dataset):
         self.transforms = []
         self.label_encoder = (LabelEncoder()
                               .fit([d['label'] for d in dataset]))
-    
+
     def map(self, t):
         self.transforms.append(t)
         return self
-    
+
     def __len__(self):
         return len(self.dataset)
 
@@ -80,7 +80,7 @@ class DatasetWrapper(Dataset):
         return text, target
 
 
-DEVICE = 'cuda'# if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 collate_fn = SequenceClassificationCollator(device='cpu')
 
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     loader = EmbeddingsLoader(
         '../cache/glove.840B.300d.txt', 300)
     word2idx, idx2word, embeddings = loader.load()
-    
+
     tokenizer = SpacyTokenizer()
     to_token_ids = ToTokenIds(word2idx)
     to_tensor = ToTensor(device='cpu')
@@ -99,11 +99,11 @@ if __name__ == '__main__':
         return DataLoader(
             d, batch_size=128,
             num_workers=1,
-            # pin_memory=True,
+            pin_memory=True,
             collate_fn=collate_fn)
 
     train_loader, dev_loader, test_loader = map(
-        create_dataloader, 
+        create_dataloader,
         smt_dataset(directory='../data/', train=True, dev=True, test=True))
 
     model = LSTMClassifier(embeddings, 256, 3)
@@ -116,8 +116,7 @@ if __name__ == '__main__':
     trainer = SequentialTrainer(model, optimizer,
                                 checkpoint_dir='/tmp/ckpt',
                                 metrics=metrics,
-                                non_blocking=False,
-                                # non_blocking=True,
+                                non_blocking=True,
                                 patience=1,
                                 loss_fn=criterion)
     trainer.fit(train_loader, dev_loader, epochs=10)
