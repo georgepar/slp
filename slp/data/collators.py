@@ -12,12 +12,11 @@ class SequenceClassificationCollator(object):
 
     def __call__(self, batch):
         inputs, targets = map(list, zip(*batch))
-        lengths = [len(s) for s in inputs]
-        lengths = torch.tensor(lengths, device=self.device)
+        lengths = torch.tensor([len(s) for s in inputs], device=self.device)
         # Pad and convert to tensor
-        inputs = pad_sequence(inputs,
-                              batch_first=True,
-                              padding_value=self.pad_indx)
-        inputs = inputs.to(self.device)
+        inputs = (pad_sequence(inputs,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
         targets = mktensor(targets, device=self.device, dtype=torch.long)
         return inputs, targets.to(self.device), lengths
