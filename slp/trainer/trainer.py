@@ -203,7 +203,7 @@ class Seq2seqTrainer(SequentialTrainer):
         inputs = to_device(batch[0],
                            device=self.device,
                            non_blocking=self.non_blocking)
-        lengths = to_device(batch[2],
+        lengths = to_device(batch[1],
                             device=self.device,
                             non_blocking=self.non_blocking)
         return inputs, inputs, lengths

@@ -22,12 +22,13 @@ class WordpieceTokenizer(object):
 
 
 class SpacyTokenizer(object):
-    def __init__(self, lower=True, specials=SPECIAL_TOKENS):
+    def __init__(self, lower=True, specials=SPECIAL_TOKENS, lang='en_core_web_sm'):
         self.lower = lower
         self.specials = SPECIAL_TOKENS
-        self.nlp = self.get_nlp(specials=specials)
+        self.lang = lang
+        self.nlp = self.get_nlp(name=lang, specials=specials)
 
-    def get_nlp(name="en_core_web_sm", specials=SPECIAL_TOKENS):
+    def get_nlp(self, name="en_core_web_sm", specials=SPECIAL_TOKENS):
         nlp = spacy.load(name)
         for control_token in map(lambda x: x.value, specials):
             nlp.tokenizer.add_special_case(
