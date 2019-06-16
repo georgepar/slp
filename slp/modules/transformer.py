@@ -122,8 +122,8 @@ class Decoder(nn.Module):
                  inner_size=2048,
                  dropout=.1):
         super(Decoder, self).__init__()
-        self.decoder = nn.Sequential(
-            *repeat_layer(
+        self.decoder = nn.ModuleList(
+            repeat_layer(
                 DecoderLayer(
                     hidden_size=hidden_size,
                     num_heads=num_heads,
@@ -136,11 +136,12 @@ class Decoder(nn.Module):
                 encoded,
                 source_mask=None,
                 target_mask=None):
-        return self.decoder(target,
-                            encoded,
-                            source_mask=source_mask,
-                            target_mask=target_mask)
 
+        for l in self.decoder:
+            target = l(target, encoded,
+                       source_mask=source_mask,
+                       target_mask=target_mask)
+        return target
 
 class EncoderDecoder(nn.Module):
     def __init__(self,
