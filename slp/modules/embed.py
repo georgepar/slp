@@ -45,6 +45,7 @@ class Embed(nn.Module):
                  embeddings=None,
                  noise=.0,
                  dropout=.0,
+                 scale=1.,
                  trainable=False):
         """
         Define the layer of the model and perform the initializations
@@ -56,7 +57,7 @@ class Embed(nn.Module):
             trainable (bool):
         """
         super(Embed, self).__init__()
-
+        self.scale = scale  # scale embeddings by value. Needed for transformer
         # define the embedding layer, with the corresponding dimensions
         self.embedding = nn.Embedding(num_embeddings=num_embeddings,
                                       embedding_dim=embedding_dim)
@@ -91,4 +92,4 @@ class Embed(nn.Module):
         if self.dropout.p > 0:
             embeddings = self.dropout(embeddings)
 
-        return embeddings
+        return embeddings * self.scale
