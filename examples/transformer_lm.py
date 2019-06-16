@@ -23,7 +23,7 @@ if __name__ == "__main__":
         unknown_token=SPECIAL_TOKENS.UNK.value,
         eos_token=SPECIAL_TOKENS.EOS.value)
     vocab = dict(zip(list(
-        set(SPECIAL_TOKENS.tolist() + train + dev)),
+        set(SPECIAL_TOKENS.to_list() + train + dev)),
         itertools.count()))
     to_token_ids = ToTokenIds(vocab)
     to_tensor = ToTensor(device='cpu')
