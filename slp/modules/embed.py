@@ -10,20 +10,25 @@ class PositionalEncoding(nn.Module):
     PE(pos,2i)=sin(pos/10000^(2i/dmodel))
     PE(pos,2i+1)=cos(pos/10000^(2i/dmodel))
     """
-    def __init__(self, max_length, embedding_dim=512):
+    def __init__(self, max_length, embedding_dim=512, device='cpu'):
         super(PositionalEncoding, self).__init__()
         self.max_length = max_length
         self.embedding_dim = embedding_dim
-        self.pe = torch.zeros(max_length, embedding_dim)
-        embedding_indices = torch.arange(0, embedding_dim)
-        position_indices = torch.arange(0, max_length).unsqueeze(-1)
+        pe = torch.zeros(max_length, embedding_dim,
+                         dtype=torch.float, device=device)
+        embedding_indices = torch.arange(0, embedding_dim,
+                                         dtype=torch.float, device=device)
+        position_indices = (torch
+                            .arange(0, max_length,
+                                    dtype=torch.float, device=device)
+                            .unsqueeze(-1))
         # freq => (E,)
         freq_term = 10000 ** (2 * embedding_indices / embedding_dim)
-        self.pe[:, 0::2] = torch.sin(position_indices / freq_term)
-        self.pe[:, 1::2] = torch.cos(position_indices / freq_term)
-        # self.pe => (1, max_length, E)
-        self.pe = self.pe.unsqueeze(0)
-        torch.register_buffer(self.pe)
+        pe[:, 0::2] = torch.sin(position_indices / freq_term[0::2])
+        pe[:, 1::2] = torch.cos(position_indices / freq_term[1::2])
+        # pe => (1, max_length, E)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
 
     def forward(self, x):
         """
