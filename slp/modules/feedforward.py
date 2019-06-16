@@ -2,26 +2,37 @@ import itertools
 import torch.nn as nn
 
 from slp.util import log
-
+from slp.modules.norm import LayerNorm
 
 NON_LINEARITIES = {
     'relu': nn.ReLU,
     'tanh': nn.Tanh,
-    'sigmoid': nn.Sigmoid
+    'sigmoid': nn.Sigmoid,
+    'none': None
 }
 
 
 class FF(nn.Module):
     """Some Information about FF"""
-    def __init__(self, n_in, n_out, activation='relu', bias=True, dropout=.1):
+    def __init__(self,
+                 n_in, n_out, activation='relu',
+                 layer_norm=True, bias=True, dropout=.1):
         super(FF, self).__init__()
         self.fc = nn.Linear(n_in, n_out, bias=bias)
-        self.out = NON_LINEARITIES.get(activation, nn.ReLU)()
-        self.net = nn.net = nn.Sequential(*[self.fc, self.out])
+        self.activation = NON_LINEARITIES.get(activation, nn.ReLU)()
+        self.layer_norm = None
+        if layer_norm:
+            self.layer_norm = LayerNorm(n_out)
         self.drop = nn.Dropout(dropout)
 
     def forward(self, x):
-        return self.net(self.drop(x))
+        out = self.fc(x)
+        out = self.drop(out)
+        if self.layer_norm is not None:
+            out = self.layer_norm(out)
+        if self.activation is not None:
+            out = self.activation(out)
+        return out
 
 
 class PositionwiseFF(nn.Module):

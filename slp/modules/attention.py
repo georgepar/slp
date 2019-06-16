@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from slp.modules.feedforward import FF
+
 
 class Attention(nn.Module):
     """Some Information about Attention"""
@@ -90,6 +92,11 @@ class MultiheadAttentionParallel(nn.Module):
         self.k = nn.Linear(input_size, attention_size, bias=False)
         self.q = nn.Linear(input_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
+        self.output = FF(attention_size,
+                         attention_size,
+                         activation='none',
+                         layer_norm=True,
+                         dropout=dropout)
         self.drop = nn.Dropout(dropout)
 
     def _split_heads(self, x):
@@ -136,6 +143,7 @@ class MultiheadAttentionParallel(nn.Module):
 
         # out => (B, H, L, A/H)
         out = self._merge_heads(torch.matmul(scores, v))
+        out = self.output(out)
         return out
 
 
