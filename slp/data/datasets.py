@@ -31,7 +31,7 @@ class LMDataset(Dataset):
         fn = compose(*self.transforms[::-1])
         self.transforms = []
         # In place transformation to save some mem.
-        for i in range(len(self.data)):
+        for i in tqdm(range(len(self.data)), total=len(self.data)):
             self.data[i] = (fn(self.data[i][0]), fn(self.data[i][1]))
         return self
 

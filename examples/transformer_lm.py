@@ -33,8 +33,7 @@ if __name__ == "__main__":
 
     vocab = create_vocab(train + dev,
                          vocab_size=vocab_size,
-                         extra_tokens=SPECIAL_TOKENS)
-
+                         extra_tokens=SPECIAL_TOKENS.to_list())
     replace_unk = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(vocab)
     to_tensor = ToTensor(device='cpu')
