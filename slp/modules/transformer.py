@@ -158,11 +158,16 @@ class EncoderDecoder(nn.Module):
                                inner_size=inner_size,
                                dropout=dropout)
 
-    def forward(self, source, target, pad_mask=None, subsequent_mask=None):
-        encoded = self.encoder(source, attention_mask=pad_mask)
+    def forward(self,
+                source,
+                target,
+                pad_source_mask=None,
+                pad_target_mask=None,
+                subsequent_mask=None):
+        encoded = self.encoder(source, attention_mask=pad_source_mask)
         decoded = self.decoder(target,
                                encoded,
-                               pad_mask=pad_mask,
+                               pad_mask=pad_target_mask,
                                subsequent_mask=subsequent_mask)
         return decoded
 
@@ -192,7 +197,12 @@ class Transformer(nn.Module):
         self.drop = nn.Dropout(dropout)
         self.predict = nn.Linear(hidden_size, vocab_size)
 
-    def forward(self, source, target, pad_mask=None, subsequent_mask=None):
+    def forward(self,
+                source,
+                target,
+                pad_source_mask=None,
+                pad_target_mask=None,
+                subsequent_mask=None):
         source = self.embed(source)
         target = self.embed(target)
         # Adding embeddings + pos embeddings
@@ -200,7 +210,10 @@ class Transformer(nn.Module):
         source = self.pe(source)
         target = self.pe(target)
         out = self.transformer_block(
-            source, target, pad_mask=pad_mask, subsequent_mask=subsequent_mask)
+            source, target,
+            pad_source_mask=pad_source_mask,
+            pad_target_mask=pad_target_mask,
+            subsequent_mask=subsequent_mask)
         out = self.drop(out)
         out = self.predict(out)
         return out

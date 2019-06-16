@@ -1,9 +1,8 @@
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
-from slp.config import SPECIAL_TOKENS
 from slp.modules.util import pad_mask, subsequent_mask
-from slp.util import mktensor, shift_tensor
+from slp.util import mktensor
 
 
 class SequenceClassificationCollator(object):
@@ -23,25 +22,30 @@ class SequenceClassificationCollator(object):
         return inputs, targets.to(self.device), lengths
 
 
-class TransformerLMCollator(object):
+class TransformerCollator(object):
     def __init__(self, pad_indx=0, device='cpu'):
         self.pad_indx = pad_indx
         self.device = device
 
-    def __call__(self, batch):
-        inputs = batch
-        targets = [shift_tensor(x, n=1) for x in inputs]
-        lengths = torch.tensor([len(s) for s in inputs], device=self.device)
+    def pad_and_mask(self, tensors):
+        lengths = torch.tensor([len(s) for s in tensors],
+                               device=self.device)
         max_length = torch.max(lengths)
         pad_m = pad_mask(lengths, max_length=max_length)
         sub_m = subsequent_mask(max_length)
-        # Pad and convert to tensor
-        inputs = (pad_sequence(inputs,
-                               batch_first=True,
-                               padding_value=self.pad_indx)
-                  .to(self.device))
-        targets = (pad_sequence(inputs,
+        tensors = (pad_sequence(tensors,
                                 batch_first=True,
                                 padding_value=self.pad_indx)
                    .to(self.device))
-        return inputs, targets, pad_m, sub_m
+        return tensors, pad_m, sub_m
+
+    def get_inputs_and_targets(batch):
+        inputs, targets = map(list, zip(*batch))
+        return inputs, targets
+
+    def __call__(self, batch):
+        inputs, targets = self.get_inputs_and_targets(batch)
+        inputs, pad_m_inputs, _ = self.pad_and_mask(inputs)
+        targets, pad_m_targets, sub_m = self.pad_and_mask(targets)
+        return inputs, targets, pad_m_inputs, pad_m_targets, sub_m
+

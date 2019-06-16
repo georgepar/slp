@@ -35,11 +35,9 @@ class LSTMClassifier(nn.Module):
         self.hidden2out = nn.Linear(hidden_dim, output_size)
         self.dropout_layer = nn.Dropout(p=0.2)
 
-
     def init_hidden(self, batch_size):
         return(torch.autograd.Variable(torch.randn(1, batch_size, self.hidden_dim)),
-                torch.autograd.Variable(torch.randn(1, batch_size, self.hidden_dim)))
-
+               torch.autograd.Variable(torch.randn(1, batch_size, self.hidden_dim)))
 
     def forward(self, batch, lengths):
         self.hidden = self.init_hidden(batch.size(0))
@@ -74,7 +72,7 @@ class DatasetWrapper(Dataset):
     def __getitem__(self, idx):
         datum = self.dataset[idx]
         text, target = datum['text'], datum['label']
-        target =  self.label_encoder.transform([target])[0]
+        target = self.label_encoder.transform([target])[0]
         for t in self.transforms:
             text = t(text)
         return text, target
