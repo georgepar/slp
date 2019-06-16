@@ -11,7 +11,8 @@ class LMDataset(Dataset):
         self.max_len = max_len
 
         self.data = [self._split_samples(tokens, idx)
-                     for idx in tqdm(range(len(tokens) - 1), total=len(tokens) - 1)]
+                     for idx in tqdm(range(len(tokens) - 1),
+                                     total=len(tokens) - 1)]
         self.transforms = []
 
     def _split_samples(self, tokens, idx):
@@ -21,18 +22,17 @@ class LMDataset(Dataset):
         return inputs, targets
 
     def map(self, fn, lazy=True):
-        if lazy:
-            self.transforms.append(fn)
-        else:
-            # In place transformation to save some mem.
-            for i in range(len(self.data)):
-                self.data[i] = (fn(self.data[i][0]), fn(self.data[i][1]))
+        self.transforms.append(fn)
+        if not lazy:
+            self.apply_transforms()
         return self
 
     def apply_transforms(self):
         fn = compose(*self.transforms[::-1])
         self.transforms = []
-        self = self.map(fn, lazy=False)
+        # In place transformation to save some mem.
+        for i in range(len(self.data)):
+            self.data[i] = (fn(self.data[i][0]), fn(self.data[i][1]))
         return self
 
     def __len__(self):
