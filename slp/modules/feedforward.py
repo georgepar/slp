@@ -19,7 +19,9 @@ class FF(nn.Module):
                  layer_norm=True, bias=True, dropout=.1):
         super(FF, self).__init__()
         self.fc = nn.Linear(n_in, n_out, bias=bias)
-        self.activation = NON_LINEARITIES.get(activation, nn.ReLU)()
+        self.activation = NON_LINEARITIES.get(activation, nn.ReLU)
+        if self.activation is not None:
+            self.activation = self.activation()
         self.layer_norm = None
         if layer_norm:
             self.layer_norm = LayerNorm(n_out)
