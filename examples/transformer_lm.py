@@ -8,6 +8,7 @@ from torchnlp.datasets import wikitext_2_dataset
 from slp.config import SPECIAL_TOKENS
 from slp.data.datasets import LMDataset
 from slp.data.collators import TransformerCollator
+from slp.data.vocab import create_vocab
 from slp.modules.transformer import Transformer
 from slp.data.transforms import ReplaceUnknownToken, ToTokenIds, ToTensor
 from slp.trainer import TransformerTrainer
@@ -29,9 +30,11 @@ if __name__ == "__main__":
         url='https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-2-v1.zip',
         unknown_token=SPECIAL_TOKENS.UNK.value,
         eos_token=SPECIAL_TOKENS.EOS.value)
-    vocab = dict(zip(list(
-        set(SPECIAL_TOKENS.to_list() + train + dev)),
-        itertools.count())[:vocab_size])
+
+    vocab = create_vocab(train + dev,
+                         vocab_size=vocab_size,
+                         extra_tokens=SPECIAL_TOKENS)
+
     replace_unk = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(vocab)
     to_tensor = ToTensor(device='cpu')
