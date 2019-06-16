@@ -231,5 +231,7 @@ class TransformerTrainer(Trainer):
                             targets,
                             source_mask=mask_inputs,
                             target_mask=mask_targets)
+        targets = targets.view(-1)
+        y_pred = y_pred.view(targets.size(0), -1)
         # TODO: BEAMSEARCH!!
         return y_pred, targets
