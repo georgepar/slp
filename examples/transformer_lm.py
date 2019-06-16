@@ -31,6 +31,7 @@ if __name__ == "__main__":
 
     def create_dataloader(base):
         wrapped = (LMDataset(base, max_len=max_len)
+                   .map(replace_unk)
                    .map(to_token_ids)
                    .map(to_tensor)
                    .apply_transforms())
