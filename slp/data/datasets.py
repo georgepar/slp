@@ -24,13 +24,15 @@ class LMDataset(Dataset):
         if lazy:
             self.transforms.append(fn)
         else:
-            self.data = [(fn(d[0]), fn(d[1])) for d in self.data]
+            # In place transformation to save some mem.
+            for i in range(len(self.data)):
+                self.data[i] = (fn(self.data[i][0]), fn(self.data[i][1]))
         return self
 
     def apply_transforms(self):
         fn = compose(*self.transforms[::-1])
-        self.data = [(fn(d[0]), fn(d[1])) for d in tqdm(self.data, total=len(self.data))]
         self.transforms = []
+        self = self.map(fn, lazy=False)
         return self
 
     def __len__(self):
