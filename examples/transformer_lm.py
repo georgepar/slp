@@ -1,4 +1,4 @@
-import itertools
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
@@ -44,23 +44,24 @@ if __name__ == "__main__":
                    .map(to_token_ids)
                    .map(to_tensor)
                    .apply_transforms())
-        print(wrapped[0])
         return DataLoader(
             wrapped, batch_size=128,
             num_workers=1,
             pin_memory=True,
             collate_fn=collate_fn)
 
-    train_loader = create_dataloader(train)
-    dev_loader = create_dataloader(dev)
-    test_loader = create_dataloader(test)
+    train_loader = create_dataloader(train[:1000])
+    dev_loader = create_dataloader(dev[:1000])
+    test_loader = create_dataloader(test[:1000])
 
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = Transformer(vocab_size=vocab_size,
                         max_length=max_len,
                         num_layers=2,
                         hidden_size=128,
                         num_heads=4,
-                        inner_size=512)
+                        inner_size=512,
+                        device=device)
 
     optimizer = optim.Adam(
         [p for p in model.parameters() if p.requires_grad],
@@ -77,6 +78,6 @@ if __name__ == "__main__":
         accumulation_steps=2,
         loss_fn=nn.CrossEntropyLoss(),
         non_blocking=True,
-        device='cuda:0')
+        device=device)
 
     trainer.fit(train_loader, dev_loader, epochs=10)
