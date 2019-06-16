@@ -1,3 +1,5 @@
+import math
+
 import torch.nn as nn
 
 from slp.modules.attention import MultiheadAttention
@@ -87,6 +89,7 @@ class Encoder(nn.Module):
             x = layer(x, attention_mask=attention_mask)
         return x
 
+
 class DecoderLayer(nn.Module):
     def __init__(self,
                  hidden_size=512,
@@ -104,17 +107,9 @@ class DecoderLayer(nn.Module):
                                    inner_size=inner_size,
                                    dropout=dropout)
 
-    def forward(self, x, encoded, pad_mask=None, subsequent_mask=None):
-        attention_mask = None
-        if pad_mask is not None:
-            attention_mask = pad_mask.clone()
-        if subsequent_mask is not None:
-            if attention_mask is not None:
-                attention_mask = attention_mask * subsequent_mask
-            else:
-                attention_mask = subsequent_mask
-        out = self.in_layer(x, attention_mask=attention_mask)
-        out = self.fuse_layer(encoded, out, attention_mask=pad_mask)
+    def forward(self, x, encoded, source_mask=None, target_mask=None):
+        out = self.in_layer(x, attention_mask=target_mask)
+        out = self.fuse_layer(encoded, out, attention_mask=source_mask)
         out = self.out_layer(out)
         return out
 
@@ -136,8 +131,15 @@ class Decoder(nn.Module):
                     dropout=dropout),
                 num_layers))
 
-    def forward(self, x, encoded, attention_mask=None):
-        return self.decoder(x, encoded, attention_mask=attention_mask)
+    def forward(self,
+                target,
+                encoded,
+                source_mask=None,
+                target_mask=None):
+        return self.decoder(target,
+                            encoded,
+                            source_mask=source_mask,
+                            target_mask=target_mask)
 
 
 class EncoderDecoder(nn.Module):
@@ -162,14 +164,13 @@ class EncoderDecoder(nn.Module):
     def forward(self,
                 source,
                 target,
-                pad_source_mask=None,
-                pad_target_mask=None,
-                subsequent_mask=None):
-        encoded = self.encoder(source, attention_mask=pad_source_mask)
+                source_mask=None,
+                target_mask=None):
+        encoded = self.encoder(source, attention_mask=source_mask)
         decoded = self.decoder(target,
                                encoded,
-                               pad_mask=pad_target_mask,
-                               subsequent_mask=subsequent_mask)
+                               source_mask=source_mask,
+                               target_mask=target_mask)
         return decoded
 
 
@@ -186,6 +187,7 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
         self.embed = Embed(vocab_size,
                            hidden_size,
+                           scale=math.sqrt(hidden_size),
                            dropout=dropout,
                            trainable=True)
         self.pe = PositionalEncoding(
@@ -204,9 +206,8 @@ class Transformer(nn.Module):
     def forward(self,
                 source,
                 target,
-                pad_source_mask=None,
-                pad_target_mask=None,
-                subsequent_mask=None):
+                source_mask=None,
+                target_mask=None):
         source = self.embed(source)
         target = self.embed(target)
         # Adding embeddings + pos embeddings
@@ -215,9 +216,39 @@ class Transformer(nn.Module):
         target = self.pe(target)
         out = self.transformer_block(
             source, target,
-            pad_source_mask=pad_source_mask,
-            pad_target_mask=pad_target_mask,
-            subsequent_mask=subsequent_mask)
+            source_mask=source_mask,
+            target_mask=target_mask)
         out = self.drop(out)
         out = self.predict(out)
         return out
+
+
+# IDEA: Instead of flat encoder / decoder create
+# hierarchical encoding / decoding layers
+# class TransformerBlock(nn.Module):
+#     """Some Information about TransformerBlock"""
+#     def __init__(self,
+#                  hidden_size=512,
+#                  num_heads=8,
+#                  inner_size=2048,
+#                  dropout=.1):
+#         super(TransformerBlock, self).__init__()
+#         self.enc = EncoderLayer(hidden_size=hidden_size,
+#                                 num_heads=num_heads,
+#                                 inner_size=inner_size,
+#                                 dropout=dropout)
+#         self.dec = DecoderLayer(hidden_size=hidden_size,
+#                                 num_heads=num_heads,
+#                                 inner_size=inner_size,
+#                                 dropout=dropout)
+
+#     def forward(self,
+#                 source,
+#                 target,
+#                 source_mask=None,
+#                 target_mask=None):
+#         encoded = self.enc(source, attention_mask=source_mask)
+#         decoded = self.dec(target,
+#                            encoded,
+#                            attention_mask=target_mask)
+#         return decoded
