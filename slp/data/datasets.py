@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from toolz.functoolz import compose
 from torch.utils.data import Dataset
 
@@ -8,8 +9,9 @@ class LMDataset(Dataset):
     """
     def __init__(self, tokens, max_len=256):
         self.max_len = max_len
+
         self.data = [self._split_samples(tokens, idx)
-                     for idx in range(len(tokens) - 1)]
+                     for idx in tqdm(range(len(tokens) - 1), total=len(tokens) - 1)]
         self.transforms = []
 
     def _split_samples(self, tokens, idx):
@@ -27,7 +29,7 @@ class LMDataset(Dataset):
 
     def apply_transforms(self):
         fn = compose(*self.transforms[::-1])
-        self.data = [(fn(d[0]), fn(d[1])) for d in self.data]
+        self.data = [(fn(d[0]), fn(d[1])) for d in tqdm(self.data, total=len(self.data))]
         self.transforms = []
         return self
 
