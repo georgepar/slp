@@ -108,7 +108,7 @@ class MultiheadAttentionParallel(nn.Module):
         x => (B, H, L, A/H)
         out => (B, L, A)
         """
-        batch_size, max_length, _ = x.size()
+        batch_size, _, max_length, _ = x.size()
         # x => (B, L, H, A/H)
         x = x.permute(0, 2, 1, 3).contiguous()
         return x.view(batch_size, max_length, -1)
@@ -130,7 +130,7 @@ class MultiheadAttentionParallel(nn.Module):
         # scores => (B, H, L, L)
         scores = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(self.dk)
         if attention_mask is not None:
-            scores = scores * attention_mask
+            scores = scores * attention_mask.unsqueeze(1)
         scores = F.softmax(scores, dim=-1)
         scores = self.drop(scores)
 
