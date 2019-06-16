@@ -217,25 +217,19 @@ class TransformerTrainer(Trainer):
         targets = to_device(batch[1],
                             device=self.device,
                             non_blocking=self.non_blocking)
-        pad_source_mask = to_device(batch[2],
-                                    device=self.device,
-                                    non_blocking=self.non_blocking)
-        pad_target_mask = to_device(batch[3],
-                                    device=self.device,
-                                    non_blocking=self.non_blocking)
-        subsequent_mask = to_device(batch[4],
-                                    device=self.device,
-                                    non_blocking=self.non_blocking)
-        return (inputs, targets, pad_source_mask,
-                pad_target_mask, subsequent_mask)
+        mask_inputs = to_device(batch[2],
+                                device=self.device,
+                                non_blocking=self.non_blocking)
+        mask_targets = to_device(batch[3],
+                                 device=self.device,
+                                 non_blocking=self.non_blocking)
+        return inputs, targets, mask_inputs, mask_targets
 
     def get_predictions_and_targets(self, batch):
-        inputs, targets, pad_source_mask, pad_target_mask, subsequent_mask = \
-            self.parse_batch(batch)
+        inputs, targets, mask_inputs, mask_targets = self.parse_batch(batch)
         y_pred = self.model(inputs,
                             targets,
-                            pad_source_mask=pad_source_mask,
-                            pad_target_mask=pad_target_mask,
-                            subsequent_mask=subsequent_mask)
+                            source_mask=mask_inputs,
+                            target_mask=mask_targets)
         # TODO: BEAMSEARCH!!
         return y_pred, targets

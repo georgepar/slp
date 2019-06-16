@@ -18,4 +18,4 @@ def pad_mask(lengths, max_length=None):
 
 def subsequent_mask(max_length):
     mask = torch.ones(max_length, max_length)
-    return mask.triu().t()
+    return mask.triu().t().unsqueeze(0).contiguous()
