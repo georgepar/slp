@@ -73,8 +73,8 @@ class Encoder(nn.Module):
                  inner_size=2048,
                  dropout=.1):
         super(Encoder, self).__init__()
-        self.encoder = nn.Sequential(
-            *repeat_layer(
+        self.encoder = nn.ModuleList(
+            repeat_layer(
                 EncoderLayer(
                     hidden_size=hidden_size,
                     num_heads=num_heads,
@@ -83,8 +83,9 @@ class Encoder(nn.Module):
                 num_layers))
 
     def forward(self, x, attention_mask=None):
-        return self.encoder(x, attention_mask=attention_mask)
-
+        for layer in self.encoder:
+            x = layer(x, attention_mask=attention_mask)
+        return x
 
 class DecoderLayer(nn.Module):
     def __init__(self,
