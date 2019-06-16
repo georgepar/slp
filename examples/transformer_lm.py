@@ -5,7 +5,7 @@ from torchnlp.datasets import wikitext_2_dataset
 from slp.config import SPECIAL_TOKENS
 from slp.data.datasets import LMDataset
 from slp.data.collators import TransformerCollator
-from slp.data.transforms import ToTokenIds, ToTensor
+from slp.data.transforms import ReplaceUnknownToken, ToTokenIds, ToTensor
 
 
 collate_fn = TransformerCollator(device='cpu')
@@ -25,6 +25,7 @@ if __name__ == "__main__":
     vocab = dict(zip(list(
         set(SPECIAL_TOKENS.to_list() + train + dev)),
         itertools.count()))
+    replace_unk = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(vocab)
     to_tensor = ToTensor(device='cpu')
 
