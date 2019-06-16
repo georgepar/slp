@@ -12,7 +12,7 @@ class Sublayer1(nn.Module):
         super(Sublayer1, self).__init__()
         self.lnorm = LayerNorm(hidden_size)
         self.sublayer = MultiheadAttention(
-            hidden_size=hidden_size,
+            attention_size=hidden_size,
             num_heads=num_heads,
             dropout=dropout)
 
@@ -36,7 +36,7 @@ class Sublayer3(nn.Module):
         super(Sublayer3, self).__init__()
         self.lnorm = LayerNorm(hidden_size)
         self.sublayer = MultiheadAttention(
-            hidden_size=hidden_size,
+            attention_size=hidden_size,
             num_heads=num_heads,
             dropout=dropout)
 
@@ -180,14 +180,17 @@ class Transformer(nn.Module):
                  hidden_size=512,
                  num_heads=8,
                  inner_size=2048,
-                 dropout=0.1):
+                 dropout=0.1,
+                 device='cpu'):
         super(Transformer, self).__init__()
         self.embed = Embed(vocab_size,
                            hidden_size,
                            dropout=dropout,
                            trainable=True)
         self.pe = PositionalEncoding(
-            max_length, embedding_dim=hidden_size)
+            max_length,
+            embedding_dim=hidden_size,
+            device=device)
         self.transformer_block = EncoderDecoder(
             num_layers=num_layers,
             hidden_size=hidden_size,
