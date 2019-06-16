@@ -1,7 +1,7 @@
 import itertools
 import torch.nn as nn
 
-from slp.utils import log
+from slp.util import log
 
 
 NON_LINEARITIES = {
