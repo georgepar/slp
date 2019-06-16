@@ -32,13 +32,14 @@ class TransformerCollator(object):
                                device=self.device)
         max_length = torch.max(lengths)
         pad_m = pad_mask(lengths, max_length=max_length)
-        sub_m = subsequent_mask(max_length)
+        sub_m = subsequent_mask(max_length).contiguous()
         tensors = (pad_sequence(tensors,
                                 batch_first=True,
                                 padding_value=self.pad_indx)
                    .to(self.device))
         return tensors, pad_m, sub_m
 
+    @staticmethod
     def get_inputs_and_targets(batch):
         inputs, targets = map(list, zip(*batch))
         return inputs, targets
