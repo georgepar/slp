@@ -100,3 +100,13 @@ def from_checkpoint(checkpoint_file, obj, map_location=None):
                             map_location=map_location)
     obj.load_state_dict(state_dict)
     return obj
+
+
+def rotate_tensor(l, n=1):
+    return torch.cat((l[n:], l[:n]))
+
+
+def shift_tensor(l, n=1):
+    out = rotate_tensor(l, n=n)
+    out[-n:] = 0
+    return out

@@ -58,6 +58,15 @@ class ToTokenIds(object):
                 for w in x]
 
 
+class ReplaceUnknownToken(object):
+    def __init__(self, old_unk='<unk>', new_unk=SPECIAL_TOKENS.UNK.value):
+        self.old_unk = old_unk
+        self.new_unk = new_unk
+
+    def __call__(self, x):
+        return [w if w != self.old_unk else self.new_unk for w in x]
+
+
 class ToTensor(object):
     def __init__(self, device='cpu', dtype=torch.long):
         self.device = device

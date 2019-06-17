@@ -13,3 +13,7 @@ class SPECIAL_TOKENS(Enum):
     def has_token(cls, token):
         return any(token == t.name or token == t.value
                    for t in cls)
+
+    @classmethod
+    def to_list(cls):
+        return list(map(lambda x: x.value, cls))

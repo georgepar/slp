@@ -207,3 +207,31 @@ class Seq2seqTrainer(SequentialTrainer):
                             device=self.device,
                             non_blocking=self.non_blocking)
         return inputs, inputs, lengths
+
+
+class TransformerTrainer(Trainer):
+    def parse_batch(self, batch):
+        inputs = to_device(batch[0],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        targets = to_device(batch[1],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        mask_inputs = to_device(batch[2],
+                                device=self.device,
+                                non_blocking=self.non_blocking)
+        mask_targets = to_device(batch[3],
+                                 device=self.device,
+                                 non_blocking=self.non_blocking)
+        return inputs, targets, mask_inputs, mask_targets
+
+    def get_predictions_and_targets(self, batch):
+        inputs, targets, mask_inputs, mask_targets = self.parse_batch(batch)
+        y_pred = self.model(inputs,
+                            targets,
+                            source_mask=mask_inputs,
+                            target_mask=mask_targets)
+        targets = targets.view(-1)
+        y_pred = y_pred.view(targets.size(0), -1)
+        # TODO: BEAMSEARCH!!
+        return y_pred, targets
