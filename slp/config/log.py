@@ -1,7 +1,10 @@
 import logging
 import logging.handlers
+import os
 import sys
 
+LOG_PATH = os.path.join(os.path.dirname(
+    os.path.realpath(__file__)), "../../logs/")
 
 LEVEL = logging.INFO
 
@@ -23,7 +26,7 @@ DEFAULT_LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'default',
-            'filename': 'debug.log',
+            'filename': os.path.join(LOG_PATH, 'debug.log'),
             'maxBytes': 10485760,
             'backupCount': 20,
             'encoding': 'utf8'
