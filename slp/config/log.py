@@ -3,12 +3,14 @@ import logging.handlers
 import os
 import sys
 
-LOG_PATH = os.path.join(os.path.dirname(
+from slp.util import types
+
+LOG_PATH: str = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), "../../logs/")
 
-LEVEL = logging.INFO
+LEVEL: int = logging.INFO
 
-DEFAULT_LOGGING = {
+DEFAULT_LOGGING: types.GenericDict = {
     'version': 1,
     'formatters': {
         'default': {
