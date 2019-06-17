@@ -1,17 +1,25 @@
 import torch
 
+from typing import Optional
+
 from slp.util import system as _sysutil
 from slp.util import log
+from slp.util import types
 
 
 LOGGER = log.getLogger('default')
 
 
-def to_device(tt, device='cpu', non_blocking=False):
+def to_device(tt: torch.Tensor,
+              device: Optional[types.Device] = 'cpu',
+              non_blocking: bool = False) -> torch.Tensor:
     return tt.to(device, non_blocking=non_blocking)
 
 
-def t_(data, dtype=torch.float, device='cpu', requires_grad=False):
+def t_(data: types.NdTensor,
+       dtype: torch.dtype = torch.float,
+       device: Optional[types.Device] = 'cpu',
+       requires_grad: bool = False) -> torch.Tensor:
     """Convert a list or numpy array to torch tensor. If a torch tensor
     is passed it is cast to  dtype, device and the requires_grad flag is
     set IN PLACE.
@@ -30,12 +38,18 @@ def t_(data, dtype=torch.float, device='cpu', requires_grad=False):
             requires_grad containing data
 
     """
+    if isinstance(device, str):
+        device = torch.device(device)
+
     tt = (torch.as_tensor(data, dtype=dtype, device=device)
-          .requires_grad_(requires_grad=requires_grad))
+          .requires_grad_(requires_grad))
     return tt
 
 
-def t(data, dtype=torch.float, device='cpu', requires_grad=False):
+def t(data: types.NdTensor,
+      dtype: torch.dtype = torch.float,
+      device: types.Device = 'cpu',
+      requires_grad: bool = False) -> torch.Tensor:
     """Convert a list or numpy array to torch tensor. If a torch tensor
     is passed it is cast to  dtype, device and the requires_grad flag is
     set. This always copies data.
@@ -59,8 +73,11 @@ def t(data, dtype=torch.float, device='cpu', requires_grad=False):
     return tt
 
 
-def mktensor(data, dtype=torch.float, device='cpu',
-             requires_grad=False, copy=True):
+def mktensor(data: types.NdTensor,
+             dtype: torch.dtype = torch.float,
+             device: types.Device = 'cpu',
+             requires_grad: bool = False,
+             copy: bool = True) -> torch.Tensor:
     """Convert a list or numpy array to torch tensor. If a torch tensor
         is passed it is cast to  dtype, device and the requires_grad flag is
         set. This can copy data or make the operation in place.
@@ -86,7 +103,10 @@ def mktensor(data, dtype=torch.float, device='cpu',
         data, dtype=dtype, device=device, requires_grad=requires_grad)
 
 
-def from_checkpoint(checkpoint_file, obj, map_location=None):
+def from_checkpoint(
+        checkpoint_file: str,
+        obj: types.ModuleOrOptimizer,
+        map_location: Optional[types.Device] = None) -> types.ModuleOrOptimizer:  # noqa: E501
     if checkpoint_file is None:
         return obj
 
@@ -102,11 +122,11 @@ def from_checkpoint(checkpoint_file, obj, map_location=None):
     return obj
 
 
-def rotate_tensor(l, n=1):
+def rotate_tensor(l: torch.Tensor, n: int = 1) -> torch.Tensor:
     return torch.cat((l[n:], l[:n]))
 
 
-def shift_tensor(l, n=1):
+def shift_tensor(l: torch.Tensor, n: int = 1) -> torch.Tensor:
     out = rotate_tensor(l, n=n)
     out[-n:] = 0
     return out

@@ -8,7 +8,7 @@ import slp.config as config
 logging.getLogger("ignite").setLevel(logging.WARNING)
 
 
-def getLogger(name):
+def getLogger(name: str) -> logging.Logger:
     logging.config.dictConfig(config.DEFAULT_LOGGING)
     log = logging.getLogger(name)
     return log
