@@ -1,3 +1,5 @@
+# flake8: noqa
+
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ## Created by: Hang Zhang, Rutgers University, Email: zhang.hang@rutgers.edu
 ## Modified by Thomas Wolf, HuggingFace Inc., Email: thomas@huggingface.co
@@ -14,11 +16,11 @@ import torch
 from torch.autograd import Variable, Function
 import torch.cuda.comm as comm
 from torch.nn.parallel.data_parallel import DataParallel
+from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.nn.parallel.parallel_apply import get_a_var
 from torch.nn.parallel.scatter_gather import gather
 from torch.nn.parallel._functions import ReduceAddCoalesced, Broadcast
 
-torch_ver = torch.__version__[:3]
 
 __all__ = ['allreduce', 'DataParallelModel', 'DataParallelCriterion',
            'patch_replication_callback']
@@ -167,12 +169,10 @@ def _criterion_parallel_apply(modules, inputs, targets, kwargs_tup=None, devices
 
     lock = threading.Lock()
     results = {}
-    if torch_ver != "0.3":
-        grad_enabled = torch.is_grad_enabled()
+    grad_enabled = torch.is_grad_enabled()
 
     def _worker(i, module, input, target, kwargs, device=None):
-        if torch_ver != "0.3":
-            torch.set_grad_enabled(grad_enabled)
+        torch.set_grad_enabled(grad_enabled)
         if device is None:
             device = get_a_var(input).get_device()
         try:

@@ -2,36 +2,45 @@ import errno
 import os
 
 import numpy as np
-from tqdm import tqdm
 
-from slp.util import system
-from slp.util import log
+from typing import cast, Any, Dict, Optional
+
 from slp.config import SPECIAL_TOKENS
+from slp.util import log
+from slp.util import system
+from slp.util import types
 
 
 class EmbeddingsLoader(object):
-    def __init__(self, embeddings_file, dim,
-                 extra_tokens=SPECIAL_TOKENS):
+    def __init__(self,
+                 embeddings_file: str, dim: int,
+                 extra_tokens: Any = SPECIAL_TOKENS) -> None:
         self.logger = log.getLogger(f'{__name__}.EmbeddingsLoader')
         self.embeddings_file = embeddings_file
         self.cache_ = self._get_cache_name()
         self.dim_ = dim
         self.extra_tokens = extra_tokens
 
-    def _get_cache_name(self):
+    def _get_cache_name(self) -> str:
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
         cache_name = os.path.join(head, f'{filename}.p')
         self.logger.info(f'Cache: {cache_name}')
         return cache_name
 
-    def _dump_cache(self, data):
+    def _dump_cache(self, data: types.Embeddings) -> None:
         system.pickle_dump(data, self.cache_)
 
-    def _load_cache(self):
-        return system.pickle_load(self.cache_)
+    def _load_cache(self) -> types.Embeddings:
+        return cast(types.Embeddings, system.pickle_load(self.cache_))
 
-    def augment_embeddings(self, word2idx, idx2word, embeddings, token, emb=None):
+    def augment_embeddings(
+            self,
+            word2idx: Dict[str, int],
+            idx2word: Dict[int, str],
+            embeddings: np.ndarray,
+            token: str,
+            emb: Optional[np.ndarray] = None) -> types.Embeddings:
         word2idx[token] = len(embeddings)
         idx2word[len(embeddings)] = token
         if emb is None:
@@ -39,9 +48,9 @@ class EmbeddingsLoader(object):
                 low=-0.05, high=0.05, size=self.dim_)
         embeddings.append(emb)
         return word2idx, idx2word, embeddings
-    
+
     @system.timethis
-    def load(self):
+    def load(self) -> types.Embeddings:
         """
         Read the word vectors from a text file
         Returns:
@@ -90,7 +99,7 @@ class EmbeddingsLoader(object):
 
                 values = line.rstrip().split(" ")
                 word = values[0]
-                
+
                 if word in word2idx:
                     continue
 
