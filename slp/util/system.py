@@ -9,7 +9,7 @@ import urllib
 import urllib.request
 import validators
 
-from typing import cast, Any, Callable, Tuple
+from typing import cast, Any, Callable, Optional, Tuple
 
 from slp.util import log
 from slp.util import types
@@ -30,13 +30,13 @@ def print_separator(symbol: str = '*',
     print_fn(symbol * n)
 
 
-def is_url(inp: str) -> types.ValidationResult:
+def is_url(inp: Optional[str]) -> types.ValidationResult:
     if not inp:
         return False
     return validators.url(inp)
 
 
-def is_file(inp: str) -> types.ValidationResult:
+def is_file(inp: Optional[str]) -> types.ValidationResult:
     if not inp:
         return False
     return os.path.isfile(inp)

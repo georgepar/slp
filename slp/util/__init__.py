@@ -2,7 +2,7 @@ import torch
 
 from typing import Optional
 
-from slp.util import system as _sysutil
+from slp.util import system
 from slp.util import log
 from slp.util import types
 
@@ -104,13 +104,13 @@ def mktensor(data: types.NdTensor,
 
 
 def from_checkpoint(
-        checkpoint_file: str,
+        checkpoint_file: Optional[str],
         obj: types.ModuleOrOptimizer,
         map_location: Optional[types.Device] = None) -> types.ModuleOrOptimizer:  # noqa: E501
     if checkpoint_file is None:
         return obj
 
-    if not _sysutil.is_file(checkpoint_file):
+    if not system.is_file(checkpoint_file):
         LOGGER.warn(
             f'The checkpoint {checkpoint_file} you are trying to load '
             'does not exist. Continuing without loading...')

@@ -2,6 +2,7 @@ from enum import Enum
 
 from typing import List, Type, TypeVar
 
+
 SpecialTokens = TypeVar('SpecialTokens', bound='SPECIAL_TOKENS')
 
 
