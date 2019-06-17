@@ -3,18 +3,16 @@ import logging.handlers
 import os
 import sys
 
-from slp.util import types
-
-LOG_PATH: str = os.path.join(os.path.dirname(
+LOG_PATH = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), "../../logs/")
 
-LEVEL: int = logging.INFO
+LEVEL = logging.INFO
 
-DEFAULT_LOGGING: types.GenericDict = {
+DEFAULT_LOGGING = {
     'version': 1,
     'formatters': {
         'default': {
-            'format': '[%(asctime)s] - slp - %(levelname)s -- %(message)s',  # noqa: E501
+            'format': '[%(asctime)s] - slp - %(levelname)s -- %(message)s', 
             'datefmt': '%Y-%m-%d %H:%M:%S'}
     },
     'handlers': {

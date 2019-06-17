@@ -7,7 +7,7 @@ from ignite.engine import Engine, Events, State
 from ignite.metrics import RunningAverage, Loss
 
 from torch.optim.optimizer import Optimizer
-from torch.nn.loss import _Loss
+from torch.nn.modules.loss import _Loss
 from torch.utils.data import DataLoader
 
 from typing import cast, List, Optional, Tuple, TypeVar
