@@ -64,8 +64,7 @@ if __name__ == "__main__":
                         device=device)
 
     optimizer = optim.Adam(
-        [p for p in model.parameters() if p.requires_grad],
-        lr=lr)
+        [p for p in model.parameters() if p.requires_grad], lr=lr)
 
     trainer = TransformerTrainer(
         model,
@@ -81,3 +80,4 @@ if __name__ == "__main__":
         device=device)
 
     trainer.fit(train_loader, dev_loader, epochs=10)
+
