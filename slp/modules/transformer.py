@@ -143,6 +143,7 @@ class Decoder(nn.Module):
                        target_mask=target_mask)
         return target
 
+
 class EncoderDecoder(nn.Module):
     def __init__(self,
                  num_layers=6,
