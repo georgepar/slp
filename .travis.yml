@@ -1,0 +1,9 @@
+language: python
+sudo: required
+python:
+        - "3.6"
+before_install:
+        pip install -U pip
+install:
+        pip install --progress-bar off -r requirements.txt
+script: pytest -s tests
