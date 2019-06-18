@@ -11,7 +11,7 @@ from torchnlp.datasets import smt_dataset  # type: ignore
 
 from slp.data.collators import PackedSequenceCollator
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
-from slp.modules.feedforward import FF
+from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import SequentialTrainer
 from slp.util.embeddings import EmbeddingsLoader
@@ -66,11 +66,11 @@ if __name__ == '__main__':
         create_dataloader,
         smt_dataset(directory='../data/', train=True, dev=True, test=True))
 
-    model = nn.ModuleList(
-        [WordRNN(256, embeddings, bidirectional=True,
-                 unpack=True, attention=True, device=DEVICE),
-         FF(512, 3, activation='none', layer_norm=False, dropout=0.)]
-    )
+    model = Classifier(
+        WordRNN(256, embeddings, bidirectional=True,
+                unpack=True, attention=True, device=DEVICE),
+        512, 3)
+
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
                      lr=1e-3)
     criterion = nn.CrossEntropyLoss()
