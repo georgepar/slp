@@ -1,7 +1,7 @@
 import torch
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 
-from slp.modules.util import pad_mask, subsequent_mask, sort_sequences
+from slp.modules.util import pad_mask, subsequent_mask
 from slp.util import mktensor
 
 
