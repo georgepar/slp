@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import DataLoader
-from torchnlp.datasets import wikitext_2_dataset
+from torchnlp.datasets import wikitext_2_dataset  # type: ignore
 
 from slp.config import SPECIAL_TOKENS
 from slp.data.datasets import LMDataset
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         dev=True,
         test=True,
         extracted_name='wikitext-2',
-        url='https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-2-v1.zip',
+        url='https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-2-v1.zip',  # noqa: E501
         unknown_token=SPECIAL_TOKENS.UNK.value,
         eos_token=SPECIAL_TOKENS.EOS.value)
 
@@ -80,4 +80,3 @@ if __name__ == "__main__":
         device=device)
 
     trainer.fit(train_loader, dev_loader, epochs=10)
-

@@ -1,6 +1,4 @@
 import torch
-import torch.autograd as autograd
-import torch.functional as F
 import torch.nn as nn
 
 from ignite.metrics import Loss, Accuracy
@@ -8,9 +6,9 @@ from sklearn.preprocessing import LabelEncoder
 
 from torch.optim import SGD
 from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from torch.nn.utils.rnn import pack_padded_sequence
 
-from torchnlp.datasets import smt_dataset
+from torchnlp.datasets import smt_dataset  # type: ignore
 
 from slp.data.collators import SequenceClassificationCollator
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
@@ -28,16 +26,21 @@ class LSTMClassifier(nn.Module):
 
         self.embedding = nn.Embedding(self.vocab_size, self.embedding_dim)
         self.embedding.weight = nn.Parameter(torch.as_tensor(embeddings),
-                                                requires_grad=False)
+                                             requires_grad=False)
 
-        self.lstm = nn.LSTM(self.embedding_dim, hidden_dim, num_layers=1, batch_first=True)
+        self.lstm = nn.LSTM(self.embedding_dim,
+                            hidden_dim,
+                            num_layers=1,
+                            batch_first=True)
 
         self.hidden2out = nn.Linear(hidden_dim, output_size)
         self.dropout_layer = nn.Dropout(p=0.2)
 
     def init_hidden(self, batch_size):
-        return(torch.autograd.Variable(torch.randn(1, batch_size, self.hidden_dim)),
-               torch.autograd.Variable(torch.randn(1, batch_size, self.hidden_dim)))
+        return(torch.autograd.Variable(
+                    torch.randn(1, batch_size, self.hidden_dim)),
+               torch.autograd.Variable(
+                   torch.randn(1, batch_size, self.hidden_dim)))
 
     def forward(self, batch, lengths):
         self.hidden = self.init_hidden(batch.size(0))

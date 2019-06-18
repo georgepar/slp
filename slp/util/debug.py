@@ -1,3 +1,5 @@
+# flake8: noqa
+
 '''
 Monkey patch Python 3.7 breakpoint to use pdb or rpdb
 or to pass through if we are not debugging

@@ -1,8 +1,10 @@
 import torch
 import torch.nn.functional as F
 
-from torchvision.transforms import Compose, ToTensor, Normalize
-from torchvision.datasets import MNIST
+
+from torchvision.transforms import (  # type: ignore
+    Compose, ToTensor, Normalize)
+from torchvision.datasets import MNIST  # type: ignore
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.optim import SGD
