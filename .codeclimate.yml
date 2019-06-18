@@ -1,0 +1,13 @@
+languages:
+  Python: true
+engines:
+  radon:
+    enabled: true
+  shellcheck:
+    enabled: true
+ratings:
+  paths:
+    - "**.py"
+
+exclude_paths:
+- slp/transforms
