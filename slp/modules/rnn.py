@@ -2,14 +2,14 @@ import torch.nn as nn
 
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
-from slp.modules.unpack import PadPackedSequence
+from slp.modules.helpers import PackSequence, PadPackedSequence
 from slp.modules.util import pad_mask
 
 
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, batch_first=True,
                  layers=1, bidirectional=False, dropout=0,
-                 rnn_type='lstm', unpack=True):
+                 rnn_type='lstm', packed_sequence=True):
         super(RNN, self).__init__()
         rnn_cls = nn.LSTM if rnn_type == 'lstm' else nn.GRU
         self.rnn = rnn_cls(input_size,
@@ -18,14 +18,16 @@ class RNN(nn.Module):
                            num_layers=layers,
                            bidirectional=bidirectional)
         self.drop = nn.Dropout(dropout)
-        self.unpack = None
-        if unpack:
+        self.packed_sequence = None
+        if packed_sequence:
+            self.pack = PackSequence(batch_first=batch_first)
             self.unpack = PadPackedSequence(batch_first=batch_first)
 
     def forward(self, x, lengths):
         self.rnn.flatten_parameters()
+        x, lengths = self.pack(x, lengths)
         out, _ = self.rnn(x)
-        if self.unpack is not None:
+        if self.packed_sequence is not None:
             out = self.unpack(out, lengths)
         out = self.drop(out)
         last_hidden = out[:, -1, :]
@@ -37,7 +39,7 @@ class WordRNN(nn.Module):
             self, hidden_size, embeddings,
             embeddings_dropout=.1, finetune_embeddings=False,
             batch_first=True, layers=1, bidirectional=False,
-            dropout=0.1, rnn_type='lstm', unpack=True,
+            dropout=0.1, rnn_type='lstm', packed_sequence=True,
             attention=False, device='cpu'):
         super(WordRNN, self).__init__()
         self.embed = Embed(embeddings.shape[0],
@@ -49,7 +51,7 @@ class WordRNN(nn.Module):
             embeddings.shape[1], hidden_size,
             batch_first=batch_first, layers=layers,
             bidirectional=bidirectional, dropout=dropout,
-            rnn_type=rnn_type, unpack=unpack)
+            rnn_type=rnn_type, packed_sequence=packed_sequence)
         self.out_size = hidden_size if not bidirectional else 2 * hidden_size
         self.attention = None
         if attention:

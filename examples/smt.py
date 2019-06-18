@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from torchnlp.datasets import smt_dataset  # type: ignore
 
-from slp.data.collators import PackedSequenceCollator
+from slp.data.collators import SequenceClassificationCollator
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
@@ -42,7 +42,7 @@ class DatasetWrapper(Dataset):
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-collate_fn = PackedSequenceCollator(device='cpu')
+collate_fn = SequenceClassificationCollator(device='cpu')
 
 
 if __name__ == '__main__':
