@@ -11,6 +11,6 @@ class Classifier(nn.Module):
                       activation='none', layer_norm=False,
                       dropout=0.)
 
-    def forward(self, x):
-        x = self.encoder(x)
+    def forward(self, *args, **kwargs):
+        x = self.encoder(*args, **kwargs)
         return self.clf(x)
