@@ -142,5 +142,7 @@ def test_model_overfits_single_batch():
     inputs, targets, m1, m2 = next(iter(train_loader))
     preds = model(inputs, targets, source_mask=m1, target_mask=m2)
     pred_tokens = preds.max(-1)[1]
-
+    print(model)
+    print(f'Targets={targets}')
+    print(f'Predicted={pred_tokens}')
     assert torch.all(torch.eq(targets, pred_tokens))

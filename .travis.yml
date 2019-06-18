@@ -8,4 +8,6 @@ before_install:
     - pip install .
 install:
     - pip install --progress-bar off -r requirements.txt
-script: pytest -s tests
+script:
+    - pytest -s tests
+    - python -m mypy slp
