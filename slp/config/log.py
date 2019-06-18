@@ -3,8 +3,11 @@ import logging.handlers
 import os
 import sys
 
-LOG_PATH = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "/tmp/")
+
+LOG_PATH = os.path.dirname(os.path.realpath(__file__))
+
+if os.path.exists(os.path.join(LOG_PATH, '../../logs')):
+    LOG_PATH = os.path.join(LOG_PATH, '../../logs')
 
 LEVEL = logging.INFO
 
