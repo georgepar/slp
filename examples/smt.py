@@ -4,58 +4,17 @@ import torch.nn as nn
 from ignite.metrics import Loss, Accuracy
 from sklearn.preprocessing import LabelEncoder
 
-from torch.optim import SGD
+from torch.optim import Adam
 from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pack_padded_sequence
 
 from torchnlp.datasets import smt_dataset  # type: ignore
 
-from slp.data.collators import SequenceClassificationCollator
+from slp.data.collators import PackedSequenceCollator
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
+from slp.modules.feedforward import FF
+from slp.modules.rnn import WordRNN
 from slp.trainer import SequentialTrainer
 from slp.util.embeddings import EmbeddingsLoader
-
-
-class LSTMClassifier(nn.Module):
-    def __init__(self, embeddings, hidden_dim, output_size):
-        super(LSTMClassifier, self).__init__()
-
-        self.vocab_size = embeddings.shape[0]
-        self.embedding_dim = embeddings.shape[1]
-        self.hidden_dim = hidden_dim
-
-        self.embedding = nn.Embedding(self.vocab_size, self.embedding_dim)
-        self.embedding.weight = nn.Parameter(torch.as_tensor(embeddings),
-                                             requires_grad=False)
-
-        self.lstm = nn.LSTM(self.embedding_dim,
-                            hidden_dim,
-                            num_layers=1,
-                            batch_first=True)
-
-        self.hidden2out = nn.Linear(hidden_dim, output_size)
-        self.dropout_layer = nn.Dropout(p=0.2)
-
-    def init_hidden(self, batch_size):
-        return(torch.autograd.Variable(
-                    torch.randn(1, batch_size, self.hidden_dim)),
-               torch.autograd.Variable(
-                   torch.randn(1, batch_size, self.hidden_dim)))
-
-    def forward(self, batch, lengths):
-        self.hidden = self.init_hidden(batch.size(0))
-
-        embeds = self.embedding(batch)
-        packed_input = pack_padded_sequence(
-            embeds, lengths, batch_first=True, enforce_sorted=False)
-        outputs, (ht, ct) = self.lstm(packed_input, self.hidden)
-
-        # ht is the last hidden state of the sequences
-        # ht = (1 x batch_size x hidden_dim)
-        # ht[-1] = (batch_size x hidden_dim)
-        output = self.dropout_layer(ht[-1])
-        output = self.hidden2out(output)
-        return output
 
 
 class DatasetWrapper(Dataset):
@@ -83,13 +42,13 @@ class DatasetWrapper(Dataset):
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-collate_fn = SequenceClassificationCollator(device='cpu')
+collate_fn = PackedSequenceCollator(device='cpu')
 
 
 if __name__ == '__main__':
     loader = EmbeddingsLoader(
         '../cache/glove.840B.300d.txt', 300)
-    word2idx, idx2word, embeddings = loader.load()
+    word2idx, _, embeddings = loader.load()
 
     tokenizer = SpacyTokenizer()
     to_token_ids = ToTokenIds(word2idx)
@@ -107,8 +66,12 @@ if __name__ == '__main__':
         create_dataloader,
         smt_dataset(directory='../data/', train=True, dev=True, test=True))
 
-    model = LSTMClassifier(embeddings, 256, 3)
-    optimizer = SGD(model.parameters(), lr=1e-3)
+    model = nn.Sequential(
+        WordRNN(256, embeddings, bidirectional=True,
+                unpack=True, attention=True, device=DEVICE),
+        FF(512, 3, activation='none', layer_norm=False, dropout=0.)
+    )
+    optimizer = Adam(model.parameters(), lr=1e-3)
     criterion = nn.CrossEntropyLoss()
     metrics = {
         'accuracy': Accuracy(),
