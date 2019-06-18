@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     model = Classifier(
         WordRNN(256, embeddings, bidirectional=True,
-                unpack=True, attention=True, device=DEVICE),
+                packed_sequence=True, attention=True, device=DEVICE),
         512, 3)
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
