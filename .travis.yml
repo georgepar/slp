@@ -5,6 +5,6 @@ python:
 
 before_install:
     - pip install -U pip==19.1
-    - pip install tox
+    - pip install nox
 script:
-    - tox
+    - nox
