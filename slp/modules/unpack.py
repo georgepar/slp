@@ -1,0 +1,18 @@
+import torch.nn as nn
+from torch.nn.utils.rnn import pad_packed_sequence
+
+
+class PadPackedSequence(nn.Module):
+    """Some Information about PadPackedSequence"""
+    def __init__(self, batch_first=True):
+        super(PadPackedSequence, self).__init__()
+        self.batch_first = batch_first
+
+    def forward(self, x, lengths):
+        if x.unsort_indices is None:
+            raise ValueError(f'No way to unsort packed sequence {x}')
+        unsort = x.unsort_indices
+        max_length = lengths.max().item()
+        x = pad_packed_sequence(
+            x, batch_first=self.batch_first, total_length=max_length)
+        return x[unsort]
