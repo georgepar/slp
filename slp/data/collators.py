@@ -58,6 +58,7 @@ class PackedSequenceCollator(object):
         self.seq_collator = SequenceClassificationCollator(
             pad_indx=pad_indx, device=device)
         self.batch_first = batch_first
+        self.device = device
 
     def __call__(self, batch):
         inputs, targets, lengths = self.seq_collator(batch)
