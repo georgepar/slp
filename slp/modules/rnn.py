@@ -56,7 +56,7 @@ class WordRNN(nn.Module):
             self.attention = Attention(
                 attention_size=self.out_size, dropout=dropout)
 
-    def forward(self, x, lengths, attention_mask=None):
+    def forward(self, x, lengths):
         x = self.embed(x)
         out, last_hidden = self.rnn(x, lengths)
         if self.attention is not None:
