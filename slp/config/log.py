@@ -4,7 +4,7 @@ import os
 import sys
 
 LOG_PATH = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "../../logs/")
+    os.path.realpath(__file__)), "/tmp/")
 
 LEVEL = logging.INFO
 
@@ -12,7 +12,7 @@ DEFAULT_LOGGING = {
     'version': 1,
     'formatters': {
         'default': {
-            'format': '[%(asctime)s] - slp - %(levelname)s -- %(message)s', 
+            'format': '[%(asctime)s] - slp - %(levelname)s -- %(message)s',
             'datefmt': '%Y-%m-%d %H:%M:%S'}
     },
     'handlers': {

@@ -22,7 +22,10 @@ class WordpieceTokenizer(object):
 
 
 class SpacyTokenizer(object):
-    def __init__(self, lower=True, specials=SPECIAL_TOKENS, lang='en_core_web_sm'):
+    def __init__(self,
+                 lower=True,
+                 specials=SPECIAL_TOKENS,
+                 lang='en_core_web_sm'):
         self.lower = lower
         self.specials = SPECIAL_TOKENS
         self.lang = lang
