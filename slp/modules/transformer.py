@@ -243,7 +243,7 @@ class Transformer(nn.Module):
 #                                 num_heads=num_heads,
 #                                 inner_size=inner_size,
 #                                 dropout=dropout)
-
+#
 #     def forward(self,
 #                 source,
 #                 target,
