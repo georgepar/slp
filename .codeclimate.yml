@@ -11,3 +11,4 @@ ratings:
 
 exclude_paths:
 - slp/transforms
+- slp/baseline
