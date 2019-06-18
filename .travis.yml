@@ -4,6 +4,7 @@ python:
         - "3.6"
 
 before_install:
+    - pip install -U pip==19.1
     - pip install tox
 script:
     - tox
