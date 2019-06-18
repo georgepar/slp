@@ -1,7 +1,5 @@
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
 
 with open('README.md') as f:
     README = f.read()
@@ -15,7 +13,6 @@ setup(name='slp',
       author_email='georgepar.91@gmail.com',
       license='MIT',
       packages=find_packages(exclude=['docs', 'tests*', 'tools']),
-      install_requires=requirements,
       include_package_data=True,
       long_description=README
       )
