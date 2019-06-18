@@ -18,7 +18,7 @@ def typecheck(session):
     install_reqs(session)
     session.run('python', '-m', 'mypy', '--config-file', 'mypy.ini', '-p', 'slp')
 
-@nox.session(python=['3.6', '3.7'])
+@nox.session
 def tests(session):
     install_reqs(session)
     session.install('.')
