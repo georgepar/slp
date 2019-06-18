@@ -71,7 +71,8 @@ if __name__ == '__main__':
                 unpack=True, attention=True, device=DEVICE),
         FF(512, 3, activation='none', layer_norm=False, dropout=0.)
     )
-    optimizer = Adam(model.parameters(), lr=1e-3)
+    optimizer = Adam([p for p in model.parameters() if p.requires_grad],
+                     lr=1e-3)
     criterion = nn.CrossEntropyLoss()
     metrics = {
         'accuracy': Accuracy(),
