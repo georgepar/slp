@@ -9,5 +9,10 @@ ratings:
   paths:
     - "**.py"
 
-exclude_paths:
-- slp/transforms
+checks:
+  argument-count:
+    config:
+      # We are writting ML code here.
+      # large number of args in __init__ is the default
+      threshold: 20
+
