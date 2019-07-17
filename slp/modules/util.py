@@ -1,18 +1,19 @@
 import copy
 import torch
 
-from typing import Callable, Tuple
+from typing import cast, Callable, Optional, Tuple
 
 
 def repeat_layer(l: torch.nn.Module, times: int):
     return [l] + [copy.deepcopy(l) for _ in range(times - 1)]
 
 
-def pad_mask(lengths: torch.Tensor, max_length=None):
+def pad_mask(lengths: torch.Tensor, max_length: Optional[int] = None):
     """lengths is a torch tensor
     """
     if max_length is None:
-        max_length = torch.max(lengths)
+        max_length = cast(int, torch.max(lengths).item())
+    max_length = cast(int, max_length)
     idx = torch.arange(0, max_length).unsqueeze(0)
     mask = (idx < lengths.unsqueeze(1)).float()
     return mask
