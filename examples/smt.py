@@ -13,6 +13,7 @@ from slp.data.collators import SequenceClassificationCollator
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
+from slp.modules.blah import MyRNN
 from slp.trainer import SequentialTrainer
 from slp.util.embeddings import EmbeddingsLoader
 
@@ -57,7 +58,7 @@ if __name__ == '__main__':
     def create_dataloader(d):
         d = (DatasetWrapper(d).map(tokenizer).map(to_token_ids).map(to_tensor))
         return DataLoader(
-            d, batch_size=32,
+            d, batch_size=4,
             num_workers=1,
             pin_memory=True,
             collate_fn=collate_fn)
@@ -68,9 +69,11 @@ if __name__ == '__main__':
 
     model = Classifier(
         WordRNN(256, embeddings, bidirectional=True,
-                packed_sequence=True, attention=True, device=DEVICE),
+                packed_sequence=True, attention=False, device=DEVICE),
         512, 3)
 
+    #rnn = MyRNN(embeddings, 256, 3, 1, True, 0.1, 0)
+    #model = Classifier(rnn, 512, 3)
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
                      lr=1e-3)
     criterion = nn.CrossEntropyLoss()

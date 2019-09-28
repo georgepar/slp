@@ -14,11 +14,11 @@ class RNN(nn.Module):
         rnn_cls = nn.LSTM if rnn_type == 'lstm' else nn.GRU
         self.rnn = rnn_cls(input_size,
                            hidden_size,
-                           batch_first=False,
+                           batch_first=batch_first,
                            num_layers=layers,
                            bidirectional=bidirectional)
         self.drop = nn.Dropout(dropout)
-        self.packed_sequence = None
+        self.packed_sequence = packed_sequence
         if packed_sequence:
             self.pack = PackSequence(batch_first=batch_first)
             self.unpack = PadPackedSequence(batch_first=batch_first)
@@ -26,12 +26,15 @@ class RNN(nn.Module):
 
     def forward(self, x, lengths):
         self.rnn.flatten_parameters()
-        x, lengths = self.pack(x, lengths)
-        out, _ = self.rnn(x)
-        out = self.unpack(out, lengths)
+        if self.packed_sequence:
+            x, lengths = self.pack(x, lengths)
+        out, (hidden, cell) = self.rnn(x)
+        if self.packed_sequence:
+            out = self.unpack(out, lengths)
         out = self.drop(out)
-        last_hidden = out[:, -1, :]
-        return out, last_hidden
+        # ->>> last_hidden = out[:, -1, :]
+        # last_hidden = ???
+        return out, last_hidden, hidden
 
 
 class WordRNN(nn.Module):
@@ -61,9 +64,11 @@ class WordRNN(nn.Module):
 
     def forward(self, x, lengths):
         x = self.embed(x)
-        out, last_hidden = self.rnn(x, lengths)
+        out, last_hidden, hidden = self.rnn(x, lengths)
         if self.attention is not None:
             out, _ = self.attention(
                 out, attention_mask=pad_mask(lengths, device=self.device))
             out = out.sum(1)
+        else:
+            out = last_hidden
         return out
