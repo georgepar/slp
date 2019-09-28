@@ -9,7 +9,7 @@ from slp.modules.util import pad_mask
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, batch_first=True,
                  layers=1, bidirectional=False, dropout=0,
-                 rnn_type='lstm', packed_sequence=True):
+                 rnn_type='lstm', packed_sequence=True, device='cuda'):
         super(RNN, self).__init__()
         rnn_cls = nn.LSTM if rnn_type == 'lstm' else nn.GRU
         self.rnn = rnn_cls(input_size,
@@ -22,13 +22,13 @@ class RNN(nn.Module):
         if packed_sequence:
             self.pack = PackSequence(batch_first=batch_first)
             self.unpack = PadPackedSequence(batch_first=batch_first)
+        self.device = device
 
     def forward(self, x, lengths):
         self.rnn.flatten_parameters()
         x, lengths = self.pack(x, lengths)
         out, _ = self.rnn(x)
-        if self.packed_sequence is not None:
-            out = self.unpack(out, lengths)
+        out = self.unpack(out, lengths)
         out = self.drop(out)
         last_hidden = out[:, -1, :]
         return out, last_hidden
@@ -42,6 +42,7 @@ class WordRNN(nn.Module):
             dropout=0.1, rnn_type='lstm', packed_sequence=True,
             attention=False, device='cpu'):
         super(WordRNN, self).__init__()
+        self.device = device
         self.embed = Embed(embeddings.shape[0],
                            embeddings.shape[1],
                            embeddings=embeddings,
@@ -62,7 +63,7 @@ class WordRNN(nn.Module):
         x = self.embed(x)
         out, last_hidden = self.rnn(x, lengths)
         if self.attention is not None:
-            out = self.attention(
-                out, attention_mask=pad_mask(lengths).to(self.device))
+            out, _ = self.attention(
+                out, attention_mask=pad_mask(lengths, device=self.device))
             out = out.sum(1)
         return out

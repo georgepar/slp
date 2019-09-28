@@ -57,7 +57,7 @@ if __name__ == '__main__':
     def create_dataloader(d):
         d = (DatasetWrapper(d).map(tokenizer).map(to_token_ids).map(to_tensor))
         return DataLoader(
-            d, batch_size=128,
+            d, batch_size=32,
             num_workers=1,
             pin_memory=True,
             collate_fn=collate_fn)
@@ -79,9 +79,10 @@ if __name__ == '__main__':
         'loss': Loss(criterion)
     }
     trainer = SequentialTrainer(model, optimizer,
-                                checkpoint_dir='/tmp/ckpt',
+                                checkpoint_dir='../checkpoints',
                                 metrics=metrics,
                                 non_blocking=True,
                                 patience=1,
-                                loss_fn=criterion)
+                                loss_fn=criterion,
+                                device=DEVICE)
     trainer.fit(train_loader, dev_loader, epochs=10)

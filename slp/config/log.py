@@ -4,7 +4,7 @@ import os
 import sys
 
 LOG_PATH = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), "/tmp/")
+    os.path.realpath(__file__)), os.environ["HOME"])
 
 LEVEL = logging.INFO
 

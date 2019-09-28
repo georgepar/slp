@@ -1,7 +1,7 @@
 import spacy
 import torch
 
-from pytorch_pretrained_bert import BertTokenizer
+from transformers import BertTokenizer
 from spacy.attrs import ORTH
 
 from slp.config import SPECIAL_TOKENS
