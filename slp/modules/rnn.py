@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+import torch
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
 from slp.modules.helpers import PackSequence, PadPackedSequence
@@ -23,6 +23,7 @@ class RNN(nn.Module):
             self.pack = PackSequence(batch_first=batch_first)
             self.unpack = PadPackedSequence(batch_first=batch_first)
         self.device = device
+        self.bidirectional = bidirectional
 
     def forward(self, x, lengths):
         self.rnn.flatten_parameters()
@@ -33,7 +34,7 @@ class RNN(nn.Module):
             out = self.unpack(out, lengths)
         out = self.drop(out)
         # ->>> last_hidden = out[:, -1, :]
-        # last_hidden = ???
+        last_hidden = torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim=1) if self.bidirectional else hidden[-1,:,:]
         return out, last_hidden, hidden
 
 
