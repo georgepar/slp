@@ -1,9 +1,16 @@
 import nox
 
+
 def install_reqs(session):
-    session.install('--progress-bar', 'off', '--no-cache-dir', '-r', 'requirements.txt')
-    session.install('--progress-bar', 'off', '--no-cache-dir', '-r', 'dev-requirements.txt')
- 
+    session.install(
+        '--progress-bar', 'off',
+        '--no-cache-dir',
+        '-r', 'requirements.txt')
+    session.install(
+        '--progress-bar', 'off',
+        '--no-cache-dir',
+        '-r', 'dev-requirements.txt')
+
 
 def run_lint(session):
     session.run('flake8', 'slp')
@@ -12,7 +19,10 @@ def run_lint(session):
 
 
 def run_typecheck(session):
-    session.run('python', '-m', 'mypy', '--config-file', 'mypy.ini', '-p', 'slp')
+    session.run(
+        'python', '-m', 'mypy',
+        '--config-file', 'mypy.ini',
+        '-p', 'slp')
 
 
 def run_tests(session):

@@ -2,21 +2,34 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 
 from slp.modules.feedforward import FF
 
 
+def calc_scores(dk):
+    def fn(q, k):
+        return torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(dk)
+    return fn
+
+
 class Attention(nn.Module):
     """Some Information about Attention"""
-    def __init__(self, attention_size=512, input_size=None, dropout=.1):
+    def __init__(self,
+                 attention_size=512,
+                 input_size=None,
+                 dropout=.1,
+                 grad_checkpoint=False):
         super(Attention, self).__init__()
         if input_size is None:
             input_size = attention_size
         self.dk = input_size
+        self.grad_checkpoint = grad_checkpoint
         self.k = nn.Linear(input_size, attention_size, bias=False)
         self.q = nn.Linear(input_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
         self.drop = nn.Dropout(dropout)
+        self._reset_parameters()
 
     def forward(self, x, queries=None, values=None, attention_mask=None):
         '''
@@ -33,15 +46,23 @@ class Attention(nn.Module):
         v = self.v(values)  # (B, L, A)
 
         # weights => (B, L, L)
-        scores = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.dk)
+        if self.grad_checkpoint:
+            scores = checkpoint(calc_scores(self.dk), q, k)
+        else:
+            scores = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.dk)
         if attention_mask is not None:
-            scores = scores * attention_mask
+            scores = scores + ((1 - attention_mask.unsqueeze(1)) * -1e5)
         scores = F.softmax(scores, dim=-1)
         scores = self.drop(scores)
 
         # out => (B, L, A)
         out = torch.bmm(scores, v)
         return out, scores
+
+    def _reset_parameters(self):
+        nn.init.xavier_uniform_(self.k.weight)
+        nn.init.xavier_uniform_(self.q.weight)
+        nn.init.xavier_uniform_(self.v.weight)
 
 
 class MultiheadAttentionSerial(nn.Module):
@@ -50,13 +71,18 @@ class MultiheadAttentionSerial(nn.Module):
                  attention_size=512,
                  num_heads=8,
                  input_size=None,
-                 dropout=.1):
+                 dropout=.1,
+                 grad_checkpoint=False):
         super(MultiheadAttentionSerial, self).__init__()
         if input_size is None:
             input_size = attention_size
         self.head_size = int(attention_size / num_heads)
-        self.heads = [Attention(input_size, self.head_size, dropout=dropout)
-                      for _ in num_heads]
+        self.heads = [
+            Attention(input_size,
+                      self.head_size,
+                      dropout=dropout,
+                      grad_checkpoint=grad_checkpoint)
+            for _ in num_heads]
 
     def forward(self, x, queries=None, values=None, attention_mask=None):
         """
@@ -81,7 +107,8 @@ class MultiheadAttentionParallel(nn.Module):
                  attention_size=512,
                  num_heads=8,
                  input_size=None,
-                 dropout=.1):
+                 dropout=.1,
+                 grad_checkpoint=False):
         super(MultiheadAttentionParallel, self).__init__()
         if input_size is None:
             input_size = attention_size
@@ -89,6 +116,7 @@ class MultiheadAttentionParallel(nn.Module):
         self.num_heads = num_heads
         self.head_size = int(attention_size / num_heads)
         self.attention_size = attention_size
+        self.grad_checkpoint = grad_checkpoint
         self.k = nn.Linear(input_size, attention_size, bias=False)
         self.q = nn.Linear(input_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
@@ -98,6 +126,7 @@ class MultiheadAttentionParallel(nn.Module):
                          layer_norm=True,
                          dropout=dropout)
         self.drop = nn.Dropout(dropout)
+        self._reset_parameters()
 
     def _split_heads(self, x):
         """
@@ -135,9 +164,12 @@ class MultiheadAttentionParallel(nn.Module):
         v = self._split_heads(self.v(values))  # (B, H, L, A/H)
 
         # scores => (B, H, L, L)
-        scores = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(self.dk)
+        if self.grad_checkpoint:
+            scores = checkpoint(calc_scores(self.dk), q, k)
+        else:
+            scores = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(self.dk)
         if attention_mask is not None:
-            scores = scores * attention_mask.unsqueeze(1)
+            scores = scores + ((1 - attention_mask.unsqueeze(1)) * -1e5)
         scores = F.softmax(scores, dim=-1)
         scores = self.drop(scores)
 
@@ -145,6 +177,13 @@ class MultiheadAttentionParallel(nn.Module):
         out = self._merge_heads(torch.matmul(scores, v))
         out = self.output(out)
         return out
+
+    def _reset_parameters(self):
+        nn.init.xavier_uniform_(self.k.weight)
+        nn.init.xavier_uniform_(self.q.weight)
+        nn.init.xavier_uniform_(self.v.weight)
+        nn.init.xavier_uniform_(self.output.fc.weight)
+        nn.init.constant_(self.output.fc.bias, 0.)
 
 
 MultiheadAttention = MultiheadAttentionParallel
