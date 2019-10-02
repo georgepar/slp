@@ -5,7 +5,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+examples/MNIST/
+cache/*
+checkpoints/*.pth
 .idea/
 # Distribution / packaging
 .Python

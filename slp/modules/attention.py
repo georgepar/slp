@@ -35,7 +35,7 @@ class Attention(nn.Module):
         # weights => (B, L, L)
         scores = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.dk)
         if attention_mask is not None:
-            scores = scores * attention_mask
+            scores = scores * attention_mask.unsqueeze(-1)
         scores = F.softmax(scores, dim=-1)
         scores = self.drop(scores)
 
