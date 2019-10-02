@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
 from slp.modules.helpers import PackSequence, PadPackedSequence
@@ -10,6 +11,7 @@ class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, batch_first=True,
                  layers=1, bidirectional=False, dropout=0,
                  rnn_type='lstm', packed_sequence=True, device='cpu'):
+
         super(RNN, self).__init__()
         rnn_cls = nn.LSTM if rnn_type == 'lstm' else nn.GRU
         self.rnn = rnn_cls(input_size,
