@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 
 from typing import cast, List, Optional, Tuple, TypeVar
 from slp.util import types
+from slp.util.parallel import DataParallelModel, DataParallelCriterion
 
 from slp.trainer.handlers import CheckpointHandler, EvaluationHandler
 from slp.util import from_checkpoint, to_device
@@ -38,7 +39,8 @@ class Trainer(object):
                  loss_fn: _Loss = nn.CrossEntropyLoss(),
                  non_blocking: bool = True,
                  dtype: torch.dtype = torch.float,
-                 device: str = 'cpu') -> None:
+                 device: str = 'cpu',
+                 parallel: bool = False) -> None:
         self.dtype = dtype
         self.non_blocking = non_blocking
         self.device = device
@@ -51,15 +53,24 @@ class Trainer(object):
         model_checkpoint = self._check_checkpoint(model_checkpoint)
         optimizer_checkpoint = self._check_checkpoint(optimizer_checkpoint)
 
-        if metrics is None:
-            metrics = {}
-        if 'loss' not in metrics:
-            metrics['loss'] = Loss(self.loss_fn)
+
         self.model = cast(nn.Module, from_checkpoint(
                 model_checkpoint, model, map_location=torch.device('cpu')))
         self.model = self.model.type(dtype).to(device)
         self.optimizer = from_checkpoint(optimizer_checkpoint, optimizer)
-
+        self.parallel = parallel
+        if parallel:
+            if device == 'cpu':
+                raise ValueError("parallel can be used only with cuda device")
+            self.model = DataParallelModel(self.model).to(device)
+            self.loss_fn = DataParallelCriterion(self.loss_fn)
+        if metrics is None:
+            metrics = {}
+        if 'loss' not in metrics:
+            if self.parallel:
+                metrics['loss'] = Loss(lambda x, y: self.loss_fn(x, y).mean())
+            else:
+                metrics['loss'] = Loss(self.loss_fn)
         self.trainer = Engine(self.train_step)
         self.train_evaluator = Engine(self.eval_step)
         self.valid_evaluator = Engine(self.eval_step)
@@ -85,8 +96,11 @@ class Trainer(object):
 
     def _check_checkpoint(self: TrainerType,
                           ckpt: Optional[str]) -> Optional[str]:
+        if ckpt is None:
+            return ckpt
         if system.is_url(ckpt):
             ckpt = system.download_url(cast(str, ckpt), self.checkpoint_dir)
+        ckpt = os.path.join(self.checkpoint_dir, ckpt)
         return ckpt
 
     @staticmethod
@@ -127,6 +141,8 @@ class Trainer(object):
         self.model.train()
         y_pred, targets = self.get_predictions_and_targets(batch)
         loss = self.loss_fn(y_pred, targets)
+        if self.parallel:
+            loss = loss.mean()
         loss = loss / self.accumulation_steps
         loss.backward()
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
