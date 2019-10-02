@@ -1,3 +1,5 @@
+import os
+from typing import Union
 import torch
 import torch.nn as nn
 
@@ -36,7 +38,7 @@ class Trainer(object):
                  patience: int = 10,
                  validate_every: int = 1,
                  accumulation_steps: int = 1,
-                 loss_fn: _Loss = nn.CrossEntropyLoss(),
+                 loss_fn: Union[_Loss, DataParallelCriterion] = None,
                  non_blocking: bool = True,
                  dtype: torch.dtype = torch.float,
                  device: str = 'cpu',
@@ -52,7 +54,6 @@ class Trainer(object):
 
         model_checkpoint = self._check_checkpoint(model_checkpoint)
         optimizer_checkpoint = self._check_checkpoint(optimizer_checkpoint)
-
 
         self.model = cast(nn.Module, from_checkpoint(
                 model_checkpoint, model, map_location=torch.device('cpu')))

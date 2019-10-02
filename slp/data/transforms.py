@@ -109,7 +109,9 @@ class SpacyTokenizer(object):
     def __call__(self, x):
         if self.lower:
             x = x.lower()
-        x = self.pre_id + [y.text for y in self.nlp.tokenizer(x)] + self.post_id
+        x = (self.pre_id +
+             [y.text for y in self.nlp.tokenizer(x)] +
+             self.post_id)
         return x
 
 

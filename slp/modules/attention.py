@@ -65,7 +65,6 @@ class Attention(nn.Module):
         nn.init.xavier_uniform_(self.v.weight)
 
 
-
 class MultiheadAttentionSerial(nn.Module):
     """Serial MultiheadAttention"""
     def __init__(self,
