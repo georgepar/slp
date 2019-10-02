@@ -17,6 +17,7 @@ class Attention(nn.Module):
         self.q = nn.Linear(input_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
         self.drop = nn.Dropout(dropout)
+        self._reset_parameters()
 
     def forward(self, x, queries=None, values=None, attention_mask=None):
         '''
@@ -35,13 +36,19 @@ class Attention(nn.Module):
         # weights => (B, L, L)
         scores = torch.bmm(q, k.transpose(1, 2)) / math.sqrt(self.dk)
         if attention_mask is not None:
-            scores = scores * attention_mask
+            scores = scores + ((1 - attention_mask.unsqueeze(1)) * -1e5)
         scores = F.softmax(scores, dim=-1)
         scores = self.drop(scores)
 
         # out => (B, L, A)
         out = torch.bmm(scores, v)
         return out, scores
+
+    def _reset_parameters(self):
+        nn.init.xavier_uniform_(self.k.weight)
+        nn.init.xavier_uniform_(self.q.weight)
+        nn.init.xavier_uniform_(self.v.weight)
+
 
 
 class MultiheadAttentionSerial(nn.Module):
@@ -98,6 +105,7 @@ class MultiheadAttentionParallel(nn.Module):
                          layer_norm=True,
                          dropout=dropout)
         self.drop = nn.Dropout(dropout)
+        self._reset_parameters()
 
     def _split_heads(self, x):
         """
@@ -137,7 +145,7 @@ class MultiheadAttentionParallel(nn.Module):
         # scores => (B, H, L, L)
         scores = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(self.dk)
         if attention_mask is not None:
-            scores = scores * attention_mask.unsqueeze(1)
+            scores = scores + ((1 - attention_mask.unsqueeze(1)) * -1e5)
         scores = F.softmax(scores, dim=-1)
         scores = self.drop(scores)
 
@@ -145,6 +153,13 @@ class MultiheadAttentionParallel(nn.Module):
         out = self._merge_heads(torch.matmul(scores, v))
         out = self.output(out)
         return out
+
+    def _reset_parameters(self):
+        nn.init.xavier_uniform_(self.k.weight)
+        nn.init.xavier_uniform_(self.q.weight)
+        nn.init.xavier_uniform_(self.v.weight)
+        nn.init.xavier_uniform_(self.output.fc.weight)
+        nn.init.constant_(self.output.fc.bias, 0.)
 
 
 MultiheadAttention = MultiheadAttentionParallel
