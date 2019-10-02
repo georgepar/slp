@@ -1,10 +1,12 @@
 languages:
   Python: true
+
 engines:
   radon:
     enabled: true
   shellcheck:
     enabled: true
+
 ratings:
   paths:
     - "**.py"

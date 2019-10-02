@@ -130,7 +130,7 @@ class Trainer(object):
         loss = loss / self.accumulation_steps
         loss.backward()
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
-            self.optimizer.step()
+            self.optimizer.step()  # type: ignore
             self.optimizer.zero_grad()
         loss_value: float = loss.item()
         return loss_value
