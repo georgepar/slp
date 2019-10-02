@@ -57,7 +57,7 @@ if __name__ == '__main__':
     def create_dataloader(d):
         d = (DatasetWrapper(d).map(tokenizer).map(to_token_ids).map(to_tensor))
         return DataLoader(
-            d, batch_size=128,
+            d, batch_size=4,
             num_workers=1,
             pin_memory=True,
             collate_fn=collate_fn)
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     model = Classifier(
         WordRNN(256, embeddings, bidirectional=True,
-                packed_sequence=True, attention=True, device=DEVICE),
+                packed_sequence=True, attention=False, device=DEVICE),
         512, 3)
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
@@ -79,9 +79,10 @@ if __name__ == '__main__':
         'loss': Loss(criterion)
     }
     trainer = SequentialTrainer(model, optimizer,
-                                checkpoint_dir='/tmp/ckpt',
+                                checkpoint_dir='../checkpoints',
                                 metrics=metrics,
                                 non_blocking=True,
                                 patience=1,
-                                loss_fn=criterion)
+                                loss_fn=criterion,
+                                device=DEVICE)
     trainer.fit(train_loader, dev_loader, epochs=10)

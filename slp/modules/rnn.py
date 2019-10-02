@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
@@ -9,29 +10,36 @@ from slp.modules.util import pad_mask
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, batch_first=True,
                  layers=1, bidirectional=False, dropout=0,
-                 rnn_type='lstm', packed_sequence=True):
+                 rnn_type='lstm', packed_sequence=True, device='cpu'):
+
         super(RNN, self).__init__()
         rnn_cls = nn.LSTM if rnn_type == 'lstm' else nn.GRU
         self.rnn = rnn_cls(input_size,
                            hidden_size,
-                           batch_first=False,
+                           batch_first=batch_first,
                            num_layers=layers,
                            bidirectional=bidirectional)
         self.drop = nn.Dropout(dropout)
-        self.packed_sequence = None
+        self.packed_sequence = packed_sequence
         if packed_sequence:
             self.pack = PackSequence(batch_first=batch_first)
             self.unpack = PadPackedSequence(batch_first=batch_first)
+        self.device = device
+        self.bidirectional = bidirectional
 
     def forward(self, x, lengths):
         self.rnn.flatten_parameters()
-        x, lengths = self.pack(x, lengths)
-        out, _ = self.rnn(x)
-        if self.packed_sequence is not None:
+        if self.packed_sequence:
+            x, lengths = self.pack(x, lengths)
+        out, (hidden, cell) = self.rnn(x)
+        if self.packed_sequence:
             out = self.unpack(out, lengths)
         out = self.drop(out)
-        last_hidden = out[:, -1, :]
-        return out, last_hidden
+        last_hidden = (
+            torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
+            if self.bidirectional
+            else hidden[-1, :, :])
+        return out, last_hidden, hidden
 
 
 class WordRNN(nn.Module):
@@ -42,6 +50,7 @@ class WordRNN(nn.Module):
             dropout=0.1, rnn_type='lstm', packed_sequence=True,
             attention=False, device='cpu'):
         super(WordRNN, self).__init__()
+        self.device = device
         self.embed = Embed(embeddings.shape[0],
                            embeddings.shape[1],
                            embeddings=embeddings,
@@ -60,9 +69,11 @@ class WordRNN(nn.Module):
 
     def forward(self, x, lengths):
         x = self.embed(x)
-        out, last_hidden = self.rnn(x, lengths)
+        out, last_hidden, hidden = self.rnn(x, lengths)
         if self.attention is not None:
-            out = self.attention(
-                out, attention_mask=pad_mask(lengths).to(self.device))
+            out, _ = self.attention(
+                out, attention_mask=pad_mask(lengths, device=self.device))
             out = out.sum(1)
+        else:
+            out = last_hidden
         return out

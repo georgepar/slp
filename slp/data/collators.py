@@ -31,7 +31,7 @@ class TransformerCollator(object):
         lengths = torch.tensor([len(s) for s in tensors],
                                device=self.device)
         max_length = torch.max(lengths)
-        pad_m = pad_mask(lengths, max_length=max_length)
+        pad_m = pad_mask(lengths, max_length=max_length, device=self.device)
         sub_m = subsequent_mask(max_length)
         tensors = (pad_sequence(tensors,
                                 batch_first=True,
