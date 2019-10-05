@@ -66,12 +66,13 @@ class Trainer(object):
             if device == 'cpu':
                 raise ValueError("parallel can be used only with cuda device")
             self.model = DataParallelModel(self.model).to(device)
-            self.loss_fn = DataParallelCriterion(self.loss_fn)
+            self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
         if metrics is None:
             metrics = {}
         if 'loss' not in metrics:
             if self.parallel:
-                metrics['loss'] = Loss(lambda x, y: self.loss_fn(x, y).mean())
+                metrics['loss'] = Loss(
+                    lambda x, y: self.loss_fn(x, y).mean())  # type: ignore
             else:
                 metrics['loss'] = Loss(self.loss_fn)
         self.trainer = Engine(self.train_step)
@@ -144,7 +145,7 @@ class Trainer(object):
                    batch: List[torch.Tensor]) -> float:
         self.model.train()
         y_pred, targets = self.get_predictions_and_targets(batch)
-        loss = self.loss_fn(y_pred, targets)
+        loss = self.loss_fn(y_pred, targets)  # type: ignore
         if self.parallel:
             loss = loss.mean()
         loss = loss / self.accumulation_steps
