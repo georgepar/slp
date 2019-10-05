@@ -7,7 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from torch.optim import Adam
 from torch.utils.data import Dataset, DataLoader
 
-from torchnlp.datasets import smt_dataset  # type: ignore
+from torchnlp.datasets import imdb_dataset  # type: ignore
 
 from slp.data.collators import SequenceClassificationCollator
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
@@ -22,7 +22,7 @@ class DatasetWrapper(Dataset):
         self.dataset = dataset
         self.transforms = []
         self.label_encoder = (LabelEncoder()
-                              .fit([d['label'] for d in dataset]))
+                              .fit([d['sentiment'] for d in dataset]))
 
     def map(self, t):
         self.transforms.append(t)
@@ -33,7 +33,7 @@ class DatasetWrapper(Dataset):
 
     def __getitem__(self, idx):
         datum = self.dataset[idx]
-        text, target = datum['text'], datum['label']
+        text, target = datum['text'], datum['sentiment']
         target = self.label_encoder.transform([target])[0]
         for t in self.transforms:
             text = t(text)
@@ -57,8 +57,7 @@ if __name__ == '__main__':
     def create_dataloader(d):
         d = (DatasetWrapper(d).map(tokenizer).map(to_token_ids).map(to_tensor))
         return DataLoader(
-            d,
-            batch_size=8,
+            d, batch_size=32,
             num_workers=1,
             pin_memory=True,
             shuffle=True,
@@ -66,11 +65,11 @@ if __name__ == '__main__':
 
     train_loader, dev_loader = map(
         create_dataloader,
-        smt_dataset(directory='../data/', train=True, dev=True))
+        imdb_dataset(directory='../data/', train=True, test=True))
 
     model = Classifier(
         WordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
-                packed_sequence=True, attention=False, device=DEVICE),
+                packed_sequence=True, attention=True, device=DEVICE),
         512, 3)
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
@@ -84,6 +83,7 @@ if __name__ == '__main__':
                                 checkpoint_dir='../checkpoints',
                                 metrics=metrics,
                                 non_blocking=True,
+                                retain_graph=True,
                                 patience=5,
                                 loss_fn=criterion,
                                 device=DEVICE)
