@@ -4,7 +4,6 @@ import torch
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
 from slp.modules.helpers import PackSequence, PadPackedSequence
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from slp.modules.util import pad_mask
 
@@ -45,7 +44,7 @@ class RNN(nn.Module):
                       .unsqueeze(1)  # (B) -> (B, 1)
                       .expand((-1, self.hidden_size))  # (B, 1) -> (B, H)
                       # (B, 1, H) if batch_first else (1, B, H)
-                     .unsqueeze(gather_dim))
+                      .unsqueeze(gather_dim))
         # Last forward for real length or seq (unpadded tokens)
         last_out = out.gather(gather_dim, gather_idx).squeeze(gather_dim)
         return last_out
@@ -60,8 +59,8 @@ class RNN(nn.Module):
                              out[..., self.hidden_size:])
         # Last backward corresponds to first token
         last_backward_out = (backward[:, 0, :]
-                            if self.batch_first
-                            else backward[0, ...])
+                             if self.batch_first
+                             else backward[0, ...])
         # Last forward for real length or seq (unpadded tokens)
         last_forward_out = self._select_last_unpadded(forward, lengths)
         return self._merge_bi(last_forward_out, last_backward_out)
@@ -76,7 +75,6 @@ class RNN(nn.Module):
         out = self.drop(out)
 
         last_timestep = self._final_output(out, lengths)
-        #last_hidden = last_timestep(out, lengths, bi=self.bidirectional)
         return out, last_timestep, hidden
 
 
