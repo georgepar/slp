@@ -116,8 +116,8 @@ def from_checkpoint(
             'does not exist. Continuing without loading...')
         return obj
 
-    state_dict = torch.load(checkpoint_file, map_location=map_location)
-    state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
+    state_dict = torch.load(checkpoint_file,
+                            map_location=map_location)
     obj.load_state_dict(state_dict)
     return obj
 

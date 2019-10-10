@@ -61,7 +61,7 @@ if __name__ == '__main__':
         'loss': Loss(criterion)
     }
     trainer = Trainer(model, optimizer,
-                      checkpoint_dir='../checkpoints/',
+                      checkpoint_dir='/tmp/ckpt',
                       metrics=metrics,
                       non_blocking=False,
                       patience=1,

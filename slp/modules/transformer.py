@@ -204,7 +204,6 @@ class Transformer(nn.Module):
             dropout=dropout)
         self.drop = nn.Dropout(dropout)
         self.predict = nn.Linear(hidden_size, vocab_size)
-        self._reset_parameters()
 
     def forward(self,
                 source,
@@ -225,11 +224,6 @@ class Transformer(nn.Module):
         out = self.predict(out)
         return out
 
-    def _reset_parameters(self):
-        """Initiate parameters in the transformer model."""
-        for p in self.parameters():
-            if p.dim() > 1:
-                nn.init.xavier_uniform_(p)
 
 # IDEA: Instead of flat encoder / decoder create
 # hierarchical encoding / decoding layers

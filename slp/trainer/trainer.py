@@ -1,5 +1,3 @@
-import os
-from typing import Union
 import torch
 import torch.nn as nn
 
@@ -14,7 +12,6 @@ from torch.utils.data import DataLoader
 
 from typing import cast, List, Optional, Tuple, TypeVar
 from slp.util import types
-from slp.util.parallel import DataParallelModel, DataParallelCriterion
 
 from slp.trainer.handlers import CheckpointHandler, EvaluationHandler
 from slp.util import from_checkpoint, to_device
@@ -38,14 +35,11 @@ class Trainer(object):
                  patience: int = 10,
                  validate_every: int = 1,
                  accumulation_steps: int = 1,
-                 loss_fn: Union[_Loss, DataParallelCriterion] = None,
+                 loss_fn: _Loss = nn.CrossEntropyLoss(),
                  non_blocking: bool = True,
-                 retain_graph: bool = False,
                  dtype: torch.dtype = torch.float,
-                 device: str = 'cpu',
-                 parallel: bool = False) -> None:
+                 device: str = 'cpu') -> None:
         self.dtype = dtype
-        self.retain_graph = retain_graph
         self.non_blocking = non_blocking
         self.device = device
         self.loss_fn = loss_fn
@@ -57,24 +51,15 @@ class Trainer(object):
         model_checkpoint = self._check_checkpoint(model_checkpoint)
         optimizer_checkpoint = self._check_checkpoint(optimizer_checkpoint)
 
+        if metrics is None:
+            metrics = {}
+        if 'loss' not in metrics:
+            metrics['loss'] = Loss(self.loss_fn)
         self.model = cast(nn.Module, from_checkpoint(
                 model_checkpoint, model, map_location=torch.device('cpu')))
         self.model = self.model.type(dtype).to(device)
         self.optimizer = from_checkpoint(optimizer_checkpoint, optimizer)
-        self.parallel = parallel
-        if parallel:
-            if device == 'cpu':
-                raise ValueError("parallel can be used only with cuda device")
-            self.model = DataParallelModel(self.model).to(device)
-            self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
-        if metrics is None:
-            metrics = {}
-        if 'loss' not in metrics:
-            if self.parallel:
-                metrics['loss'] = Loss(
-                    lambda x, y: self.loss_fn(x, y).mean())  # type: ignore
-            else:
-                metrics['loss'] = Loss(self.loss_fn)
+
         self.trainer = Engine(self.train_step)
         self.train_evaluator = Engine(self.eval_step)
         self.valid_evaluator = Engine(self.eval_step)
@@ -85,11 +70,10 @@ class Trainer(object):
         self.pbar = ProgressBar()
         self.val_pbar = ProgressBar(desc='Validation')
 
-        if checkpoint_dir is not None:
-            self.checkpoint = CheckpointHandler(
-                checkpoint_dir, experiment_name, score_name='validation_loss',
-                score_function=self._score_fn, n_saved=2,
-                require_empty=False, save_as_state_dict=True)
+        self.checkpoint = CheckpointHandler(
+            checkpoint_dir, experiment_name, score_name='validation_loss',
+            score_function=self._score_fn, n_saved=2,
+            require_empty=False, save_as_state_dict=True)
 
         self.early_stop = EarlyStopping(
             patience, self._score_fn, self.trainer)
@@ -101,11 +85,8 @@ class Trainer(object):
 
     def _check_checkpoint(self: TrainerType,
                           ckpt: Optional[str]) -> Optional[str]:
-        if ckpt is None:
-            return ckpt
         if system.is_url(ckpt):
             ckpt = system.download_url(cast(str, ckpt), self.checkpoint_dir)
-        ckpt = os.path.join(self.checkpoint_dir, ckpt)
         return ckpt
 
     @staticmethod
@@ -145,13 +126,11 @@ class Trainer(object):
                    batch: List[torch.Tensor]) -> float:
         self.model.train()
         y_pred, targets = self.get_predictions_and_targets(batch)
-        loss = self.loss_fn(y_pred, targets)  # type: ignore
-        if self.parallel:
-            loss = loss.mean()
+        loss = self.loss_fn(y_pred, targets)
         loss = loss / self.accumulation_steps
-        loss.backward(retain_graph=self.retain_graph)
+        loss.backward()
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
-            self.optimizer.step()  # type: ignore
+            self.optimizer.step()
             self.optimizer.zero_grad()
         loss_value: float = loss.item()
         return loss_value
@@ -195,9 +174,9 @@ class Trainer(object):
             'model': self.model,
             'optimizer': self.optimizer
         }
-        if self.checkpoint_dir is not None:
-            self.valid_evaluator.add_event_handler(
-                Events.COMPLETED, self.checkpoint, ckpt)
+        self.valid_evaluator.add_event_handler(Events.COMPLETED,
+                                               self.checkpoint,
+                                               ckpt)
 
         def graceful_exit(engine, e):
             if isinstance(e, KeyboardInterrupt):
