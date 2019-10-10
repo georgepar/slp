@@ -223,6 +223,7 @@ class SequentialTrainer(Trainer):
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
         inputs, targets, lengths = self.parse_batch(batch)
         y_pred = self.model(inputs, lengths)
+        targets = targets.float()
         return y_pred, targets
 
 

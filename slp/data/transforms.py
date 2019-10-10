@@ -70,6 +70,15 @@ class ReplaceUnknownToken(object):
         return [w if w != self.old_unk else self.new_unk for w in x]
 
 
+class ReplaceUnknownsTransform(object):
+    def __init__(self, vocabulary, unk=SPECIAL_TOKENS.UNK.value):
+        self.vocabulary = vocabulary
+        self.unk = unk
+
+    def __call__(self, tokenized):
+        return [w if w in self.vocabulary else self.unk for w in tokenized]
+
+
 class ToTensor(object):
     def __init__(self, device='cpu', dtype=torch.long):
         self.device = device
@@ -77,3 +86,4 @@ class ToTensor(object):
 
     def __call__(self, x):
         return mktensor(x, device=self.device, dtype=self.dtype)
+
