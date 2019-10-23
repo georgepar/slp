@@ -183,6 +183,41 @@ class Trainer(object):
         self.model.zero_grad()
         self.trainer.run(train_loader, max_epochs=epochs)
 
+    def overfit_single_batch(self: TrainerType,
+                             train_loader: DataLoader) -> State:
+        single_batch = [next(iter(train_loader))]
+
+        if self.trainer.has_event_handler(self.val_handler, Events.EPOCH_COMPLETED):
+            self.trainer.remove_event_handler(self.val_handler, Events.EPOCH_COMPLETED)
+
+        self.val_handler.attach(self.trainer,
+                                self.train_evaluator,
+                                single_batch,  # type: ignore
+                                validation=False)
+        out = self.trainer.run(single_batch, max_epochs=100)
+        return out
+
+    def fit_debug(self: TrainerType,
+                  train_loader: DataLoader,
+                  val_loader: DataLoader) -> State:
+        train_loader = iter(train_loader)
+        train_subset = [next(train_loader), next(train_loader)]
+        val_loader = iter(val_loader)  # type: ignore
+        val_subset = [next(val_loader), next(val_loader)]  # type ignore
+        out = self.fit(train_subset, val_subset, epochs=6)  # type: ignore
+        return out
+
+    def _attach_checkpoint(self: TrainerType) -> TrainerType:
+        ckpt = {
+            'model': self.model,
+            'optimizer': self.optimizer
+        }
+        if self.checkpoint_dir is not None:
+            self.valid_evaluator.add_event_handler(
+                Events.COMPLETED, self.checkpoint, ckpt)
+        return self
+
+
     def attach(self: TrainerType) -> TrainerType:
         ra = RunningAverage(output_transform=lambda x: x)
         ra.attach(self.trainer, "Train Loss")
@@ -191,14 +226,7 @@ class Trainer(object):
         self.val_pbar.attach(self.valid_evaluator)
         self.valid_evaluator.add_event_handler(Events.COMPLETED,
                                                self.early_stop)
-        ckpt = {
-            'model': self.model,
-            'optimizer': self.optimizer
-        }
-        if self.checkpoint_dir is not None:
-            self.valid_evaluator.add_event_handler(
-                Events.COMPLETED, self.checkpoint, ckpt)
-
+        self = self._attach_checkpoint()
         def graceful_exit(engine, e):
             if isinstance(e, KeyboardInterrupt):
                 engine.terminate()

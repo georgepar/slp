@@ -15,6 +15,9 @@ from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import SequentialTrainer
 from slp.util.embeddings import EmbeddingsLoader
+from slp.util.log import getLogger
+
+DEBUG = True
 
 
 class DatasetWrapper(Dataset):
@@ -46,6 +49,7 @@ collate_fn = SequenceClassificationCollator(device='cpu')
 
 
 if __name__ == '__main__':
+    logger = getLogger('imdb')
     loader = EmbeddingsLoader(
         '../cache/glove.840B.300d.txt', 300)
     word2idx, _, embeddings = loader.load()
@@ -79,12 +83,23 @@ if __name__ == '__main__':
         'accuracy': Accuracy(),
         'loss': Loss(criterion)
     }
-    trainer = SequentialTrainer(model, optimizer,
-                                checkpoint_dir='../checkpoints',
-                                metrics=metrics,
-                                non_blocking=True,
-                                retain_graph=True,
-                                patience=5,
-                                loss_fn=criterion,
-                                device=DEVICE)
-    trainer.fit(train_loader, dev_loader, epochs=10)
+    trainer = SequentialTrainer(
+        model,
+        optimizer,
+        checkpoint_dir='../checkpoints' if not DEBUG else None,
+        metrics=metrics,
+        non_blocking=True,
+        retain_graph=True,
+        patience=5,
+        loss_fn=criterion,
+        device=DEVICE)
+
+    if DEBUG:
+        logger.info('Starting end to end test')
+        print('--------------------------------------------------------------')
+        trainer.fit_debug(train_loader, dev_loader)
+        logger.info('Overfitting single batch')
+        print('--------------------------------------------------------------')
+        trainer.overfit_single_batch(train_loader)
+    else:
+        trainer.fit(train_loader, dev_loader, epochs=10)
