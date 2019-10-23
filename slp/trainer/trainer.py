@@ -21,7 +21,6 @@ from slp.util import from_checkpoint, to_device
 from slp.util import log
 from slp.util import system
 
-LOGGER = log.getLogger('default')
 
 TrainerType = TypeVar('TrainerType', bound='Trainer')
 
@@ -98,6 +97,17 @@ class Trainer(object):
                                              validate_every=1,
                                              early_stopping=self.early_stop)
         self.attach()
+        log.info(
+            f'Trainer configured to run {experiment_name}\n'
+            f'\tpretrained model: {model_checkpoint} {optimizer_checkpoint}\n'
+            f'\tcheckpoint directory: {checkpoint_dir}\n'
+            f'\tpatience: {patience}\n'
+            f'\taccumulation steps: {accumulation_steps}\n'
+            f'\tnon blocking: {non_blocking}\n'
+            f'\tretain graph: {retain_graph}\n'
+            f'\tdevice: {device}\n'
+            f'\tmodel dtype: {dtype}\n'
+            f'\tparallel: {parallel}')
 
     def _check_checkpoint(self: TrainerType,
                           ckpt: Optional[str]) -> Optional[str]:
@@ -172,6 +182,11 @@ class Trainer(object):
             train_loader: DataLoader,
             val_loader: DataLoader,
             epochs: int = 50) -> State:
+        log.info(
+            'Trainer will run for\n'
+            f'model: {self.model}\n'
+            f'optimizer: {self.optimizer}\n'
+            f'loss: {self.loss_fn}')
         self.val_handler.attach(self.trainer,
                                 self.train_evaluator,
                                 train_loader,
@@ -230,7 +245,7 @@ class Trainer(object):
         def graceful_exit(engine, e):
             if isinstance(e, KeyboardInterrupt):
                 engine.terminate()
-                LOGGER.warn("CTRL-C caught. Exiting gracefully...")
+                log.warn("CTRL-C caught. Exiting gracefully...")
             else:
                 raise(e)
 

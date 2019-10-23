@@ -7,9 +7,6 @@ from slp.util import log
 from slp.util import types
 
 
-LOGGER = log.getLogger('default')
-
-
 def to_device(tt: torch.Tensor,
               device: Optional[types.Device] = 'cpu',
               non_blocking: bool = False) -> torch.Tensor:
@@ -111,7 +108,7 @@ def from_checkpoint(
         return obj
 
     if not system.is_file(checkpoint_file):
-        LOGGER.warn(
+        log.warn(
             f'The checkpoint {checkpoint_file} you are trying to load '
             'does not exist. Continuing without loading...')
         return obj

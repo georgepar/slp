@@ -15,7 +15,6 @@ class EmbeddingsLoader(object):
     def __init__(self,
                  embeddings_file: str, dim: int,
                  extra_tokens: Any = SPECIAL_TOKENS) -> None:
-        self.logger = log.getLogger(f'{__name__}.EmbeddingsLoader')
         self.embeddings_file = embeddings_file
         self.cache_ = self._get_cache_name()
         self.dim_ = dim
@@ -25,7 +24,7 @@ class EmbeddingsLoader(object):
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
         cache_name = os.path.join(head, f'{filename}.p')
-        self.logger.info(f'Cache: {cache_name}')
+        log.info(f'Cache: {cache_name}')
         return cache_name
 
     def _dump_cache(self, data: types.Embeddings) -> None:
@@ -61,19 +60,19 @@ class EmbeddingsLoader(object):
         # in order to avoid this time consuming operation, cache the results
         try:
             cache = self._load_cache()
-            self.logger.info("Loaded word embeddings from cache.")
+            log.info("Loaded word embeddings from cache.")
             return cache
         except OSError:
-            self.logger.warning(
+            log.warning(
                 f"Didn't find embeddings cache file {self.embeddings_file}")
 
         # create the necessary dictionaries and the word embeddings matrix
         if not os.path.exists(self.embeddings_file):
-            self.logger.critical(f"{self.embeddings_file} not found!")
+            log.critical(f"{self.embeddings_file} not found!")
             raise OSError(errno.ENOENT, os.strerror(errno.ENOENT),
                           self.embeddings_file)
 
-        self.logger.info(f'Indexing file {self.embeddings_file} ...')
+        log.info(f'Indexing file {self.embeddings_file} ...')
 
         # create the 2D array, which will be used for initializing
         # the Embedding layer of a NN.
@@ -109,7 +108,7 @@ class EmbeddingsLoader(object):
                 embeddings.append(vector)
                 index += 1
 
-        self.logger.info(f'Found {len(embeddings)} word vectors.')
+        log.info(f'Found {len(embeddings)} word vectors.')
         embeddings = np.array(embeddings, dtype='float32')
 
         # write the data to a cache file
