@@ -55,7 +55,6 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 
 if __name__ == '__main__':
-    print('helal')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     train_loader, val_loader = get_data_loaders(32, 32)
