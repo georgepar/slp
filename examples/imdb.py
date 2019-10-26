@@ -15,7 +15,7 @@ from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import SequentialTrainer
 from slp.util.embeddings import EmbeddingsLoader
-from slp.util.log import getLogger
+from slp.util import log
 
 DEBUG = True
 
@@ -49,7 +49,6 @@ collate_fn = SequenceClassificationCollator(device='cpu')
 
 
 if __name__ == '__main__':
-    logger = getLogger('imdb')
     loader = EmbeddingsLoader(
         '../cache/glove.840B.300d.txt', 300)
     word2idx, _, embeddings = loader.load()
@@ -95,10 +94,10 @@ if __name__ == '__main__':
         device=DEVICE)
 
     if DEBUG:
-        logger.info('Starting end to end test')
+        log.info('Starting end to end test')
         print('--------------------------------------------------------------')
         trainer.fit_debug(train_loader, dev_loader)
-        logger.info('Overfitting single batch')
+        log.info('Overfitting single batch')
         print('--------------------------------------------------------------')
         trainer.overfit_single_batch(train_loader)
     else:
