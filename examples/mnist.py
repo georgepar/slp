@@ -1,4 +1,3 @@
-
 import copy
 
 import torch
@@ -13,7 +12,7 @@ from torch.optim import Adam
 from ignite.metrics import Loss, Accuracy
 
 from slp.trainer import Trainer
-from slp.util.log import getLogger
+from slp.util import log
 
 
 DEBUG = True
@@ -72,10 +71,10 @@ if __name__ == '__main__':
                       patience=1,
                       loss_fn=criterion)
     if DEBUG:
-        logger.info('Starting end to end test')
+        log.info('Starting end to end test')
         print('--------------------------------------------------------------')
         trainer.fit_debug(train_loader, val_loader)
-        logger.info('Overfitting single batch')
+        log.info('Overfitting single batch')
         print('--------------------------------------------------------------')
         trainer.overfit_single_batch(train_loader)
     else:
