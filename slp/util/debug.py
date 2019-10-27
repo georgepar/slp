@@ -12,8 +12,6 @@ import sys
 import slp.config as config
 import slp.util.log as log
 
-LOGGER = log.getLogger('slp')
-
 
 if config.REMOTE_DEBUGGING:
     # import web_pdb as pdb
@@ -21,8 +19,8 @@ if config.REMOTE_DEBUGGING:
     try:
         import rpdb as pdb
     except ImportError:
-        LOGGER.warning('rpdb is not installed.'
-                       'Remote debugging not available')
+        log.warning('rpdb is not installed.'
+                    'Remote debugging not available')
 else:
     import pdb  # type: ignore
 

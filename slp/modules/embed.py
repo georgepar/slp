@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from slp.modules.regularization import GaussianNoise
+from slp.util import log
 
 
 class PositionalEncoding(nn.Module):
@@ -63,7 +64,7 @@ class Embed(nn.Module):
                                       embedding_dim=embedding_dim)
 
         if embeddings is not None:
-            print("Initializing Embedding layer with pre-trained weights!")
+            log.info("Initializing Embedding layer with pre-trained weights!")
             self.init_embeddings(embeddings, trainable)
 
         # the dropout "layer" for the word embeddings
