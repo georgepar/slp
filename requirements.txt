@@ -14,3 +14,4 @@ torch>=1.2.0
 torchvision==0.2.1
 ujson>=1.35
 validators==0.13.0
+sentencepiece>=0.1.83
