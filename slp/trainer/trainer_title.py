@@ -282,20 +282,26 @@ class SequentialTrainer(Trainer):
         inputs = to_device(batch[0],
                            device=self.device,
                            non_blocking=self.non_blocking)
-        targets = to_device(batch[1],
+        titles = to_device(batch[1],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        targets = to_device(batch[2],
                             device=self.device,
                             non_blocking=self.non_blocking)
-        lengths = to_device(batch[2],
+        lengths = to_device(batch[3],
                             device=self.device,
                             non_blocking=self.non_blocking)
-        return inputs, targets, lengths
+        title_lengths = to_device(batch[4],
+                                  device=self.device,
+                                  non_blocking=self.non_blocking)
+
+        return inputs, titles, targets, lengths, title_lengths
 
     def get_predictions_and_targets(
             self,
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs, targets, lengths = self.parse_batch(batch)
-        #import pdb; pdb.set_trace()
-        y_pred = self.model(inputs, lengths)
+        inputs, titles, targets, lengths, title_lengths = self.parse_batch(batch)
+        y_pred = self.model(inputs, lengths, titles, title_lengths)
         return y_pred, targets
 
 
