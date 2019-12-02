@@ -53,17 +53,25 @@ class TransformerCollator(object):
         return inputs, targets, mask_inputs, mask_targets
 
 
-class PackedSequenceCollator(object):
-    def __init__(self, pad_indx=0, device='cpu', batch_first=True):
-        self.seq_collator = SequenceClassificationCollator(
-            pad_indx=pad_indx, device=device)
-        self.batch_first = batch_first
+class Seq2SeqCollator(object):
+    def __init__(self, pad_indx=0, device='cpu'):
+        self.pad_indx = pad_indx
         self.device = device
 
     def __call__(self, batch):
-        inputs, targets, lengths = self.seq_collator(batch)
-        inputs = pack_padded_sequence(
-            inputs, lengths,
-            batch_first=self.batch_first,
-            enforce_sorted=False)
-        return inputs, targets.to(self.device), lengths[inputs.sorted_indices]
+        inputs, targets = map(list, zip(*batch))
+        inputs_lengths = torch.tensor(
+            [len(s) for s in inputs], device=self.device)
+        targets_lengths = torch.tensor(
+            [len(s) for s in inputs], device=self.device)
+        # Pad and convert to tensor
+        padded_inputs = (
+            pad_sequence(inputs, batch_first=True, padding_value=self.pad_indx)
+            .to(self.device))
+
+        padded_targets = (
+            pad_sequence(targets, batch_first=True,
+                         padding_value=self.pad_indx)
+            .to(self.device))
+
+        return padded_inputs, inputs_lengths, padded_targets, targets_lengths

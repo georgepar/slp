@@ -290,17 +290,22 @@ class SequentialTrainer(Trainer):
         return y_pred, targets
 
 
-class Seq2seqTrainer(SequentialTrainer):
+class Seq2SeqTrainer(SequentialTrainer):
     def parse_batch(
             self,
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs = to_device(batch[0],
-                           device=self.device,
-                           non_blocking=self.non_blocking)
-        lengths = to_device(batch[1],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        return inputs, inputs, lengths
+        inputs, input_lengths, targets, target_lengths = map(
+            lambda b: to_device(b, device=self.device,
+                                non_blocking=self.non_blocking), batch)
+        return inputs, input_lengths, targets, target_lengths
+
+    def get_predictions_and_targets(
+            self,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs, input_lengths, targets, target_lengths = self.parse_batch(
+            batch)
+        y_pred = self.model(inputs, input_lengths, targets)
+        return y_pred, targets
 
 
 class TransformerTrainer(Trainer):
