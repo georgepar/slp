@@ -155,23 +155,23 @@ class DecoderLSTM_v2(nn.Module):
 
 
 class EncoderDecoder(nn.Module):
-    def __init__(self, encoder, decoder, vocloader,
+    def __init__(self, encoder, decoder, bos_indx,
                  teacher_forcing_ratio=0,device='cpu'):
         super(EncoderDecoder, self).__init__()
 
         # initialize the encoder and decoder
+        self.bos_indx = bos_indx
         self.encoder = encoder
         self.decoder = decoder
         self.max_target_len = self.decoder.max_target_len
         self.teacher_forcing_ratio = teacher_forcing_ratio
-        self.vocloader = vocloader  # vocloader is needed to know  the SOT
         # index for the decoder!
         self.device = device
 
     def forward(self, input_seq, lengths_inputs, target_seq):
         batch_size = input_seq.shape[0]
         encoder_output, encoder_hidden = self.encoder(input_seq, lengths_inputs)
-        decoder_input = [[self.vocloader.word2idx['<GO>'] for _ in range(
+        decoder_input = [[self.bos_indx for _ in range(
             batch_size)]]
         decoder_input = torch.LongTensor(decoder_input)
         decoder_input = decoder_input.transpose(0, 1)
@@ -208,7 +208,7 @@ class EncoderDecoder(nn.Module):
     def evaluate(self, input_seq, lengths_inputs):
         batch_size = input_seq.shape[0]
         encoder_output, encoder_hidden = self.encoder(input_seq, lengths_inputs)
-        decoder_input = [[self.vocloader.word2idx['<GO>'] for _ in range(
+        decoder_input = [[self.bos_indx for _ in range(
             batch_size)]]
         decoder_input = torch.LongTensor(decoder_input)
         decoder_input = decoder_input.transpose(0, 1)

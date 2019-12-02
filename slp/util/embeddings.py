@@ -81,7 +81,6 @@ class EmbeddingsLoader(object):
         word2idx, idx2word, embeddings = self.augment_embeddings(
             {}, {}, [], self.extra_tokens.PAD.value,
             emb=np.zeros(self.dim_))
-
         for token in self.extra_tokens:
             if token == self.extra_tokens.PAD:
                 continue

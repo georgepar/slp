@@ -59,15 +59,12 @@ def train_test_split(dataset, batch_train, batch_val,
                                     batch_train, batch_val)
 
 
-def trainer_factory(embeddings, pad_index, device=DEVICE):
-    encoder = EncoderLSTM(
-        hidden_size=254, embeddings=embeddings, device=DEVICE)
-    decoder = DecoderLSTM_v2(
-        max_target_len=14, output_size=43, hidden_size=254,
-        embeddings=embeddings, device=DEVICE)
+def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
+    encoder = EncoderLSTM(embeddings, 254, device=DEVICE)
+    decoder = DecoderLSTM_v2(embeddings, 254, 43, 14, device=DEVICE)
 
     model = EncoderDecoder(
-        encoder, decoder, teacher_forcing_ratio=.8, device=DEVICE)
+        encoder, decoder, bos_index, teacher_forcing_ratio=.8, device=DEVICE)
 
     optimizer = Adam(
         [p for p in model.parameters() if p.requires_grad],
@@ -93,10 +90,11 @@ def trainer_factory(embeddings, pad_index, device=DEVICE):
 
 if __name__ == '__main__':
     loader = EmbeddingsLoader(
-        '../cache/glove.6B.50d.txt', 50, extra_tokens=SPECIAL_TOKENS)
-    word2idx, idx2word, embeddings = loader.load()
+        './cache/glove.6B.50d.txt', 50, extra_tokens=SPECIAL_TOKENS)
+    word2idx, _, embeddings = loader.load()
 
-    pad_index = idx2word[SPECIAL_TOKENS.PAD.value]
+    pad_index = word2idx[SPECIAL_TOKENS.PAD.value]
+    bos_index = word2idx[SPECIAL_TOKENS.BOS.value]
 
     tokenizer = SpacyTokenizer(prepend_bos=True,
                                append_eos=True,
@@ -108,7 +106,7 @@ if __name__ == '__main__':
     dataset = MovieCorpusDataset('./data/', transforms=transforms)
 
     train_loader, val_loader = train_test_split(dataset, 32, 128)
-    trainer = trainer_factory(embeddings, pad_index, device=DEVICE)
+    trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
 
     print(f'Final score: {final_score}')

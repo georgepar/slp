@@ -2,7 +2,7 @@
 from slp.trainer.trainer import (
     Trainer,
     AutoencoderTrainer,
-    Seq2seqTrainer,
+    Seq2SeqTrainer,
     SequentialTrainer,
     TransformerTrainer
 )
