@@ -192,6 +192,7 @@ class EncoderDecoder(nn.Module):
                                       < self.teacher_forcing_ratio else False
         decoder_all_outputs = []
         if use_teacher_forcing:
+            
             for t in range(0, target_seq.shape[1]):
                 decoder_output, decoder_hidden = self.decoder(decoder_input,
                                                               decoder_hidden)
@@ -202,7 +203,8 @@ class EncoderDecoder(nn.Module):
                 decoder_input = torch.unsqueeze(decoder_input, dim=1)
 
         else:
-            for t in range(0,self.max_target_len):
+            
+            for t in range(0,target_seq.shape[1]):
                 decoder_output, decoder_hidden = self.decoder(decoder_input,
                                                               decoder_hidden)
                 decoder_all_outputs.append(torch.squeeze(decoder_output, dim=1))
