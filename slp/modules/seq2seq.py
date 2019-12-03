@@ -192,16 +192,17 @@ class EncoderDecoder(nn.Module):
                                       < self.teacher_forcing_ratio else False
         decoder_all_outputs = []
         if use_teacher_forcing:
-            for t in range(0, self.max_target_len):
+            for t in range(0, target_seq.shape[1]):
                 decoder_output, decoder_hidden = self.decoder(decoder_input,
                                                               decoder_hidden)
                 decoder_all_outputs.append(torch.squeeze(decoder_output, dim=1))
                 # Teacher forcing: next input is current target
+                
                 decoder_input = target_seq[:, t]
                 decoder_input = torch.unsqueeze(decoder_input, dim=1)
 
         else:
-            for t in range(0, self.max_target_len):
+            for t in range(0,self.max_target_len):
                 decoder_output, decoder_hidden = self.decoder(decoder_input,
                                                               decoder_hidden)
                 decoder_all_outputs.append(torch.squeeze(decoder_output, dim=1))
@@ -214,7 +215,7 @@ class EncoderDecoder(nn.Module):
                 decoder_input = decoder_input.to(self.device)
         
         decoder_all_outputs = torch.stack(decoder_all_outputs).transpose(0,1)
-        import ipdb;ipdb.set_trace()
+        
         return decoder_all_outputs
 
     def evaluate(self, input_seq, lengths_inputs):
@@ -240,7 +241,5 @@ class EncoderDecoder(nn.Module):
             decoder_input = torch.FloatTensor(decoder_input)
             decoder_input = torch.unsqueeze(decoder_input,dim=1)
             decoder_input = decoder_input.to(self.device)
-        decoder_all_outputs = (torch
-                               .FloatTensor(decoder_all_outputs)
-                               .transpose(0,1))
+        decoder_all_outputs = torch.stack(decoder_all_outputs).transpose(0,1)
         return decoder_all_outputs, decoder_hidden
