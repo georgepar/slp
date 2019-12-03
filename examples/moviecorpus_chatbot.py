@@ -21,7 +21,11 @@ from torch.optim import Adam
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
-
+BATCH_TRAIN_SIZE=64
+BATCH_VAL_SIZE=32
+min_threshold=2
+max_threshold=16
+max_target_len=max_threshold
 
 def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train,
                              batch_val):
@@ -62,7 +66,7 @@ def train_test_split(dataset, batch_train, batch_val,
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
     
     encoder = EncoderLSTM(embeddings, 254, device=DEVICE)
-    decoder = DecoderLSTM_v2(embeddings, hidden_size=254,output_size=embeddings.shape[0],max_target_len=41, device=DEVICE)
+    decoder = DecoderLSTM_v2(embeddings, hidden_size=254,output_size=embeddings.shape[0],max_target_len=max_target_len, device=DEVICE)
 
     model = EncoderDecoder(
         encoder, decoder, bos_index, teacher_forcing_ratio=.8, device=DEVICE)
@@ -101,12 +105,15 @@ if __name__ == '__main__':
                                append_eos=True,
                                specials=SPECIAL_TOKENS)
     to_token_ids = ToTokenIds(word2idx)
-    to_tensor = ToTensor(device='cpu')
+    to_tensor = ToTensor(device=DEVICE)
 
     transforms = Compose([tokenizer, to_token_ids, to_tensor])
     dataset = MovieCorpusDataset('./data/', transforms=transforms)
-
-    train_loader, val_loader = train_test_split(dataset, 64, 128)
+    dataset.filter_data(min_threshold,max_threshold)
+    import ipdb;ipdb.set_trace()
+    print(len(dataset))
+    
+    train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE, BATCH_VAL_SIZE)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
 

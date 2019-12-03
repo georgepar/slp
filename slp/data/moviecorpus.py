@@ -60,6 +60,19 @@ class MovieCorpusDataset(Dataset):
                 answers.append(id2line[conv[i + 1]])
         return list(zip(questions, answers))
 
+    def filter_data(self,min_threshold_length,max_threshold_length):
+        """
+        This method filters data according to threshold length.
+        If the length of the turn exceeds threshold length the data is deleted.
+        """
+        new_questions = []
+        new_answers = []
+        for question,answer in self.pairs:
+            if len(question)<=max_threshold_length and len(question)>=min_threshold_length and len(answer)<=max_threshold_length and len(answer)>=min_threshold_length:
+                new_questions.append(question)
+                new_answers.append(answer)
+        
+        self.pairs = list(zip(new_questions,new_answers))
     def __len__(self):
         return len(self.pairs)
 
@@ -82,7 +95,10 @@ if __name__ == '__main__':
 
     transforms = Compose([SpacyTokenizer(), ToTokenIds(word2idx)])
     data = MovieCorpusDataset('./data/', transforms=transforms)
-    import ipdb; ipdb.set_trace()
+    
     print(len(data))
     print(data[5])
-    print(data[5783])
+    data.filter_data(3,10)
+    print(len(data))
+    print(data[5])
+    

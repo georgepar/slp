@@ -74,4 +74,5 @@ class Seq2SeqCollator(object):
             pad_sequence(targets, batch_first=True,
                          padding_value=self.pad_indx)
             .to(self.device))
+         
         return padded_inputs, inputs_lengths, padded_targets, targets_lengths
