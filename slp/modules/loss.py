@@ -6,7 +6,8 @@ class SequenceCrossEntropyLoss(nn.Module):
         super(SequenceCrossEntropyLoss, self).__init__()
         self.criterion = nn.CrossEntropyLoss(ignore_index=pad_idx)
 
-    def forward(self, y_pred, targets):
-        y_pred = y_pred.view(-1, y_pred.size(-1))
-        targets = targets.view(-1)
+    def forward(self, y_pred, targets): 
+        y_pred = y_pred.reshape(-1, y_pred.size(-1))
+        targets = targets.reshape(-1)
+        ipdb.set_trace()
         return self.criterion(y_pred, targets)
