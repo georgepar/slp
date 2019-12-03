@@ -5,10 +5,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+
 class EncoderLSTM(nn.Module):
 
     def __init__(self, weights_matrix, hidden_size,  num_layers=1,
-                 dropout=0, bidirectional=False, batch_first=False,
+                 dropout=0, bidirectional=False, batch_first=True,
+                 packed_sequence=True,
                  device='cpu'):
         super(EncoderLSTM, self).__init__()
         self.vocab_size, self.input_size = weights_matrix.shape
@@ -44,6 +46,7 @@ class EncoderLSTM(nn.Module):
     def create_emb_layer(self, weights_matrix, trainable=False):
         embedding = nn.Embedding(self.vocab_size, self.input_size)
         weights = torch.FloatTensor(weights_matrix)
+        
         embedding.weight.data.copy_(weights)
         embedding.weight = nn.Parameter(weights)
         embedding.weight.requires_grad = trainable
@@ -60,10 +63,11 @@ class EncoderLSTM(nn.Module):
                                                          batch_first=
                                                          self.batch_first,
                                                          enforce_sorted=False)
-
         enc_out, (enc_hidden, enc_cell) = self.encoder(packed, hx=hidden)
+        
         enc_out, _ = torch.nn.utils.rnn.pad_packed_sequence(
             enc_out, batch_first=self.batch_first)
+        
 
         if self.bidirectional:
             # if we have a bidirectional encoder we concatenate hidden states
@@ -99,7 +103,7 @@ class EncoderLSTM(nn.Module):
 class DecoderLSTM_v2(nn.Module):
     def __init__(self, weights_matrix, hidden_size, output_size,
                  max_target_len, num_layers=1, dropout=0, bidirectional=False,
-                 batch_first=False,device='cpu'):
+                 batch_first=True,device='cpu'):
 
         super(DecoderLSTM_v2, self).__init__()
         self.vocab_size, self.input_size = weights_matrix.shape
@@ -147,7 +151,10 @@ class DecoderLSTM_v2(nn.Module):
 
     def forward(self, dec_input, dec_hidden):
         dec_input.to(self.device)
+        dec_input = dec_input.long()
+        
         embedded = self.embedding(dec_input)
+        
         decoder_output, decoder_hidden = self.decoder(embedded,
                                                       dec_hidden)
         decoder_output = self.out(decoder_output)
@@ -170,12 +177,15 @@ class EncoderDecoder(nn.Module):
 
     def forward(self, input_seq, lengths_inputs, target_seq):
         batch_size = input_seq.shape[0]
+        
         encoder_output, encoder_hidden = self.encoder(input_seq, lengths_inputs)
         decoder_input = [[self.bos_indx for _ in range(
             batch_size)]]
-        decoder_input = torch.LongTensor(decoder_input)
+        
+        decoder_input = torch.FloatTensor(decoder_input)
         decoder_input = decoder_input.transpose(0, 1)
-        decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+        
+        decoder_hidden = encoder_hidden[:self.decoder.num_layers+1]
         decoder_input = decoder_input.to(self.device)
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() \
@@ -199,10 +209,12 @@ class EncoderDecoder(nn.Module):
                 top_index = F.log_softmax(current_output, dim=1)
                 value, pos_index = top_index.max(dim=1)
                 decoder_input = [index for index in pos_index]
-                decoder_input = torch.LongTensor(decoder_input)
+                decoder_input = torch.FloatTensor(decoder_input)
                 decoder_input = torch.unsqueeze(decoder_input,dim=1)
                 decoder_input = decoder_input.to(self.device)
-
+        
+        decoder_all_outputs = torch.stack(decoder_all_outputs).transpose(0,1)
+        import ipdb;ipdb.set_trace()
         return decoder_all_outputs
 
     def evaluate(self, input_seq, lengths_inputs):
@@ -210,7 +222,7 @@ class EncoderDecoder(nn.Module):
         encoder_output, encoder_hidden = self.encoder(input_seq, lengths_inputs)
         decoder_input = [[self.bos_indx for _ in range(
             batch_size)]]
-        decoder_input = torch.LongTensor(decoder_input)
+        decoder_input = torch.FloatTensor(decoder_input)
         decoder_input = decoder_input.transpose(0, 1)
         decoder_hidden = encoder_hidden[:self.decoder.num_layers]
         decoder_input = decoder_input.to(self.device)
@@ -225,7 +237,7 @@ class EncoderDecoder(nn.Module):
             top_index = F.softmax(current_output, dim=0)
             value, pos_index = top_index.max(dim=1)
             decoder_input = [index for index in pos_index]
-            decoder_input = torch.LongTensor(decoder_input)
+            decoder_input = torch.FloatTensor(decoder_input)
             decoder_input = torch.unsqueeze(decoder_input,dim=1)
             decoder_input = decoder_input.to(self.device)
         decoder_all_outputs = (torch
