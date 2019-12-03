@@ -110,7 +110,7 @@ if __name__ == '__main__':
     transforms = Compose([tokenizer, to_token_ids, to_tensor])
     dataset = MovieCorpusDataset('./data/', transforms=transforms)
     dataset.filter_data(min_threshold,max_threshold)
-    import ipdb;ipdb.set_trace()
+    
     print(len(dataset))
     
     train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE, BATCH_VAL_SIZE)
