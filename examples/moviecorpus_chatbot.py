@@ -12,7 +12,7 @@ from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
 from slp.data.collators import Seq2SeqCollator
 from slp.trainer.trainer import Seq2SeqTrainer
 from slp.config.moviecorpus import SPECIAL_TOKENS
-
+from slp.modules.loss import SequenceCrossEntropyLoss
 from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTM_v2
 
 from torch.optim import Adam
@@ -60,8 +60,9 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
+    
     encoder = EncoderLSTM(embeddings, 254, device=DEVICE)
-    decoder = DecoderLSTM_v2(embeddings, 254, 43, 14, device=DEVICE)
+    decoder = DecoderLSTM_v2(embeddings, hidden_size=254,output_size=embeddings.shape[0],max_target_len=41, device=DEVICE)
 
     model = EncoderDecoder(
         encoder, decoder, bos_index, teacher_forcing_ratio=.8, device=DEVICE)
@@ -70,7 +71,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
         [p for p in model.parameters() if p.requires_grad],
         lr=1e-3)
 
-    criterion = nn.CrossEntropyLoss(ignore_index=pad_index)
+    criterion = SequenceCrossEntropyLoss(pad_index)
 
     metrics = {
         'loss': Loss(criterion)
@@ -105,7 +106,7 @@ if __name__ == '__main__':
     transforms = Compose([tokenizer, to_token_ids, to_tensor])
     dataset = MovieCorpusDataset('./data/', transforms=transforms)
 
-    train_loader, val_loader = train_test_split(dataset, 32, 128)
+    train_loader, val_loader = train_test_split(dataset, 64, 128)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
 
