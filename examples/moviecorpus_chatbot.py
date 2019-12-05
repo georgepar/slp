@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.nn as nn
 
 from ignite.metrics import Loss
 from torch.utils.data import DataLoader, SubsetRandomSampler
@@ -13,20 +12,19 @@ from slp.data.collators import Seq2SeqCollator
 from slp.trainer.trainer import Seq2SeqTrainer
 from slp.config.moviecorpus import SPECIAL_TOKENS
 from slp.modules.loss import SequenceCrossEntropyLoss
-from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTM_v2
-from slp.modules.seq2seq import EncoderDecoder_best, Encoder_best, Decoder_best
+from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2
 
 from torch.optim import Adam
 
-
-DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
-BATCH_TRAIN_SIZE=32
-BATCH_VAL_SIZE=32
-min_threshold=2
-max_threshold=18
-max_target_len=max_threshold
+BATCH_TRAIN_SIZE = 32
+BATCH_VAL_SIZE = 32
+min_threshold = 2
+max_threshold = 18
+max_target_len = max_threshold
+
 
 def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train,
                              batch_val):
@@ -65,12 +63,19 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
-        
-    encoder =EncoderLSTM(embeddings,emb_train=False,hidden_size=256,num_layers=2,bidirectional=True,dropout=0.2,attention=False,rnn_type='rnn',device=DEVICE)
-    decoder=DecoderLSTM_v2(embeddings,emb_train=False,hidden_size=256,output_size=embeddings.shape[0],max_target_len=max_target_len,num_layers=2,dropout=0.2,rnn_type='rnn',bidirectional=False,device=DEVICE)
-    
-    #encoder = Encoder_best(512,embeddings,layers=2,bidirectional=True,dropout=0.2, device=DEVICE)
-    #decoder = Decoder_best(512,embeddings,output_size=embeddings.shape[0],max_target_len=max_target_len,layers=2,dropout=0.2,device=DEVICE)
+    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
+                          num_layers=2, bidirectional=True, dropout=0.2,
+                          attention=False, rnn_type='rnn', device=DEVICE)
+    decoder = DecoderLSTMv2(embeddings, emb_train=False, hidden_size=256,
+                            output_size=embeddings.shape[0],
+                            max_target_len=max_target_len, num_layers=2,
+                            dropout=0.2, rnn_type='rnn', bidirectional=False,
+                            device=DEVICE)
+
+    # encoder = Encoder_best(512,embeddings,layers=2,bidirectional=True,
+    # dropout=0.2, device=DEVICE)
+    # decoder = Decoder_best(512,embeddings,output_size=embeddings.shape[0],
+    # max_target_len=max_target_len,layers=2,dropout=0.2,device=DEVICE)
 
     model = EncoderDecoder(
         encoder, decoder, bos_index, teacher_forcing_ratio=1, device=DEVICE)
@@ -87,7 +92,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 
     trainer = Seq2SeqTrainer(model,
                              optimizer,
-                             checkpoint_dir=None, # '../checkpoints',
+                             checkpoint_dir=None,  # '../checkpoints',
                              metrics=metrics,
                              non_blocking=True,
                              retain_graph=False,
@@ -99,7 +104,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 
 if __name__ == '__main__':
     loader = EmbeddingsLoader(
-        './cache/glove.6B.100d.txt', 100, extra_tokens=SPECIAL_TOKENS)
+        './cache/glove.6B.50d.txt', 50, extra_tokens=SPECIAL_TOKENS)
     word2idx, _, embeddings = loader.load()
 
     pad_index = word2idx[SPECIAL_TOKENS.PAD.value]
@@ -113,11 +118,12 @@ if __name__ == '__main__':
 
     transforms = Compose([tokenizer, to_token_ids, to_tensor])
     dataset = MovieCorpusDataset('./data/', transforms=transforms)
-    dataset.filter_data(min_threshold,max_threshold)
-    
+    dataset.filter_data(min_threshold, max_threshold)
+
     print(len(dataset))
-    
-    train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE, BATCH_VAL_SIZE)
+
+    train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE,
+                                                BATCH_VAL_SIZE)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
 
