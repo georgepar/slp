@@ -65,14 +65,18 @@ class MovieCorpusDataset(Dataset):
         This method filters data according to threshold length.
         If the length of the turn exceeds threshold length the data is deleted.
         """
+        spacytk = SpacyTokenizer()
         new_questions = []
         new_answers = []
-        for question,answer in self.pairs:
-            if len(question)<=max_threshold_length and len(question)>=min_threshold_length and len(answer)<=max_threshold_length and len(answer)>=min_threshold_length:
+        for question, answer in self.pairs:
+            if max_threshold_length >= len(spacytk(question)) >= \
+                    min_threshold_length and max_threshold_length >= \
+                    len(spacytk(answer)) >= min_threshold_length:
+
                 new_questions.append(question)
                 new_answers.append(answer)
         
-        self.pairs = list(zip(new_questions,new_answers))
+        self.pairs = list(zip(new_questions, new_answers))
     def __len__(self):
         return len(self.pairs)
 
@@ -97,8 +101,6 @@ if __name__ == '__main__':
     data = MovieCorpusDataset('./data/', transforms=transforms)
     
     print(len(data))
-    print(data[5])
-    data.filter_data(3,10)
+    data.filter_data(2, 13)
     print(len(data))
-    print(data[5])
-    
+

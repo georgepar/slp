@@ -21,8 +21,8 @@ COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
 BATCH_TRAIN_SIZE = 32
 BATCH_VAL_SIZE = 32
-min_threshold = 2
-max_threshold = 18
+min_threshold = 0
+max_threshold = 10
 max_target_len = max_threshold
 
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
     transforms = Compose([tokenizer, to_token_ids, to_tensor])
     dataset = MovieCorpusDataset('./data/', transforms=transforms)
-    dataset.filter_data(min_threshold, max_threshold)
+    #dataset.filter_data(min_threshold, max_threshold)
 
     print(len(dataset))
 
