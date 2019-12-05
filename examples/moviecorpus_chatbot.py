@@ -14,18 +14,18 @@ from slp.trainer.trainer import Seq2SeqTrainer
 from slp.config.moviecorpus import SPECIAL_TOKENS
 from slp.modules.loss import SequenceCrossEntropyLoss
 from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTM_v2
+from slp.modules.seq2seq import EncoderDecoder_best, Encoder_best, Decoder_best
 
 from torch.optim import Adam
 
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-DEVICE = 'cuda'
+DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
-BATCH_TRAIN_SIZE=64
+BATCH_TRAIN_SIZE=32
 BATCH_VAL_SIZE=32
 min_threshold=2
-max_threshold=13
+max_threshold=18
 max_target_len=max_threshold
 
 def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train,
@@ -66,8 +66,11 @@ def train_test_split(dataset, batch_train, batch_val,
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
         
-    encoder = EncoderLSTM(embeddings, 256,num_layers=2,bidirectional=True,dropout=0.2, device=DEVICE)
-    decoder = DecoderLSTM_v2(embeddings, hidden_size=256,output_size=embeddings.shape[0],max_target_len=max_target_len,num_layers=2,dropout=0.2,device=DEVICE)
+    encoder =EncoderLSTM(embeddings,emb_train=False,hidden_size=256,num_layers=2,bidirectional=True,dropout=0.2,attention=False,rnn_type='rnn',device=DEVICE)
+    decoder=DecoderLSTM_v2(embeddings,emb_train=False,hidden_size=256,output_size=embeddings.shape[0],max_target_len=max_target_len,num_layers=2,dropout=0.2,rnn_type='rnn',bidirectional=False,device=DEVICE)
+    
+    #encoder = Encoder_best(512,embeddings,layers=2,bidirectional=True,dropout=0.2, device=DEVICE)
+    #decoder = Decoder_best(512,embeddings,output_size=embeddings.shape[0],max_target_len=max_target_len,layers=2,dropout=0.2,device=DEVICE)
 
     model = EncoderDecoder(
         encoder, decoder, bos_index, teacher_forcing_ratio=1, device=DEVICE)
