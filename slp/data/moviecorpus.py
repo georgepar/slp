@@ -11,9 +11,9 @@ from slp.data.transforms import *
 
 class MovieCorpusDataset(Dataset):
     def __init__(self, directory, transforms=None, train=True):
-        dest = download_url(MOVIECORPUS_URL, directory)
-        with ZipFile(dest, 'r') as zipfd:
-            zipfd.extractall(directory)
+        #dest = download_url(MOVIECORPUS_URL, directory)
+        #with ZipFile(dest, 'r') as zipfd:
+        #    zipfd.extractall(directory)
         self._file_lines = os.path.join(directory,
                                         'cornell '
                                         'movie-dialogs '
