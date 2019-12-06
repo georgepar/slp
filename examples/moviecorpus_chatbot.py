@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import collections
+import os
 
 from ignite.metrics import Loss
 from torch.utils.data import DataLoader, SubsetRandomSampler
@@ -24,6 +26,44 @@ BATCH_VAL_SIZE = 32
 min_threshold = 0
 max_threshold = 10
 max_target_len = max_threshold
+
+
+def create_vocabulary_dict(dataset,tokenizer=SpacyTokenizer()):
+    """
+    receives dataset and a tokenizer in order to split sentences and create
+    a dict-vocabulary with words counts.
+    """
+    voc_counts = {}
+    for question, answer in dataset.pairs:
+        words, counts = np.unique(np.array(tokenizer(question)),
+                                  return_counts=True)
+        for word, count in zip(words, counts):
+            if word not in voc_counts.keys():
+                voc_counts[word] = count
+            else:
+                voc_counts[word] += count
+
+    return voc_counts
+
+
+def create_emb_file(new_emb_file, old_emb_file, freq_words_file, mydataset,
+                    tok=SpacyTokenizer(), most_freq=None):
+
+    voc = create_vocabulary_dict(mydataset, tok)
+
+    sorted_voc = sorted(voc.items(), key=lambda kv: kv[1])
+    if not os.path.exists(freq_words_file):
+        with open(freq_words_file, "w") as file:
+            if most_freq is not None:
+                for item in sorted_voc[-most_freq:]:
+                    file.write(item[0]+'\n')
+            else:
+                for item in sorted_voc:
+                    file.write(item[0]+'\n')
+        file.close()
+
+    os.system("awk 'FNR==NR{a[$1];next} ($1 in a)' " + freq_words_file + " " +
+              old_emb_file + ">" + new_emb_file)
 
 
 def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train,
@@ -103,8 +143,18 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 
 
 if __name__ == '__main__':
-    loader = EmbeddingsLoader(
-        './cache/glove.6B.50d.txt', 50, extra_tokens=SPECIAL_TOKENS)
+
+    new_emb_file = './cache/new_embs.txt'
+    old_emb_file = './cache/glove.6B.50d.txt'
+    freq_words_file = './cache/freq_words.txt'
+
+    dataset = MovieCorpusDataset('./data/', transforms=None)
+    dataset.filter_data(min_threshold, max_threshold)
+    create_emb_file(new_emb_file, old_emb_file, freq_words_file,
+                    dataset, SpacyTokenizer(),
+                    most_freq=9000)
+
+    loader = EmbeddingsLoader(new_emb_file, 50, extra_tokens=SPECIAL_TOKENS)
     word2idx, _, embeddings = loader.load()
 
     pad_index = word2idx[SPECIAL_TOKENS.PAD.value]
@@ -118,9 +168,7 @@ if __name__ == '__main__':
 
     transforms = Compose([tokenizer, to_token_ids, to_tensor])
     dataset = MovieCorpusDataset('./data/', transforms=transforms)
-    #dataset.filter_data(min_threshold, max_threshold)
-
-    print(len(dataset))
+    dataset.filter_data(min_threshold, max_threshold)
 
     train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE,
                                                 BATCH_VAL_SIZE)
