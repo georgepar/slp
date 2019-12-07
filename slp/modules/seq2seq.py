@@ -27,7 +27,31 @@ class EncoderLSTM(nn.Module):
             self.attention = Attention(
                 attention_size=self.hidden_size, dropout=dropout)
         self.device = device
+        self.embedding = self.create_emb_layer(weights_matrix,
+                                               trainable=self.emb_train)
 
+        if rnn_type == 'lstm':
+            self.encoder = nn.LSTM(input_size=self.input_size,
+                                   hidden_size=self.hidden_size,
+                                   num_layers=self.num_layers,
+                                   bidirectional=self.bidirectional,
+                                   dropout=self.dropout,
+                                   batch_first=self.batch_first)
+        elif rnn_type == 'rnn':
+            self.encoder = nn.RNN(input_size=self.input_size,
+                                  hidden_size=self.hidden_size,
+                                  num_layers=self.num_layers,
+                                  bidirectional=self.bidirectional,
+                                  dropout=self.dropout,
+                                  batch_first=self.batch_first)
+        elif rnn_type == 'gru':
+            self.encoder = nn.GRU(input_size=self.input_size,
+                                  hidden_size=self.hidden_size,
+                                  num_layers=self.num_layers,
+                                  bidirectional=self.bidirectional,
+                                  dropout=self.dropout,
+                                  batch_first=self.batch_first)
+        """
         if self.bidirectional:
             # Bidirectional has twice the amount of hidden variables so if you
             # wan’t to keep the final output the same you have to divide the
@@ -37,21 +61,21 @@ class EncoderLSTM(nn.Module):
 
             if rnn_type == 'lstm':
                 self.encoder = nn.LSTM(input_size=self.input_size,
-                                       hidden_size=self.hidden_size // 2,
+                                       hidden_size=self.hidden_size, #//2
                                        num_layers=self.num_layers,
                                        bidirectional=self.bidirectional,
                                        dropout=self.dropout,
                                        batch_first=self.batch_first)
             elif rnn_type == 'rnn':
                 self.encoder = nn.RNN(input_size=self.input_size,
-                                      hidden_size=self.hidden_size // 2,
+                                      hidden_size=self.hidden_size, #//2
                                       num_layers=self.num_layers,
                                       bidirectional=self.bidirectional,
                                       dropout=self.dropout,
                                       batch_first=self.batch_first)
             elif rnn_type == 'gru':
                 self.encoder = nn.GRU(input_size=self.input_size,
-                                      hidden_size=self.hidden_size // 2,
+                                      hidden_size=self.hidden_size,# // 2,
                                       num_layers=self.num_layers,
                                       bidirectional=self.bidirectional,
                                       dropout=self.dropout,
@@ -81,7 +105,7 @@ class EncoderLSTM(nn.Module):
                                       bidirectional=self.bidirectional,
                                       dropout=self.dropout,
                                       batch_first=self.batch_first)
-
+        """
     def create_emb_layer(self, weights_matrix, trainable):
         embedding = nn.Embedding(self.vocab_size, self.input_size)
         weights = torch.FloatTensor(weights_matrix)
@@ -103,8 +127,8 @@ class EncoderLSTM(nn.Module):
                                                          batch_first,
                                                          enforce_sorted=False)
         if self.rnn_type == 'lstm':
-            enc_out, (enc_hidden, enc_cell) = self.encoder(packed)
-
+            #enc_out, (enc_hidden, enc_cell) = self.encoder(packed)
+            enc_out, enc_hidden = self.encoder(packed)
         else:
             enc_out, enc_hidden = self.encoder(packed)
         enc_out, _ = torch.nn.utils.rnn.pad_packed_sequence(enc_out,
@@ -112,6 +136,8 @@ class EncoderLSTM(nn.Module):
                                                             batch_first)
 
         if self.bidirectional:
+            enc_out = enc_out[:, :, :self.hidden_size] + \
+                         enc_out[:, :, self.hidden_size:]
             # if we have a bidirectional encoder we concatenate hidden states
             # (forward and backward)
             # the first dimension in enc_hidden[0] is the number of layers,
@@ -128,8 +154,9 @@ class EncoderLSTM(nn.Module):
 
             # forward_hidden = enc_hidden[0:self.num_layers:2]
             # backward_hidden = enc_hidden[1:self.num_layers:2]
-
+            """
             if self.rnn_type == 'lstm':
+                
                 forward_hidden = enc_hidden[0:2 * self.num_layers:2]
                 backward_hidden = enc_hidden[1:2 * self.num_layers:2]
                 forward_cell = enc_cell[0:2 * self.num_layers:2]
@@ -140,33 +167,50 @@ class EncoderLSTM(nn.Module):
                 new_cell = torch.cat([forward_cell, backward_cell], dim=2)
 
                 enc_hidden, enc_cell = (new_hidden, new_cell)
-
+        
             else:
                 forward_hidden = enc_hidden[0:2 * self.num_layers:2]
                 backward_hidden = enc_hidden[1:2 * self.num_layers:2]
                 enc_hidden = torch.cat([forward_hidden, backward_hidden],
                                        dim=2)
-
+            """
         if self.attention is not None:
             out, _ = self.attention(enc_out,
                                     attention_mask=pad_mask(input_lengths,
                                                             device=self.
                                                             device))
             enc_out = out.sum(1)
+        """  
         if self.rnn_type == 'lstm':
-            return enc_out, (enc_hidden, enc_cell)
+            #return enc_out, (enc_hidden, enc_cell)
+            return enc_out,enc_hidden
         else:
             return enc_out, enc_hidden
+        """
+
+        return enc_out, enc_hidden
 
 
 class DecoderLSTMv2(nn.Module):
     def __init__(self, weights_matrix, hidden_size, output_size,
-                 max_target_len, num_layers=1, dropout=0, bidirectional=False,
+                 max_target_len,emb_layer=None, num_layers=1, dropout=0, \
+                                                         bidirectional=False,
                  batch_first=True, emb_train=False, rnn_type='lstm',
                  device='cpu'):
 
         super(DecoderLSTMv2, self).__init__()
-        self.vocab_size, self.input_size = weights_matrix.shape
+
+        if weights_matrix is not None and emb_layer is None:
+            self.vocab_size, self.input_size = weights_matrix.shape
+            self.embedding = self.create_emb_layer(weights_matrix,
+                                                   trainable=emb_train)
+        elif emb_layer is not None and weights_matrix is None:
+            self.embedding = emb_layer
+            self.vocab_size, self.input_size = (emb_layer.num_embeddings,
+                                                emb_layer.embedding_dim)
+        else:
+            assert False,"emb_layer and weights_matrix should not be both " \
+                         "None or initialized."
         self.emb_train = emb_train
         self.num_layers = num_layers
         self.hidden_size = hidden_size
@@ -178,6 +222,30 @@ class DecoderLSTMv2(nn.Module):
         self.rnn_type = rnn_type
         self.device = device
 
+        if rnn_type == 'lstm':
+            self.decoder = nn.LSTM(input_size=self.input_size,
+                                   hidden_size=self.hidden_size,
+                                   num_layers=self.num_layers,
+                                   bidirectional=self.bidirectional,
+                                   dropout=self.dropout,
+                                   batch_first=self.batch_first)
+        elif rnn_type == 'rnn':
+            self.decoder = nn.RNN(input_size=self.input_size,
+                                  hidden_size=self.hidden_size,
+                                  num_layers=self.num_layers,
+                                  bidirectional=self.bidirectional,
+                                  dropout=self.dropout,
+                                  batch_first=self.batch_first)
+        elif rnn_type == 'gru':
+            self.decoder = nn.GRU(input_size=self.input_size,
+                                  hidden_size=self.hidden_size,
+                                  num_layers=self.num_layers,
+                                  bidirectional=self.bidirectional,
+                                  dropout=self.dropout,
+                                  batch_first=self.batch_first)
+
+        self.out = nn.Linear(self.hidden_size, self.output_size)
+        """
         if self.bidirectional:
             self.embedding = self.create_emb_layer(weights_matrix,
                                                    trainable=self.emb_train)
@@ -230,8 +298,7 @@ class DecoderLSTMv2(nn.Module):
                                       bidirectional=self.bidirectional,
                                       dropout=self.dropout,
                                       batch_first=self.batch_first)
-
-            self.out = nn.Linear(self.hidden_size, self.output_size)
+        """
 
     def create_emb_layer(self, weights_matrix, trainable):
         embedding = nn.Embedding(self.vocab_size, self.input_size)
@@ -250,7 +317,9 @@ class DecoderLSTMv2(nn.Module):
 
         decoder_output, decoder_hidden = self.decoder(embedded,
                                                       dec_hidden)
-
+        if self.bidirectional:
+            decoder_output = decoder_output[:, :, :self.hidden_size] + \
+                             decoder_output[:, :, self.hidden_size:]
         decoder_output = self.out(decoder_output)
         return decoder_output, decoder_hidden
 
@@ -280,7 +349,8 @@ class EncoderDecoder(nn.Module):
         decoder_input = torch.tensor(decoder_input).long()
         decoder_input = decoder_input.transpose(0, 1)
 
-        decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+        decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
+        import ipdb; ipdb.set_trace()
         decoder_input = decoder_input.to(self.device)
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < self. \

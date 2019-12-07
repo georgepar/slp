@@ -18,12 +18,12 @@ from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2
 
 from torch.optim import Adam
 
-DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
 BATCH_TRAIN_SIZE = 64
 BATCH_VAL_SIZE = 32
-min_threshold = 3
+min_threshold = 0
 max_threshold = 10
 max_target_len = max_threshold
 
@@ -62,8 +62,8 @@ def create_emb_file(new_emb_file, old_emb_file, freq_words_file, mydataset,
                     file.write(item[0]+'\n')
         file.close()
 
-    os.system("awk 'FNR==NR{a[$1];next} ($1 in a)' " + freq_words_file + " " +
-              old_emb_file + ">" + new_emb_file)
+        os.system("awk 'FNR==NR{a[$1];next} ($1 in a)' " + freq_words_file + " " +
+                  old_emb_file + ">" + new_emb_file)
 
 
 def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train,
@@ -103,13 +103,16 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
-    encoder = EncoderLSTM(embeddings, emb_train=True, hidden_size=256,
+    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
                           num_layers=2, bidirectional=True, dropout=0.2,
-                          attention=False, rnn_type='lstm', device=DEVICE)
-    decoder = DecoderLSTMv2(embeddings, emb_train=True, hidden_size=256,
+                          attention=False, rnn_type='rnn', device=DEVICE)
+ 
+    decoder = DecoderLSTMv2(weights_matrix=None, emb_train=False,
+                            hidden_size=256,
                             output_size=embeddings.shape[0],
                             max_target_len=max_target_len, num_layers=2,
-                            dropout=0.2, rnn_type='lstm', bidirectional=False,
+                            dropout=0.2, rnn_type='rnn',
+                            emb_layer=encoder.embedding, bidirectional=False,
                             device=DEVICE)
 
     # encoder = Encoder_best(512,embeddings,layers=2,bidirectional=True,
@@ -174,5 +177,4 @@ if __name__ == '__main__':
                                                 BATCH_VAL_SIZE)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
-
     print(f'Final score: {final_score}')
