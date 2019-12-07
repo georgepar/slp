@@ -62,8 +62,8 @@ def create_emb_file(new_emb_file, old_emb_file, freq_words_file, mydataset,
                     file.write(item[0]+'\n')
         file.close()
 
-    os.system("awk 'FNR==NR{a[$1];next} ($1 in a)' " + freq_words_file + " " +
-              old_emb_file + ">" + new_emb_file)
+        os.system("awk 'FNR==NR{a[$1];next} ($1 in a)' " + freq_words_file + " " +
+                  old_emb_file + ">" + new_emb_file)
 
 
 def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train,
@@ -106,10 +106,12 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
     encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
                           num_layers=2, bidirectional=True, dropout=0.2,
                           attention=False, rnn_type='rnn', device=DEVICE)
-    decoder = DecoderLSTMv2(embeddings, emb_train=False, hidden_size=256,
+    decoder = DecoderLSTMv2(weights_matrix=None, emb_train=False,
+                            hidden_size=256,
                             output_size=embeddings.shape[0],
                             max_target_len=max_target_len, num_layers=2,
-                            dropout=0.2, rnn_type='rnn', bidirectional=False,
+                            dropout=0.2, rnn_type='rnn',
+                            emb_layer=encoder.embedding, bidirectional=False,
                             device=DEVICE)
 
     # encoder = Encoder_best(512,embeddings,layers=2,bidirectional=True,
@@ -122,7 +124,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 
     optimizer = Adam(
         [p for p in model.parameters() if p.requires_grad],
-        lr=1e-3)
+        lr=1e-2)
 
     criterion = SequenceCrossEntropyLoss(pad_index)
 
@@ -174,5 +176,4 @@ if __name__ == '__main__':
                                                 BATCH_VAL_SIZE)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
-
     print(f'Final score: {final_score}')
