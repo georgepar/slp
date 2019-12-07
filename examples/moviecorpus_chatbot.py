@@ -18,12 +18,12 @@ from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2
 
 from torch.optim import Adam
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
-BATCH_TRAIN_SIZE = 32
+BATCH_TRAIN_SIZE = 64
 BATCH_VAL_SIZE = 32
-min_threshold = 0
+min_threshold = 3
 max_threshold = 10
 max_target_len = max_threshold
 
@@ -103,13 +103,13 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
-    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
+    encoder = EncoderLSTM(embeddings, emb_train=True, hidden_size=256,
                           num_layers=2, bidirectional=True, dropout=0.2,
-                          attention=False, rnn_type='rnn', device=DEVICE)
-    decoder = DecoderLSTMv2(embeddings, emb_train=False, hidden_size=256,
+                          attention=False, rnn_type='lstm', device=DEVICE)
+    decoder = DecoderLSTMv2(embeddings, emb_train=True, hidden_size=256,
                             output_size=embeddings.shape[0],
                             max_target_len=max_target_len, num_layers=2,
-                            dropout=0.2, rnn_type='rnn', bidirectional=False,
+                            dropout=0.2, rnn_type='lstm', bidirectional=False,
                             device=DEVICE)
 
     # encoder = Encoder_best(512,embeddings,layers=2,bidirectional=True,
@@ -122,7 +122,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 
     optimizer = Adam(
         [p for p in model.parameters() if p.requires_grad],
-        lr=1e-3)
+        lr=1e-2)
 
     criterion = SequenceCrossEntropyLoss(pad_index)
 
@@ -145,7 +145,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 if __name__ == '__main__':
 
     new_emb_file = './cache/new_embs.txt'
-    old_emb_file = './cache/glove.6B.50d.txt'
+    old_emb_file = './cache/glove.6B.300d.txt'
     freq_words_file = './cache/freq_words.txt'
 
     dataset = MovieCorpusDataset('./data/', transforms=None)
@@ -154,7 +154,7 @@ if __name__ == '__main__':
                     dataset, SpacyTokenizer(),
                     most_freq=9000)
 
-    loader = EmbeddingsLoader(new_emb_file, 50, extra_tokens=SPECIAL_TOKENS)
+    loader = EmbeddingsLoader(new_emb_file, 300, extra_tokens=SPECIAL_TOKENS)
     word2idx, _, embeddings = loader.load()
 
     pad_index = word2idx[SPECIAL_TOKENS.PAD.value]
