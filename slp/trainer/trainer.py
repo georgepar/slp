@@ -290,7 +290,93 @@ class SequentialTrainer(Trainer):
         return y_pred, targets
 
 
-class Seq2SeqTrainer(SequentialTrainer):
+class Seq2SeqTrainer(Trainer):
+
+    def __init__(self: TrainerType,
+                 model: nn.Module,
+                 optimizer: Optimizer,
+                 checkpoint_dir: str = '../../checkpoints',
+                 experiment_name: str = 'experiment',
+                 model_checkpoint: Optional[str] = None,
+                 optimizer_checkpoint: Optional[str] = None,
+                 metrics: types.GenericDict = None,
+                 patience: int = 10,
+                 validate_every: int = 1,
+                 accumulation_steps: int = 1,
+                 loss_fn: Union[_Loss, DataParallelCriterion] = None,
+                 clip: float = None,                
+                 non_blocking: bool = True,
+                 retain_graph: bool = False,
+                 dtype: torch.dtype = torch.float,
+                 device: str = 'cpu',
+                 parallel: bool = False) -> None:
+        self.dtype = dtype
+        self.retain_graph = retain_graph
+        self.non_blocking = non_blocking
+        self.device = device
+        self.loss_fn = loss_fn
+        self.clip=clip
+        self.validate_every = validate_every
+        self.patience = patience
+        self.accumulation_steps = accumulation_steps
+        self.checkpoint_dir = checkpoint_dir
+
+        model_checkpoint = self._check_checkpoint(model_checkpoint)
+        optimizer_checkpoint = self._check_checkpoint(optimizer_checkpoint)
+
+        self.model = cast(nn.Module, from_checkpoint(
+                model_checkpoint, model, map_location=torch.device('cpu')))
+        self.model = self.model.type(dtype).to(device)
+        self.optimizer = from_checkpoint(optimizer_checkpoint, optimizer)
+        self.parallel = parallel
+        if parallel:
+            if device == 'cpu':
+                raise ValueError("parallel can be used only with cuda device")
+            self.model = DataParallelModel(self.model).to(device)
+            self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
+        if metrics is None:
+            metrics = {}
+        if 'loss' not in metrics:
+            if self.parallel:
+                metrics['loss'] = Loss(
+                    lambda x, y: self.loss_fn(x, y).mean())  # type: ignore
+            else:
+                metrics['loss'] = Loss(self.loss_fn)
+        self.trainer = Engine(self.train_step)
+        self.train_evaluator = Engine(self.eval_step)
+        self.valid_evaluator = Engine(self.eval_step)
+        for name, metric in metrics.items():
+            metric.attach(self.train_evaluator, name)
+            metric.attach(self.valid_evaluator, name)
+
+        self.pbar = ProgressBar()
+        self.val_pbar = ProgressBar(desc='Validation')
+
+        if checkpoint_dir is not None:
+            self.checkpoint = CheckpointHandler(
+                checkpoint_dir, experiment_name, score_name='validation_loss',
+                score_function=self._score_fn, n_saved=2,
+                require_empty=False, save_as_state_dict=True)
+
+        self.early_stop = EarlyStopping(
+            patience, self._score_fn, self.trainer)
+
+        self.val_handler = EvaluationHandler(pbar=self.pbar,
+                                             validate_every=1,
+                                             early_stopping=self.early_stop)
+        self.attach()
+        log.info(
+            f'Trainer configured to run {experiment_name}\n'
+            f'\tpretrained model: {model_checkpoint} {optimizer_checkpoint}\n'
+            f'\tcheckpoint directory: {checkpoint_dir}\n'
+            f'\tpatience: {patience}\n'
+            f'\taccumulation steps: {accumulation_steps}\n'
+            f'\tnon blocking: {non_blocking}\n'
+            f'\tretain graph: {retain_graph}\n'
+            f'\tdevice: {device}\n'
+            f'\tmodel dtype: {dtype}\n'
+            f'\tparallel: {parallel}')
+    
     def parse_batch(
             self,
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
@@ -307,6 +393,26 @@ class Seq2SeqTrainer(SequentialTrainer):
         y_pred = self.model(inputs, input_lengths, targets)
         return y_pred, targets
 
+    def train_step(self: TrainerType,
+                   engine: Engine,
+                   batch: List[torch.Tensor]) -> float:
+        self.model.train()
+        y_pred, targets = self.get_predictions_and_targets(batch)
+        loss = self.loss_fn(y_pred, targets)  # type: ignore
+        if self.parallel:
+            loss = loss.mean()
+        loss = loss / self.accumulation_steps
+        loss.backward(retain_graph=self.retain_graph)
+        
+        # Clip the gradient if necessary.
+        if self.clip is not None:
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(),self.clip)
+
+        if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
+            self.optimizer.step()  # type: ignore
+            self.optimizer.zero_grad()
+        loss_value: float = loss.item()
+        return loss_value
 
 class TransformerTrainer(Trainer):
     def parse_batch(

@@ -349,8 +349,11 @@ class EncoderDecoder(nn.Module):
         decoder_input = torch.tensor(decoder_input).long()
         decoder_input = decoder_input.transpose(0, 1)
 
-        decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
-        import ipdb; ipdb.set_trace()
+        if self.encoder.rnn_type == "lstm":
+            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],encoder_hidden[1][-self.decoder.num_layers:])
+        else:
+            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
+                
         decoder_input = decoder_input.to(self.device)
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < self. \

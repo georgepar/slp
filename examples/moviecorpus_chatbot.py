@@ -18,12 +18,12 @@ from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2
 
 from torch.optim import Adam
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
 BATCH_TRAIN_SIZE = 64
 BATCH_VAL_SIZE = 32
-min_threshold = 0
+min_threshold = 3
 max_threshold = 10
 max_target_len = max_threshold
 
@@ -104,14 +104,14 @@ def train_test_split(dataset, batch_train, batch_val,
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
     encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
-                          num_layers=2, bidirectional=True, dropout=0.2,
+                          num_layers=2, bidirectional=True, dropout=0.4,
                           attention=False, rnn_type='rnn', device=DEVICE)
  
     decoder = DecoderLSTMv2(weights_matrix=None, emb_train=False,
                             hidden_size=256,
                             output_size=embeddings.shape[0],
                             max_target_len=max_target_len, num_layers=2,
-                            dropout=0.2, rnn_type='rnn',
+                            dropout=0.4, rnn_type='rnn',
                             emb_layer=encoder.embedding, bidirectional=False,
                             device=DEVICE)
 
@@ -121,11 +121,11 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
     # max_target_len=max_target_len,layers=2,dropout=0.2,device=DEVICE)
 
     model = EncoderDecoder(
-        encoder, decoder, bos_index, teacher_forcing_ratio=1, device=DEVICE)
+        encoder, decoder, bos_index, teacher_forcing_ratio=0.5, device=DEVICE)
 
     optimizer = Adam(
         [p for p in model.parameters() if p.requires_grad],
-        lr=1e-2)
+        lr=1e-3, weight_decay=1e-6)
 
     criterion = SequenceCrossEntropyLoss(pad_index)
 
@@ -141,6 +141,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
                              retain_graph=False,
                              patience=5,
                              device=device,
+                             clip=25.0,
                              loss_fn=criterion)
     return trainer
 
@@ -155,7 +156,7 @@ if __name__ == '__main__':
     dataset.filter_data(min_threshold, max_threshold)
     create_emb_file(new_emb_file, old_emb_file, freq_words_file,
                     dataset, SpacyTokenizer(),
-                    most_freq=9000)
+                    most_freq=15000)
 
     loader = EmbeddingsLoader(new_emb_file, 300, extra_tokens=SPECIAL_TOKENS)
     word2idx, _, embeddings = loader.load()
