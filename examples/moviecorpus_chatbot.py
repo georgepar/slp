@@ -18,9 +18,9 @@ from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2
 
 from torch.optim import Adam
 
-DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
-MAX_EPOCHS = 50
+MAX_EPOCHS = 10
 BATCH_TRAIN_SIZE = 64
 BATCH_VAL_SIZE = 32
 min_threshold = 3
@@ -62,8 +62,8 @@ def create_emb_file(new_emb_file, old_emb_file, freq_words_file, mydataset,
                     file.write(item[0]+'\n')
         file.close()
 
-        os.system("awk 'FNR==NR{a[$1];next} ($1 in a)' " + freq_words_file + " " +
-                  old_emb_file + ">" + new_emb_file)
+        os.system("awk 'FNR==NR{a[$1];next} ($1 in a)' " + freq_words_file +
+                  " " + old_emb_file + ">" + new_emb_file)
 
 
 def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train,
@@ -146,6 +146,27 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
     return trainer
 
 
+def input_interaction(model, transforms, idx2word, pad_index, bos_index,
+                      eos_index):
+
+    model.eval()
+    input_sentence = ""
+    while True:
+
+    # Get input response:
+        input_sentence = input(">")
+        # Check if it is quit case
+        if input_sentence == 'q' or input_sentence == 'quit':
+            break
+
+        input_seq = transforms(input_sentence)
+        model_outputs = model.evaluate(input_seq,eos_index)
+        answer = ""
+        for output in model_outputs:
+
+            answer += idx2word[output.item()]+" "
+        print(answer)
+
 if __name__ == '__main__':
 
     new_emb_file = './cache/new_embs.txt'
@@ -156,13 +177,14 @@ if __name__ == '__main__':
     dataset.filter_data(min_threshold, max_threshold)
     create_emb_file(new_emb_file, old_emb_file, freq_words_file,
                     dataset, SpacyTokenizer(),
-                    most_freq=15000)
+                    most_freq=9000)
 
     loader = EmbeddingsLoader(new_emb_file, 300, extra_tokens=SPECIAL_TOKENS)
-    word2idx, _, embeddings = loader.load()
+    word2idx, idx2word, embeddings = loader.load()
 
     pad_index = word2idx[SPECIAL_TOKENS.PAD.value]
     bos_index = word2idx[SPECIAL_TOKENS.BOS.value]
+    eos_index = word2idx[SPECIAL_TOKENS.EOS.value]
 
     tokenizer = SpacyTokenizer(prepend_bos=True,
                                append_eos=True,
@@ -179,3 +201,6 @@ if __name__ == '__main__':
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
     print(f'Final score: {final_score}')
+
+    input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
+                      eos_index)

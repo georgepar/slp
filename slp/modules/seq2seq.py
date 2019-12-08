@@ -390,30 +390,41 @@ class EncoderDecoder(nn.Module):
 
         return decoder_all_outputs
 
-    def evaluate(self, input_seq, lengths_inputs):
-        batch_size = input_seq.shape[0]
-        encoder_output, encoder_hidden = self.encoder(input_seq,
-                                                      lengths_inputs)
-        decoder_input = [[self.bos_indx for _ in range(
-            batch_size)]]
+    def evaluate(self, input_seq, eos_index):
+        """
+        This function is only used for live-interaction with model!
+        It was created to be used for input interaction with the model!
+        """
+
+        input_seq = torch.unsqueeze(input_seq, dim=0)
+        input_seq = input_seq.to(self.device)
+        input_len = torch.tensor([len(input_seq)])
+
+        encoder_out, encoder_hidden = self.encoder(input_seq, input_len)
+        decoder_input = [[self.bos_indx]]
         decoder_input = torch.tensor(decoder_input).long()
         decoder_input = decoder_input.transpose(0, 1)
-        decoder_hidden = encoder_hidden[:self.decoder.num_layers + 1]
+        if self.encoder.rnn_type == "lstm":
+            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+                              encoder_hidden[1][-self.decoder.num_layers:])
+        else:
+            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
         decoder_input = decoder_input.to(self.device)
+
         decoder_all_outputs = []
 
         for t in range(0, self.max_target_len):
             decoder_output, decoder_hidden = self.decoder(decoder_input,
                                                           decoder_hidden)
-            decoder_all_outputs.append(torch.squeeze(decoder_output,
-                                                     dim=1))
+
             current_output = torch.squeeze(decoder_output, dim=1)
             top_index = f.softmax(current_output, dim=0)
             value, pos_index = top_index.max(dim=1)
-            decoder_input = [index for index in pos_index]
-            decoder_input = torch.tensor(decoder_input).long()
+            if pos_index == eos_index:
+                break
+            decoder_all_outputs.append(pos_index)
+            decoder_input = pos_index
             decoder_input = torch.unsqueeze(decoder_input, dim=1)
             decoder_input = decoder_input.to(self.device)
 
-        decoder_all_outputs = torch.stack(decoder_all_outputs).transpose(0, 1)
-        return decoder_all_outputs, decoder_hidden
+        return decoder_all_outputs
