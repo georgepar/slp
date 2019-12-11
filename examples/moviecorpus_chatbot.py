@@ -103,19 +103,19 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
-    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
+    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=512,
                           num_layers=1, bidirectional=True, dropout=0.4,
                           rnn_type='lstm', device=DEVICE)
 
     decoder = DecoderLSTMv2(weights_matrix=embeddings, emb_train=False,
-                            hidden_size=256,
+                            hidden_size=512,
                             output_size=embeddings.shape[0],
                             max_target_len=max_target_len, num_layers=1,
                             dropout=0.4, rnn_type='lstm',
                             emb_layer=None, bidirectional=False,
                             device=DEVICE)
     model = EncoderDecoder(
-        encoder, decoder, bos_index, teacher_forcing_ratio=0.5, device=DEVICE)
+        encoder, decoder, bos_index, teacher_forcing_ratio=0.9, device=DEVICE)
 
     # import torch.nn as nn
     # embedding = nn.Embedding(embeddings.shape[0], 500)
@@ -127,7 +127,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 
     optimizer = Adam(
         [p for p in model.parameters() if p.requires_grad],
-        lr=1e-2, weight_decay=1e-6)
+        lr=1e-3, weight_decay=1e-6)
 
     criterion = SequenceCrossEntropyLoss(pad_index)
 
@@ -200,9 +200,9 @@ if __name__ == '__main__':
     train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE,
                                                 BATCH_VAL_SIZE)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
-    #final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
-    # print(f'Final score: {final_score}')
-    #
-    # input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
-    #                   eos_index)
-    trainer.overfit_single_batch(train_loader)
+    final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
+    print(f'Final score: {final_score}')
+
+    input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
+                      eos_index)
+    #trainer.overfit_single_batch(train_loader)

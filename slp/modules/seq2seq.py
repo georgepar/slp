@@ -22,9 +22,10 @@ class EncoderLSTM(nn.Module):
         self.batch_first = batch_first
         self.rnn_type = rnn_type
         self.device = device
-        self.embedding = self.create_emb_layer(weights_matrix,
-                                               trainable=self.emb_train)
-
+        self.dropout_out = nn.Dropout(dropout)
+        # self.embedding = self.create_emb_layer(weights_matrix,
+        #                                        trainable=self.emb_train)
+        self.create_emb_layer(weights_matrix, trainable=self.emb_train)
         if rnn_type == 'lstm':
             self.encoder = nn.LSTM(input_size=self.input_size,
                                    hidden_size=self.hidden_size,
@@ -48,16 +49,16 @@ class EncoderLSTM(nn.Module):
                                   batch_first=self.batch_first)
 
     def create_emb_layer(self, weights_matrix, trainable):
-        embedding = nn.Embedding(self.vocab_size, self.input_size)
+        self.embedding = nn.Embedding(self.vocab_size, self.input_size)
         weights = torch.FloatTensor(weights_matrix)
 
-        embedding.weight.data.copy_(weights)
-        embedding.weight = nn.Parameter(weights)
-        embedding.weight.requires_grad = trainable
-        return embedding
+        self.embedding.weight.data.copy_(weights)
+        self.embedding.weight = nn.Parameter(weights)
+        self.embedding.weight.requires_grad = trainable
+        #return embedding
 
     def forward(self, input_seq, input_lengths):
-        embedded_seq = self.embedding(input_seq)
+        embedded_seq = self.dropout_out(self.embedding(input_seq))
         # hidden = self._init_hidden()
         packed = torch.nn.utils.rnn.pack_padded_sequence(embedded_seq,
                                                          input_lengths,
@@ -89,8 +90,9 @@ class DecoderLSTMv2(nn.Module):
 
         if weights_matrix is not None and emb_layer is None:
             self.vocab_size, self.input_size = weights_matrix.shape
-            self.embedding = self.create_emb_layer(weights_matrix,
-                                                   trainable=emb_train)
+            # self.embedding = self.create_emb_layer(weights_matrix,
+            #                                        trainable=emb_train)
+            self.create_emb_layer(weights_matrix, trainable=emb_train)
         elif emb_layer is not None and weights_matrix is None:
             self.embedding = emb_layer
             self.vocab_size, self.input_size = (emb_layer.num_embeddings,
@@ -132,21 +134,22 @@ class DecoderLSTMv2(nn.Module):
                                   batch_first=self.batch_first)
 
         self.out = nn.Linear(self.hidden_size, self.output_size)
+        self.dropout_out = nn.Dropout(dropout)
 
     def create_emb_layer(self, weights_matrix, trainable):
-        embedding = nn.Embedding(self.vocab_size, self.input_size)
+        self.embedding = nn.Embedding(self.vocab_size, self.input_size)
         weights = torch.FloatTensor(weights_matrix)
         # embedding.weight.data.copy_(weights)
-        embedding.weight = nn.Parameter(weights)
-        embedding.weight.requires_grad = trainable
+        self.embedding.weight = nn.Parameter(weights)
+        self.embedding.weight.requires_grad = trainable
 
-        return embedding
+        #return embedding
 
     def forward(self, dec_input, dec_hidden):
 
         dec_input = dec_input.long()
         dec_input.to(self.device)
-        embedded = self.embedding(dec_input)
+        embedded = self.dropout_out(self.embedding(dec_input))
 
         decoder_output, decoder_hidden = self.decoder(embedded,
                                                       dec_hidden)
@@ -213,11 +216,10 @@ class EncoderDecoder(nn.Module):
                 decoder_all_outputs.append(
                     torch.squeeze(decoder_output, dim=1))
                 current_output = torch.squeeze(decoder_output, dim=1)
-                top_index = f.log_softmax(current_output, dim=1)
+                top_index = f.log_softmax(current_output, dim=0)
                 value, pos_index = top_index.max(dim=1)
-                decoder_input = [index for index in pos_index]
-                decoder_input = torch.tensor(decoder_input).long()
-                decoder_input = torch.unsqueeze(decoder_input, dim=1)
+                # value, pos_index = current_output.max(dim=1)
+                decoder_input = torch.unsqueeze(pos_index, dim=1)
                 decoder_input = decoder_input.to(self.device)
 
         decoder_all_outputs = torch.stack(decoder_all_outputs).transpose(0, 1)
@@ -238,12 +240,12 @@ class EncoderDecoder(nn.Module):
         decoder_input = [[self.bos_indx]]
         decoder_input = torch.tensor(decoder_input).long()
         decoder_input = decoder_input.transpose(0, 1)
-        if self.encoder.rnn_type == "lstm":
-            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
-                              encoder_hidden[1][-self.decoder.num_layers:])
-        else:
-            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
         decoder_input = decoder_input.to(self.device)
+        if self.encoder.rnn_type == "lstm":
+            decoder_hidden = (encoder_hidden[0][:self.decoder.num_layers],
+                              encoder_hidden[1][:self.decoder.num_layers])
+        else:
+            decoder_hidden = encoder_hidden[:self.decoder.num_layers]
 
         decoder_all_outputs = []
 
@@ -252,14 +254,13 @@ class EncoderDecoder(nn.Module):
                                                           decoder_hidden)
 
             current_output = torch.squeeze(decoder_output, dim=1)
-            top_index = f.softmax(current_output, dim=0)
+            top_index = f.log_softmax(current_output, dim=0)
             value, pos_index = top_index.max(dim=1)
+            # value, pos_index = current_output.max(dim=1)
             if pos_index == eos_index:
                 break
             decoder_all_outputs.append(pos_index)
-            decoder_input = pos_index
-            decoder_input = torch.unsqueeze(decoder_input, dim=1)
-            decoder_input = decoder_input.to(self.device)
+            decoder_input = torch.unsqueeze(pos_index, dim=1)
 
         return decoder_all_outputs
 
