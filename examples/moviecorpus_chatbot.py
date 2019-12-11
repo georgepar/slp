@@ -24,7 +24,7 @@ MAX_EPOCHS = 10
 BATCH_TRAIN_SIZE = 32
 BATCH_VAL_SIZE = 32
 min_threshold = 3
-max_threshold = 10
+max_threshold = 16
 max_target_len = max_threshold
 
 
@@ -172,7 +172,7 @@ def input_interaction(model, transforms, idx2word, pad_index, bos_index,
 if __name__ == '__main__':
 
     new_emb_file = './cache/new_embs.txt'
-    old_emb_file = './cache/glove.6B.50d.txt'
+    old_emb_file = './cache/glove.6B.300d.txt'
     freq_words_file = './cache/freq_words.txt'
 
     dataset = MovieCorpusDataset('./data/', transforms=None)
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     create_emb_file(new_emb_file, old_emb_file, freq_words_file, dataset,
                     SpacyTokenizer())
 
-    loader = EmbeddingsLoader(new_emb_file, 50, extra_tokens=SPECIAL_TOKENS)
+    loader = EmbeddingsLoader(new_emb_file, 300, extra_tokens=SPECIAL_TOKENS)
     word2idx, idx2word, embeddings = loader.load()
 
     pad_index = word2idx[SPECIAL_TOKENS.PAD.value]
@@ -203,6 +203,6 @@ if __name__ == '__main__':
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
     print(f'Final score: {final_score}')
 
-    input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
-                      eos_index)
+    # input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
+    #                   eos_index)
     #trainer.overfit_single_batch(train_loader)

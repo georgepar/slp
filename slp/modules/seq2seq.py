@@ -76,7 +76,7 @@ class EncoderLSTM(nn.Module):
         if self.bidirectional:
             enc_out = enc_out[:, :, :self.hidden_size] + \
                          enc_out[:, :, self.hidden_size:]
-        import ipdb;ipdb.set_trace()
+
         return enc_out, enc_hidden
 
 
@@ -150,13 +150,13 @@ class DecoderLSTMv2(nn.Module):
         dec_input = dec_input.long()
         dec_input.to(self.device)
         embedded = self.dropout_out(self.embedding(dec_input))
-        import ipbd;ipbd.set_trace()
         decoder_output, decoder_hidden = self.decoder(embedded,
                                                       dec_hidden)
         if self.bidirectional:
             decoder_output = decoder_output[:, :, :self.hidden_size] + \
                              decoder_output[:, :, self.hidden_size:]
         decoder_output = self.out(decoder_output)
+
         return decoder_output, decoder_hidden
 
 
@@ -179,18 +179,16 @@ class EncoderDecoder(nn.Module):
 
         encoder_output, encoder_hidden = self.encoder(input_seq,
                                                       lengths_inputs)
-        decoder_input = [[self.bos_indx for _ in range(
-            batch_size)]]
 
-        decoder_input = torch.tensor(decoder_input).long()
-        decoder_input = decoder_input.transpose(0, 1)
+        decoder_input = target_seq[:, 0]
+        decoder_input = torch.unsqueeze(decoder_input, dim=1)
         decoder_input = decoder_input.to(self.device)
 
         if self.encoder.rnn_type == "lstm":
-            decoder_hidden = (encoder_hidden[0][:self.decoder.num_layers],
-                              encoder_hidden[1][:self.decoder.num_layers])
+            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+                              encoder_hidden[1][-self.decoder.num_layers:])
         else:
-            decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
 
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < self. \
@@ -198,7 +196,7 @@ class EncoderDecoder(nn.Module):
         decoder_all_outputs = []
         if use_teacher_forcing:
 
-            for t in range(0, target_seq.shape[1]):
+            for t in range(1, target_seq.shape[1]):
                 decoder_output, decoder_hidden = self.decoder(decoder_input,
                                                               decoder_hidden)
                 decoder_all_outputs.append(
@@ -210,7 +208,7 @@ class EncoderDecoder(nn.Module):
 
         else:
 
-            for t in range(0, target_seq.shape[1]):
+            for t in range(1, target_seq.shape[1]):
                 decoder_output, decoder_hidden = self.decoder(decoder_input,
                                                               decoder_hidden)
                 decoder_all_outputs.append(
