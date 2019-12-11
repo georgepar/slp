@@ -11,8 +11,7 @@ class EncoderLSTM(nn.Module):
 
     def __init__(self, weights_matrix, hidden_size, num_layers=1,
                  dropout=0, bidirectional=False, rnn_type='lstm',
-                 batch_first=True, emb_train=False, attention=False,
-                 device='cpu'):
+                 batch_first=True, emb_train=False, device='cpu'):
         super(EncoderLSTM, self).__init__()
         self.vocab_size, self.input_size = weights_matrix.shape
         self.emb_train = emb_train
@@ -22,10 +21,6 @@ class EncoderLSTM(nn.Module):
         self.dropout = (0 if self.num_layers == 1 else dropout)
         self.batch_first = batch_first
         self.rnn_type = rnn_type
-        self.attention = None
-        if attention:
-            self.attention = Attention(
-                attention_size=self.hidden_size, dropout=dropout)
         self.device = device
         self.embedding = self.create_emb_layer(weights_matrix,
                                                trainable=self.emb_train)
@@ -51,61 +46,7 @@ class EncoderLSTM(nn.Module):
                                   bidirectional=self.bidirectional,
                                   dropout=self.dropout,
                                   batch_first=self.batch_first)
-        """
-        if self.bidirectional:
-            # Bidirectional has twice the amount of hidden variables so if you
-            # wan’t to keep the final output the same you have to divide the
-            # hidden_dim by 2
-            self.embedding = self.create_emb_layer(weights_matrix,
-                                                   trainable=self.emb_train)
 
-            if rnn_type == 'lstm':
-                self.encoder = nn.LSTM(input_size=self.input_size,
-                                       hidden_size=self.hidden_size, #//2
-                                       num_layers=self.num_layers,
-                                       bidirectional=self.bidirectional,
-                                       dropout=self.dropout,
-                                       batch_first=self.batch_first)
-            elif rnn_type == 'rnn':
-                self.encoder = nn.RNN(input_size=self.input_size,
-                                      hidden_size=self.hidden_size, #//2
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-            elif rnn_type == 'gru':
-                self.encoder = nn.GRU(input_size=self.input_size,
-                                      hidden_size=self.hidden_size,# // 2,
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-        else:
-            self.embedding = self.create_emb_layer(weights_matrix,
-                                                   trainable=self.emb_train)
-
-            if rnn_type == 'lstm':
-                self.encoder = nn.LSTM(input_size=self.input_size,
-                                       hidden_size=self.hidden_size,
-                                       num_layers=self.num_layers,
-                                       bidirectional=self.bidirectional,
-                                       dropout=self.dropout,
-                                       batch_first=self.batch_first)
-            elif rnn_type == 'rnn':
-                self.encoder = nn.RNN(input_size=self.input_size,
-                                      hidden_size=self.hidden_size,
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-            elif rnn_type == 'gru':
-                self.encoder = nn.GRU(input_size=self.input_size,
-                                      hidden_size=self.hidden_size,
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-        """
     def create_emb_layer(self, weights_matrix, trainable):
         embedding = nn.Embedding(self.vocab_size, self.input_size)
         weights = torch.FloatTensor(weights_matrix)
@@ -114,9 +55,6 @@ class EncoderLSTM(nn.Module):
         embedding.weight = nn.Parameter(weights)
         embedding.weight.requires_grad = trainable
         return embedding
-
-    def _init_hidden(self):
-        return None
 
     def forward(self, input_seq, input_lengths):
         embedded_seq = self.embedding(input_seq)
@@ -127,7 +65,6 @@ class EncoderLSTM(nn.Module):
                                                          batch_first,
                                                          enforce_sorted=False)
         if self.rnn_type == 'lstm':
-            #enc_out, (enc_hidden, enc_cell) = self.encoder(packed)
             enc_out, enc_hidden = self.encoder(packed)
         else:
             enc_out, enc_hidden = self.encoder(packed)
@@ -138,65 +75,15 @@ class EncoderLSTM(nn.Module):
         if self.bidirectional:
             enc_out = enc_out[:, :, :self.hidden_size] + \
                          enc_out[:, :, self.hidden_size:]
-            # if we have a bidirectional encoder we concatenate hidden states
-            # (forward and backward)
-            # the first dimension in enc_hidden[0] is the number of layers,
-            # the second is the number of batches and the third is the
-            # hidden size div 2 (for bidirectional). So we have to take the
-            # forward hidden state of each layers.
-            # pytorch returns hidden state in the form described above in
-            # this situation. The first index (index 0) is the forward
-            # first layer. The second (index 1) is the backward of first
-            # layer.etc. If we have num_layers=3 the hidden state will be in
-            # the form [6,num_batches , hidden_size//2]
-            # so now we will receive the forward hidden states (using step 2)
-            # of each layers and then the backward
-
-            # forward_hidden = enc_hidden[0:self.num_layers:2]
-            # backward_hidden = enc_hidden[1:self.num_layers:2]
-            """
-            if self.rnn_type == 'lstm':
-                
-                forward_hidden = enc_hidden[0:2 * self.num_layers:2]
-                backward_hidden = enc_hidden[1:2 * self.num_layers:2]
-                forward_cell = enc_cell[0:2 * self.num_layers:2]
-                backward_cell = enc_cell[1:2 * self.num_layers:2]
-
-                new_hidden = torch.cat([forward_hidden, backward_hidden],
-                                       dim=2)
-                new_cell = torch.cat([forward_cell, backward_cell], dim=2)
-
-                enc_hidden, enc_cell = (new_hidden, new_cell)
-        
-            else:
-                forward_hidden = enc_hidden[0:2 * self.num_layers:2]
-                backward_hidden = enc_hidden[1:2 * self.num_layers:2]
-                enc_hidden = torch.cat([forward_hidden, backward_hidden],
-                                       dim=2)
-            """
-        if self.attention is not None:
-            out, _ = self.attention(enc_out,
-                                    attention_mask=pad_mask(input_lengths,
-                                                            device=self.
-                                                            device))
-            enc_out = out.sum(1)
-        """  
-        if self.rnn_type == 'lstm':
-            #return enc_out, (enc_hidden, enc_cell)
-            return enc_out,enc_hidden
-        else:
-            return enc_out, enc_hidden
-        """
 
         return enc_out, enc_hidden
 
 
 class DecoderLSTMv2(nn.Module):
     def __init__(self, weights_matrix, hidden_size, output_size,
-                 max_target_len,emb_layer=None, num_layers=1, dropout=0, \
-                                                         bidirectional=False,
-                 batch_first=True, emb_train=False, rnn_type='lstm',
-                 device='cpu'):
+                 max_target_len, emb_layer=None, num_layers=1, dropout=0,
+                 bidirectional=False, batch_first=True, emb_train=False,
+                 rnn_type='lstm', device='cpu'):
 
         super(DecoderLSTMv2, self).__init__()
 
@@ -245,60 +132,6 @@ class DecoderLSTMv2(nn.Module):
                                   batch_first=self.batch_first)
 
         self.out = nn.Linear(self.hidden_size, self.output_size)
-        """
-        if self.bidirectional:
-            self.embedding = self.create_emb_layer(weights_matrix,
-                                                   trainable=self.emb_train)
-
-            if rnn_type == 'lstm':
-                self.decoder = nn.LSTM(input_size=self.input_size,
-                                       hidden_size=self.hidden_size // 2,
-                                       num_layers=self.num_layers,
-                                       bidirectional=self.bidirectional,
-                                       dropout=self.dropout,
-                                       batch_first=self.batch_first)
-            elif rnn_type == 'rnn':
-                self.decoder = nn.RNN(input_size=self.input_size,
-                                      hidden_size=self.hidden_size // 2,
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-            elif rnn_type == 'gru':
-                self.decoder = nn.GRU(input_size=self.input_size,
-                                      hidden_size=self.hidden_size // 2,
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-
-            self.out = nn.Linear(self.hidden_size, self.output_size)
-
-        else:
-            self.embedding = self.create_emb_layer(weights_matrix,
-                                                   trainable=self.emb_train)
-            if rnn_type == 'lstm':
-                self.decoder = nn.LSTM(input_size=self.input_size,
-                                       hidden_size=self.hidden_size,
-                                       num_layers=self.num_layers,
-                                       bidirectional=self.bidirectional,
-                                       dropout=self.dropout,
-                                       batch_first=self.batch_first)
-            elif rnn_type == 'rnn':
-                self.decoder = nn.RNN(input_size=self.input_size,
-                                      hidden_size=self.hidden_size,
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-            elif rnn_type == 'gru':
-                self.decoder = nn.GRU(input_size=self.input_size,
-                                      hidden_size=self.hidden_size,
-                                      num_layers=self.num_layers,
-                                      bidirectional=self.bidirectional,
-                                      dropout=self.dropout,
-                                      batch_first=self.batch_first)
-        """
 
     def create_emb_layer(self, weights_matrix, trainable):
         embedding = nn.Embedding(self.vocab_size, self.input_size)
@@ -310,9 +143,9 @@ class DecoderLSTMv2(nn.Module):
         return embedding
 
     def forward(self, dec_input, dec_hidden):
-        dec_input.to(self.device)
-        dec_input = dec_input.long()
 
+        dec_input = dec_input.long()
+        dec_input.to(self.device)
         embedded = self.embedding(dec_input)
 
         decoder_output, decoder_hidden = self.decoder(embedded,
@@ -348,13 +181,14 @@ class EncoderDecoder(nn.Module):
 
         decoder_input = torch.tensor(decoder_input).long()
         decoder_input = decoder_input.transpose(0, 1)
+        decoder_input = decoder_input.to(self.device)
 
         if self.encoder.rnn_type == "lstm":
-            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],encoder_hidden[1][-self.decoder.num_layers:])
+            decoder_hidden = (encoder_hidden[0][:self.decoder.num_layers],
+                              encoder_hidden[1][:self.decoder.num_layers])
         else:
-            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
-                
-        decoder_input = decoder_input.to(self.device)
+            decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < self. \
             teacher_forcing_ratio else False
@@ -428,3 +262,131 @@ class EncoderDecoder(nn.Module):
             decoder_input = decoder_input.to(self.device)
 
         return decoder_all_outputs
+
+
+class EncoderRNN(nn.Module):
+    def __init__(self, hidden_size, embedding, n_layers=1, dropout=0):
+        super(EncoderRNN, self).__init__()
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
+        self.embedding = embedding
+
+        # Initialize GRU; the input_size and hidden_size params are both set to 'hidden_size'
+        #   because our input size is a word embedding with number of features == hidden_size
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers,
+                          dropout=(0 if n_layers == 1 else dropout),
+                          bidirectional=True,batch_first=True)
+
+    def forward(self, input_seq, input_lengths, hidden=None):
+
+        # Convert word indexes to embeddings
+        embedded = self.embedding(input_seq)
+        # Pack padded batch of sequences for RNN module
+
+        packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths,
+                                                   batch_first=True,
+                                                   enforce_sorted=False)
+
+        # Forward pass through GRU
+        outputs, hidden = self.gru(packed, hidden)
+        # Unpack padding
+        outputs, _ = nn.utils.rnn.pad_packed_sequence(outputs,
+                                                      batch_first=True)
+        # Sum bidirectional GRU outputs
+        outputs = outputs[:, :, :self.hidden_size] + outputs[:, :,
+                                                     self.hidden_size:]
+        # Return output and final hidden state
+        return outputs, hidden
+
+
+# Luong attention layer
+class Attn(nn.Module):
+    def __init__(self, method, hidden_size):
+        super(Attn, self).__init__()
+        self.method = method
+        if self.method not in ['dot', 'general', 'concat']:
+            raise ValueError(self.method,
+                             "is not an appropriate attention method.")
+        self.hidden_size = hidden_size
+        if self.method == 'general':
+            self.attn = nn.Linear(self.hidden_size, hidden_size)
+        elif self.method == 'concat':
+            self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
+            self.v = nn.Parameter(torch.FloatTensor(hidden_size))
+
+    def dot_score(self, hidden, encoder_output):
+        #import ipdb;ipdb.set_trace()
+        return torch.sum(hidden * encoder_output, dim=2)
+
+    def general_score(self, hidden, encoder_output):
+        energy = self.attn(encoder_output)
+        return torch.sum(hidden * energy, dim=2)
+
+    def concat_score(self, hidden, encoder_output):
+        energy = self.attn(torch.cat(
+            (hidden.expand(encoder_output.size(0), -1, -1), encoder_output),
+            2)).tanh()
+        return torch.sum(self.v * energy, dim=2)
+
+    def forward(self, hidden, encoder_outputs):
+        # Calculate the attention weights (energies) based on the given method
+        if self.method == 'general':
+            attn_energies = self.general_score(hidden, encoder_outputs)
+        elif self.method == 'concat':
+            attn_energies = self.concat_score(hidden, encoder_outputs)
+        elif self.method == 'dot':
+            attn_energies = self.dot_score(hidden, encoder_outputs)
+
+        # Transpose max_length and batch_size dimensions
+        #attn_energies = attn_energies.t()
+
+        # Return the softmax normalized probability scores (with added dimension)
+        return f.softmax(attn_energies, dim=1).unsqueeze(1)
+
+
+class LuongAttnDecoderRNN(nn.Module):
+    def __init__(self, attn_model, embedding, hidden_size, output_size, n_layers=1, dropout=0.1):
+        super(LuongAttnDecoderRNN, self).__init__()
+
+        # Keep for reference
+        self.attn_model = attn_model
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.n_layers = n_layers
+        self.dropout = dropout
+
+        # Define layers
+        self.embedding = embedding
+        self.embedding_dropout = nn.Dropout(dropout)
+        self.gru = nn.GRU(hidden_size, hidden_size, n_layers,
+                          batch_first=True, dropout=(0 if n_layers == 1 else
+                                                     dropout))
+        self.concat = nn.Linear(hidden_size * 2, hidden_size)
+        self.out = nn.Linear(hidden_size, output_size)
+
+        self.attn = Attn(attn_model, hidden_size)
+
+    def forward(self, input_step, last_hidden, encoder_outputs):
+        # Note: we run this one step (word) at a time
+        # Get embedding of current input word
+        embedded = self.embedding(input_step)
+        embedded = self.embedding_dropout(embedded)
+        # Forward through unidirectional GRU
+        rnn_output, hidden = self.gru(embedded, last_hidden)
+        # Calculate attention weights from the current GRU output
+        attn_weights = self.attn(rnn_output, encoder_outputs)
+        # Multiply attention weights to encoder outputs to get new "weighted sum" context vector
+        #import ipdb;ipdb.set_trace()
+        context = attn_weights.bmm(encoder_outputs)
+        #import ipdb;ipdb.set_trace()
+        # Concatenate weighted context vector and GRU output using Luong eq. 5
+        rnn_output = rnn_output.squeeze(1)
+        context = context.squeeze(1)
+        #context = context.transpose(0,1)
+        concat_input = torch.cat((rnn_output, context), 1)
+        concat_output = torch.tanh(self.concat(concat_input))
+        # Predict next word using Luong eq. 6
+        output = self.out(concat_output)
+        output = f.softmax(output, dim=1)
+        # Return output and final hidden state
+        return output, hidden

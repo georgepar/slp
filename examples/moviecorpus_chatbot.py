@@ -21,14 +21,14 @@ from torch.optim import Adam
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 10
-BATCH_TRAIN_SIZE = 64
+BATCH_TRAIN_SIZE = 32
 BATCH_VAL_SIZE = 32
 min_threshold = 3
 max_threshold = 10
 max_target_len = max_threshold
 
 
-def create_vocabulary_dict(dataset,tokenizer=SpacyTokenizer()):
+def create_vocabulary_dict(dataset, tokenizer=SpacyTokenizer()):
     """
     receives dataset and a tokenizer in order to split sentences and create
     a dict-vocabulary with words counts.
@@ -104,28 +104,30 @@ def train_test_split(dataset, batch_train, batch_val,
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
     encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
-                          num_layers=2, bidirectional=True, dropout=0.4,
-                          attention=False, rnn_type='rnn', device=DEVICE)
- 
-    decoder = DecoderLSTMv2(weights_matrix=None, emb_train=False,
+                          num_layers=1, bidirectional=True, dropout=0.4,
+                          rnn_type='lstm', device=DEVICE)
+
+    decoder = DecoderLSTMv2(weights_matrix=embeddings, emb_train=False,
                             hidden_size=256,
                             output_size=embeddings.shape[0],
-                            max_target_len=max_target_len, num_layers=2,
-                            dropout=0.4, rnn_type='rnn',
-                            emb_layer=encoder.embedding, bidirectional=False,
+                            max_target_len=max_target_len, num_layers=1,
+                            dropout=0.4, rnn_type='lstm',
+                            emb_layer=None, bidirectional=False,
                             device=DEVICE)
-
-    # encoder = Encoder_best(512,embeddings,layers=2,bidirectional=True,
-    # dropout=0.2, device=DEVICE)
-    # decoder = Decoder_best(512,embeddings,output_size=embeddings.shape[0],
-    # max_target_len=max_target_len,layers=2,dropout=0.2,device=DEVICE)
-
     model = EncoderDecoder(
         encoder, decoder, bos_index, teacher_forcing_ratio=0.5, device=DEVICE)
 
+    # import torch.nn as nn
+    # embedding = nn.Embedding(embeddings.shape[0], 500)
+    # encoder = EncoderRNN(500, embedding, 1, 0.5)
+    # decoder = LuongAttnDecoderRNN('dot', embedding, 500,
+    #                               embeddings.shape[0], 1, 0.5)
+    #
+    # model = Seq2Seq(encoder,decoder,device=DEVICE)
+
     optimizer = Adam(
         [p for p in model.parameters() if p.requires_grad],
-        lr=1e-3, weight_decay=1e-6)
+        lr=1e-2, weight_decay=1e-6)
 
     criterion = SequenceCrossEntropyLoss(pad_index)
 
@@ -141,7 +143,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
                              retain_graph=False,
                              patience=5,
                              device=device,
-                             clip=25.0,
+                             clip=1.,
                              loss_fn=criterion)
     return trainer
 
@@ -175,9 +177,8 @@ if __name__ == '__main__':
 
     dataset = MovieCorpusDataset('./data/', transforms=None)
     dataset.filter_data(min_threshold, max_threshold)
-    create_emb_file(new_emb_file, old_emb_file, freq_words_file,
-                    dataset, SpacyTokenizer(),
-                    most_freq=9000)
+    create_emb_file(new_emb_file, old_emb_file, freq_words_file, dataset,
+                    SpacyTokenizer())
 
     loader = EmbeddingsLoader(new_emb_file, 300, extra_tokens=SPECIAL_TOKENS)
     word2idx, idx2word, embeddings = loader.load()
@@ -199,8 +200,9 @@ if __name__ == '__main__':
     train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE,
                                                 BATCH_VAL_SIZE)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
-    final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
-    print(f'Final score: {final_score}')
-
-    input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
-                      eos_index)
+    #final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
+    # print(f'Final score: {final_score}')
+    #
+    # input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
+    #                   eos_index)
+    trainer.overfit_single_batch(train_loader)
