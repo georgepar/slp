@@ -104,7 +104,7 @@ def train_test_split(dataset, batch_train, batch_val,
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
     encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=512,
-                          num_layers=1, bidirectional=True, dropout=0.4,
+                          num_layers=2, bidirectional=True, dropout=0.4,
                           rnn_type='lstm', device=DEVICE)
 
     decoder = DecoderLSTMv2(weights_matrix=embeddings, emb_train=False,
@@ -172,7 +172,7 @@ def input_interaction(model, transforms, idx2word, pad_index, bos_index,
 if __name__ == '__main__':
 
     new_emb_file = './cache/new_embs.txt'
-    old_emb_file = './cache/glove.6B.300d.txt'
+    old_emb_file = './cache/glove.6B.50d.txt'
     freq_words_file = './cache/freq_words.txt'
 
     dataset = MovieCorpusDataset('./data/', transforms=None)
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     create_emb_file(new_emb_file, old_emb_file, freq_words_file, dataset,
                     SpacyTokenizer())
 
-    loader = EmbeddingsLoader(new_emb_file, 300, extra_tokens=SPECIAL_TOKENS)
+    loader = EmbeddingsLoader(new_emb_file, 50, extra_tokens=SPECIAL_TOKENS)
     word2idx, idx2word, embeddings = loader.load()
 
     pad_index = word2idx[SPECIAL_TOKENS.PAD.value]
