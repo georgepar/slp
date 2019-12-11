@@ -76,7 +76,7 @@ class EncoderLSTM(nn.Module):
         if self.bidirectional:
             enc_out = enc_out[:, :, :self.hidden_size] + \
                          enc_out[:, :, self.hidden_size:]
-
+        import ipdb;ipdb.set_trace()
         return enc_out, enc_hidden
 
 
@@ -150,7 +150,7 @@ class DecoderLSTMv2(nn.Module):
         dec_input = dec_input.long()
         dec_input.to(self.device)
         embedded = self.dropout_out(self.embedding(dec_input))
-
+        import ipbd;ipbd.set_trace()
         decoder_output, decoder_hidden = self.decoder(embedded,
                                                       dec_hidden)
         if self.bidirectional:
