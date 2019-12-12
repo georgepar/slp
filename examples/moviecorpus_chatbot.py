@@ -22,7 +22,7 @@ from torch.optim import Adam
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
 MAX_EPOCHS = 50
-BATCH_TRAIN_SIZE = 64
+BATCH_TRAIN_SIZE = 32
 BATCH_VAL_SIZE = 32
 min_threshold = 3
 max_threshold = 13
@@ -104,19 +104,19 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
-    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
+    encoder = EncoderLSTM(embeddings, emb_train=True, hidden_size=256,
                           num_layers=2, bidirectional=True, dropout=0.4,
-                          rnn_type='gru', device=DEVICE)
+                          rnn_type='lstm', device=DEVICE)
 
-    decoder = DecoderLSTMv2(weights_matrix=embeddings, emb_train=False,
+    decoder = DecoderLSTMv2(weights_matrix=None, emb_train=True,
                             hidden_size=256,
                             output_size=embeddings.shape[0],
                             max_target_len=max_target_len, num_layers=2,
-                            dropout=0.4, rnn_type='gru',
-                            emb_layer=None, bidirectional=False,
+                            dropout=0.4, rnn_type='lstm',
+                            emb_layer=embeddings, bidirectional=False,
                             device=DEVICE)
     model = EncoderDecoder(
-        encoder, decoder, bos_index, teacher_forcing_ratio=0.7, device=DEVICE)
+        encoder, decoder, bos_index, teacher_forcing_ratio=0.5, device=DEVICE)
 
     # import torch.nn as nn
     # embedding = nn.Embedding(embeddings.shape[0], 300)
@@ -151,7 +151,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
                              retain_graph=False,
                              patience=5,
                              device=device,
-                             clip=None,
+                             clip=1.,
                              loss_fn=criterion)
     return trainer
 

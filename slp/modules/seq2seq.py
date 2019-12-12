@@ -183,8 +183,8 @@ class EncoderDecoder(nn.Module):
         decoder_input = decoder_input.to(self.device)
 
         if self.encoder.rnn_type == "lstm":
-            decoder_hidden = (encoder_hidden[0][:self.decoder.num_layers],
-                              encoder_hidden[1][:self.decoder.num_layers])
+            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+                              encoder_hidden[1][-self.decoder.num_layers:])
         else:
             decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
 
@@ -213,7 +213,7 @@ class EncoderDecoder(nn.Module):
                 decoder_all_outputs.append(
                     torch.squeeze(decoder_output, dim=1))
                 current_output = torch.squeeze(decoder_output, dim=1)
-                top_index = f.log_softmax(current_output, dim=0)
+                top_index = f.log_softmax(current_output, dim=1)
                 value, pos_index = top_index.max(dim=1)
                 # value, pos_index = current_output.max(dim=1)
                 decoder_input = torch.unsqueeze(pos_index, dim=1)
@@ -239,10 +239,10 @@ class EncoderDecoder(nn.Module):
         decoder_input = decoder_input.transpose(0, 1)
         decoder_input = decoder_input.to(self.device)
         if self.encoder.rnn_type == "lstm":
-            decoder_hidden = (encoder_hidden[0][:self.decoder.num_layers],
-                              encoder_hidden[1][:self.decoder.num_layers])
+            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+                              encoder_hidden[1][-self.decoder.num_layers:])
         else:
-            decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
 
         decoder_all_outputs = []
 
@@ -251,7 +251,7 @@ class EncoderDecoder(nn.Module):
                                                           decoder_hidden)
 
             current_output = torch.squeeze(decoder_output, dim=1)
-            top_index = f.log_softmax(current_output, dim=0)
+            top_index = f.log_softmax(current_output, dim=1)
             value, pos_index = top_index.max(dim=1)
             # value, pos_index = current_output.max(dim=1)
             if pos_index == eos_index:
