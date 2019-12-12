@@ -14,17 +14,18 @@ from slp.data.collators import Seq2SeqCollator
 from slp.trainer.trainer import Seq2SeqTrainer
 from slp.config.moviecorpus import SPECIAL_TOKENS
 from slp.modules.loss import SequenceCrossEntropyLoss
-from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2
+from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2, \
+    EncoderRNN,LuongAttnDecoderRNN,Seq2Seq
 
 from torch.optim import Adam
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 COLLATE_FN = Seq2SeqCollator(device='cpu')
-MAX_EPOCHS = 10
-BATCH_TRAIN_SIZE = 32
+MAX_EPOCHS = 50
+BATCH_TRAIN_SIZE = 64
 BATCH_VAL_SIZE = 32
 min_threshold = 3
-max_threshold = 16
+max_threshold = 13
 max_target_len = max_threshold
 
 
@@ -103,27 +104,34 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
-    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=512,
+    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
                           num_layers=2, bidirectional=True, dropout=0.4,
-                          rnn_type='lstm', device=DEVICE)
+                          rnn_type='gru', device=DEVICE)
 
     decoder = DecoderLSTMv2(weights_matrix=embeddings, emb_train=False,
-                            hidden_size=512,
+                            hidden_size=256,
                             output_size=embeddings.shape[0],
-                            max_target_len=max_target_len, num_layers=1,
-                            dropout=0.4, rnn_type='lstm',
+                            max_target_len=max_target_len, num_layers=2,
+                            dropout=0.4, rnn_type='gru',
                             emb_layer=None, bidirectional=False,
                             device=DEVICE)
     model = EncoderDecoder(
-        encoder, decoder, bos_index, teacher_forcing_ratio=0.9, device=DEVICE)
+        encoder, decoder, bos_index, teacher_forcing_ratio=0.7, device=DEVICE)
 
     # import torch.nn as nn
-    # embedding = nn.Embedding(embeddings.shape[0], 500)
-    # encoder = EncoderRNN(500, embedding, 1, 0.5)
-    # decoder = LuongAttnDecoderRNN('dot', embedding, 500,
-    #                               embeddings.shape[0], 1, 0.5)
+    # embedding = nn.Embedding(embeddings.shape[0], 300)
     #
-    # model = Seq2Seq(encoder,decoder,device=DEVICE)
+    # embedding.weight.data.copy_(torch.tensor(embeddings))
+    # encoder = EncoderRNN(hidden_size=256, embedding=embedding, n_layers=2,
+    #                      dropout=0.5)
+    #
+    # decoder = LuongAttnDecoderRNN(attn_model='dot', embedding=embedding,
+    #                               hidden_size=256,
+    #                               output_size=embeddings.shape[0],
+    #                               n_layers=2, dropout=0.5)
+    #
+    # model = Seq2Seq(encoder,decoder,bos_index,
+    #                 teacher_forcing_ratio=0.7,device=DEVICE)
 
     optimizer = Adam(
         [p for p in model.parameters() if p.requires_grad],
@@ -143,7 +151,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
                              retain_graph=False,
                              patience=5,
                              device=device,
-                             clip=1.,
+                             clip=None,
                              loss_fn=criterion)
     return trainer
 
@@ -203,6 +211,6 @@ if __name__ == '__main__':
     final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
     print(f'Final score: {final_score}')
 
-    # input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
-    #                   eos_index)
+    input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
+                       eos_index)
     #trainer.overfit_single_batch(train_loader)
