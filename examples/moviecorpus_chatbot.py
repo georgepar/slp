@@ -104,6 +104,7 @@ def train_test_split(dataset, batch_train, batch_val,
 
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
+
     encoder = EncoderLSTM(embeddings, emb_train=True, hidden_size=256,
                           num_layers=2, bidirectional=True, dropout=0.4,
                           rnn_type='lstm', device=DEVICE)
@@ -113,7 +114,7 @@ def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
                             output_size=embeddings.shape[0],
                             max_target_len=max_target_len, num_layers=2,
                             dropout=0.4, rnn_type='lstm',
-                            emb_layer=embeddings, bidirectional=False,
+                            emb_layer=encoder.embedding, bidirectional=False,
                             device=DEVICE)
     model = EncoderDecoder(
         encoder, decoder, bos_index, teacher_forcing_ratio=0.5, device=DEVICE)
