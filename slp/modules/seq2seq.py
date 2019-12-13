@@ -182,12 +182,13 @@ class EncoderDecoder(nn.Module):
         decoder_input = torch.unsqueeze(decoder_input, dim=1)
         decoder_input = decoder_input.to(self.device)
 
-        if self.encoder.rnn_type == "lstm":
-            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
-                              encoder_hidden[1][-self.decoder.num_layers:])
-        else:
-            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
+        # if self.encoder.rnn_type == "lstm":
+        #     decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+        #                       encoder_hidden[1][-self.decoder.num_layers:])
+        # else:
+        #     decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
 
+        decoder_hidden = encoder_hidden
 
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < self. \
@@ -215,7 +216,7 @@ class EncoderDecoder(nn.Module):
                 current_output = torch.squeeze(decoder_output, dim=1)
                 top_index = f.log_softmax(current_output, dim=1)
                 value, pos_index = top_index.max(dim=1)
-                # value, pos_index = current_output.max(dim=1)
+
                 decoder_input = torch.unsqueeze(pos_index, dim=1)
                 decoder_input = decoder_input.to(self.device)
 
