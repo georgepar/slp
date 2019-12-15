@@ -17,6 +17,8 @@ from slp.modules.loss import SequenceCrossEntropyLoss
 from slp.modules.seq2seq import EncoderDecoder, EncoderLSTM, DecoderLSTMv2, \
     EncoderRNN,LuongAttnDecoderRNN,Seq2Seq
 
+from slp.trainer.seq2seqtrainer import train_epochs
+
 from torch.optim import Adam
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -105,15 +107,15 @@ def train_test_split(dataset, batch_train, batch_val,
 
 def trainer_factory(embeddings, pad_index, bos_index, device=DEVICE):
 
-    encoder = EncoderLSTM(embeddings, emb_train=True, hidden_size=256,
+    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
                           num_layers=1, bidirectional=True, dropout=0.4,
-                          rnn_type='lstm', device=DEVICE)
+                          rnn_type='gru', device=DEVICE)
 
-    decoder = DecoderLSTMv2(weights_matrix=None, emb_train=True,
+    decoder = DecoderLSTMv2(weights_matrix=None, emb_train=False,
                             hidden_size=256,
                             output_size=embeddings.shape[0],
-                            max_target_len=max_target_len, num_layers=2,
-                            dropout=0.4, rnn_type='lstm',
+                            max_target_len=max_target_len, num_layers=1,
+                            dropout=0.4, rnn_type='gru',
                             emb_layer=encoder.embedding, bidirectional=False,
                             device=DEVICE)
     model = EncoderDecoder(
@@ -172,9 +174,9 @@ def input_interaction(model, transforms, idx2word, pad_index, bos_index,
 
         input_seq = transforms(input_sentence)
         model_outputs = model.evaluate(input_seq,eos_index)
+        #print(model_outputs)
         answer = ""
         for output in model_outputs:
-
             answer += idx2word[output.item()]+" "
         print(answer)
 
@@ -209,9 +211,41 @@ if __name__ == '__main__':
     train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE,
                                                 BATCH_VAL_SIZE)
     trainer = trainer_factory(embeddings, pad_index, bos_index, device=DEVICE)
-    final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
-    print(f'Final score: {final_score}')
+    #final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
+    #print(f'Final score: {final_score}')
 
-    input_interaction(trainer.model, transforms, idx2word, pad_index, bos_index,
-                       eos_index)
+    #input_interaction(trainer.model, transforms, idx2word, pad_index,
+    # bos_index,
+    #                   eos_index)
     #trainer.overfit_single_batch(train_loader)
+
+
+    encoder = EncoderLSTM(embeddings, emb_train=False, hidden_size=256,
+                          num_layers=1, bidirectional=True, dropout=0.4,
+                          rnn_type='gru', device=DEVICE)
+
+    decoder = DecoderLSTMv2(weights_matrix=None, emb_train=False,
+                            hidden_size=256,
+                            output_size=embeddings.shape[0],
+                            max_target_len=max_target_len, num_layers=1,
+                            dropout=0.4, rnn_type='gru',
+                            emb_layer=encoder.embedding, bidirectional=False,
+                            device=DEVICE)
+    model = EncoderDecoder(
+        encoder, decoder, bos_index, teacher_forcing_ratio=0.7, device=DEVICE)
+
+    criterion = SequenceCrossEntropyLoss()
+    enc_optimizer = torch.optim.Adam(encoder.parameters(), lr=0.001)
+    dec_optimizer = torch.optim.Adam(decoder.parameters(), lr=0.005)
+    model_optimizer = [enc_optimizer, dec_optimizer]
+
+    model_optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    #clip=1.
+    num_epochs = 50
+    model.cuda()
+
+    train_epochs(train_loader, model, model_optimizer,
+                 criterion, num_epochs, clip=None)
+
+    input_interaction(model, transforms, idx2word, pad_index, bos_index,
+                      eos_index)
