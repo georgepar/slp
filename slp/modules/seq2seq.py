@@ -171,6 +171,7 @@ class EncoderDecoder(nn.Module):
         self.max_target_len = self.decoder.max_target_len
         self.teacher_forcing_ratio = teacher_forcing_ratio
         self.device = device
+        self.fc = nn.Linear(encoder.hidden_size * 2, decoder.hidden_size)
 
     def forward(self, input_seq, lengths_inputs, target_seq):
         batch_size = input_seq.shape[0]
@@ -188,7 +189,11 @@ class EncoderDecoder(nn.Module):
         # else:
         #     decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
 
-        decoder_hidden = encoder_hidden
+        decoder_hidden = torch.tanh(
+            self.fc(torch.cat((encoder_hidden[-2, :, :], encoder_hidden[-1,
+                                                         :, :]),
+                              dim=1)))
+        decoder_hidden = torch.unsqueeze(decoder_hidden, dim=0)
 
         # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < self. \
@@ -239,11 +244,18 @@ class EncoderDecoder(nn.Module):
         decoder_input = torch.tensor(decoder_input).long()
         decoder_input = decoder_input.transpose(0, 1)
         decoder_input = decoder_input.to(self.device)
-        if self.encoder.rnn_type == "lstm":
-            decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
-                              encoder_hidden[1][-self.decoder.num_layers:])
-        else:
-            decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
+        # if self.encoder.rnn_type == "lstm":
+        #     decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+        #                       encoder_hidden[1][-self.decoder.num_layers:])
+        # else:
+        #     decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
+
+        decoder_hidden = torch.tanh(
+            self.fc(torch.cat((encoder_hidden[-2, :, :], encoder_hidden[-1,
+                                                         :, :]),
+                              dim=1)))
+        decoder_hidden = torch.unsqueeze(decoder_hidden, dim=0)
+
 
         decoder_all_outputs = []
 
