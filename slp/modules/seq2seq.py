@@ -9,11 +9,11 @@ from slp.modules.util import pad_mask
 
 class EncoderLSTM(nn.Module):
 
-    def __init__(self, weights_matrix, hidden_size, num_layers=1,
+    def __init__(self,embedding, weights_matrix, hidden_size, num_layers=1,
                  dropout=0, bidirectional=False, rnn_type='lstm',
                  batch_first=True, emb_train=False, device='cpu'):
         super(EncoderLSTM, self).__init__()
-        self.vocab_size, self.input_size = weights_matrix.shape
+        # self.vocab_size, self.input_size = weights_matrix.shape
         self.emb_train = emb_train
         self.num_layers = num_layers
         self.hidden_size = hidden_size
@@ -23,8 +23,10 @@ class EncoderLSTM(nn.Module):
         self.rnn_type = rnn_type
         self.device = device
         self.dropout_out = nn.Dropout(dropout)
-        self.create_emb_layer(weights_matrix, trainable=self.emb_train)
-
+        #self.create_emb_layer(weights_matrix, trainable=self.emb_train)
+        self.embedding = embedding
+        self.vocab_size, self.input_size = embedding.num_embeddings, \
+                                           embedding.embedding_dim
         if rnn_type == 'lstm':
             self.encoder = nn.LSTM(input_size=self.input_size,
                                    hidden_size=self.hidden_size,
@@ -77,25 +79,25 @@ class EncoderLSTM(nn.Module):
 
 
 class DecoderLSTMv2(nn.Module):
-    def __init__(self, weights_matrix, hidden_size, output_size,
+    def __init__(self,embedding, weights_matrix, hidden_size, output_size,
                  max_target_len, emb_layer=None, num_layers=1, dropout=0,
                  bidirectional=False, batch_first=True, emb_train=False,
                  rnn_type='lstm', device='cpu'):
 
         super(DecoderLSTMv2, self).__init__()
 
-        if weights_matrix is not None and emb_layer is None:
-            self.vocab_size, self.input_size = weights_matrix.shape
-            # self.embedding = self.create_emb_layer(weights_matrix,
-            #                                        trainable=emb_train)
-            self.create_emb_layer(weights_matrix, trainable=emb_train)
-        elif emb_layer is not None and weights_matrix is None:
-            self.embedding = emb_layer
-            self.vocab_size, self.input_size = (emb_layer.num_embeddings,
-                                                emb_layer.embedding_dim)
-        else:
-            assert False,"emb_layer and weights_matrix should not be both " \
-                         "None or initialized."
+        # if weights_matrix is not None and emb_layer is None:
+        #     self.vocab_size, self.input_size = weights_matrix.shape
+        #     # self.embedding = self.create_emb_layer(weights_matrix,
+        #     #                                        trainable=emb_train)
+        #     self.create_emb_layer(weights_matrix, trainable=emb_train)
+        # elif emb_layer is not None and weights_matrix is None:
+        #     self.embedding = emb_layer
+        #     self.vocab_size, self.input_size = (emb_layer.num_embeddings,
+        #                                         emb_layer.embedding_dim)
+        # else:
+        #     assert False,"emb_layer and weights_matrix should not be both " \
+        #                  "None or initialized."
         self.emb_train = emb_train
         self.num_layers = num_layers
         self.hidden_size = hidden_size
@@ -106,7 +108,9 @@ class DecoderLSTMv2(nn.Module):
         self.max_target_len = max_target_len
         self.rnn_type = rnn_type
         self.device = device
-
+        self.embedding =embedding
+        self.vocab_size, self.input_size = embedding.num_embeddings, \
+                                           embedding.embedding_dim
         if rnn_type == 'lstm':
             self.decoder = nn.LSTM(input_size=self.input_size,
                                    hidden_size=self.hidden_size,
@@ -156,8 +160,14 @@ class DecoderLSTMv2(nn.Module):
                              decoder_output[:, :, self.hidden_size:]
         decoder_output = self.out(decoder_output)
 
-        return decoder_output, decoder_hidden
+        # implemented for testing!!!
+        """Me mask NLLL loss"""
+        #current_output = torch.squeeze(decoder_output, dim=1)
+        #top_index = f.softmax(current_output, dim=1)
+        #return top_index, decoder_hidden
 
+        """Me diko mou loss"""
+        return decoder_output, decoder_hidden
 
 class EncoderDecoder(nn.Module):
     def __init__(self, encoder, decoder, bos_indx,
