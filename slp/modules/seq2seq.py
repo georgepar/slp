@@ -162,11 +162,11 @@ class DecoderLSTMv2(nn.Module):
 
         # implemented for testing!!!
         """Me mask NLLL loss"""
-        #current_output = torch.squeeze(decoder_output, dim=1)
-        #top_index = f.softmax(current_output, dim=1)
-        #return top_index, decoder_hidden
+        # current_output = torch.squeeze(decoder_output, dim=1)
+        # top_index = f.softmax(current_output, dim=1)
+        # return top_index, decoder_hidden
 
-        """Me diko mou loss"""
+        """Gia Sequence Cross Entropy Loss"""
         return decoder_output, decoder_hidden
 
 class EncoderDecoder(nn.Module):
