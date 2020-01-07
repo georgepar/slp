@@ -4,7 +4,7 @@ import numpy as np
 import tkinter
 
 import sys
-matplotlib.use('tkagg')
+#matplotlib.use('tkagg')
 plt.show()
 print(sys.executable)
 
