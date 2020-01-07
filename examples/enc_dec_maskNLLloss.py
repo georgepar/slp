@@ -447,7 +447,8 @@ teacher_forcing_ratio=0.6
 
 def maskNLLLoss(inp, target, mask):
     nTotal = mask.sum()
-    crossEntropy = -torch.log(torch.gather(inp, 1, target.view(-1, 1)))
+    top_index = F.softmax(inp, dim=1)
+    crossEntropy = -torch.log(torch.gather(top_index, 1, target.view(-1, 1)))
     loss = crossEntropy.masked_select(mask).mean()
     loss = loss.to(device)
     return loss, nTotal.item()
@@ -518,13 +519,15 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
 
             # No teacher forcing: next input is decoder's own current output
             """Me maskNLLL loss"""
-            _, topi = decoder_output.topk(1)
+            current_output = torch.squeeze(decoder_output, dim=1)
+            top_index = F.softmax(current_output, dim=1)
+            _, topi = top_index.topk(1)
             decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
             decoder_input = decoder_input.transpose(0,1)
             decoder_input = decoder_input.to(device)
 
             # Calculate and accumulate loss
-            mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[
+            mask_loss, nTotal = maskNLLLoss(current_output, target_variable[
                                                             :,t],
                                             mask[t])
             loss += mask_loss
