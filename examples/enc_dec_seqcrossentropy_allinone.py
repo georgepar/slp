@@ -702,6 +702,6 @@ model.eval()
 searcher = MyGreedySearchDecoder(model.encoder,model.decoder,device)
 
 # Begin chatting (uncomment and run the following line to begin)
-evaluateInput(model.encode,model.decoder,searcher, voc)
+evaluateInput(model.encoder,model.decoder,searcher, voc)
 
 print("end chatbot")
