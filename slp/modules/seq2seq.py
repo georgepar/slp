@@ -286,6 +286,133 @@ class EncoderDecoder(nn.Module):
         return decoder_all_outputs
 
 
+class EncoderDecoder_SeqCrossEntropy(nn.Module):
+    def __init__(self, encoder, decoder, bos_indx,
+                 teacher_forcing_ratio=0, device='cpu'):
+        super(EncoderDecoder_SeqCrossEntropy, self).__init__()
+
+        # initialize the encoder and decoder
+        self.bos_indx = bos_indx
+        self.encoder = encoder
+        self.decoder = decoder
+        self.max_target_len = self.decoder.max_target_len
+        self.teacher_forcing_ratio = teacher_forcing_ratio
+        self.device = device
+        self.fc = nn.Linear(encoder.hidden_size * 2, decoder.hidden_size)
+
+    def forward(self, input_seq, lengths_inputs, target_seq):
+        batch_size = input_seq.shape[0]
+
+        encoder_output, encoder_hidden = self.encoder(input_seq,
+                                                      lengths_inputs)
+
+        decoder_input = torch.LongTensor([[self.bos_indx for _ in range(
+            batch_size)]])
+        decoder_input = decoder_input.transpose(0, 1)
+        decoder_input = decoder_input.to(self.device)
+
+        # if self.encoder.rnn_type == "lstm":
+        #     decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+        #                       encoder_hidden[1][-self.decoder.num_layers:])
+        # else:
+        #     decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
+
+        # decoder_hidden = torch.tanh(
+        #     self.fc(torch.cat((encoder_hidden[-2, :, :], encoder_hidden[-1,
+        #                                                  :, :]),
+        #                       dim=1)))
+        # decoder_hidden = torch.unsqueeze(decoder_hidden, dim=0)
+
+        decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+
+        # Determine if we are using teacher forcing this iteration
+        use_teacher_forcing = True if random.random() < self. \
+            teacher_forcing_ratio else False
+        all_outputs = []
+        if use_teacher_forcing:
+
+            for t in range(0, target_seq.shape[1]):
+                decoder_output, decoder_hidden = self.decoder(decoder_input,
+                                                              decoder_hidden)
+
+                """Gia Sequence Cross Entropy loss"""
+                all_outputs.append(
+                    torch.squeeze(decoder_output, dim=1))
+
+                # Teacher forcing: next input is current target
+                decoder_input = target_seq[:, t]
+                decoder_input = decoder_input.unsqueeze(dim=1)
+
+        else:
+
+            for t in range(0, target_seq.shape[1]):
+                decoder_output, decoder_hidden = self.decoder(decoder_input,
+                                                              decoder_hidden)
+                """Gia Sequence Cross Entropy loss"""
+                all_outputs.append(
+                    torch.squeeze(decoder_output, dim=1))
+                # No teacher forcing: next input is decoder's own current output
+
+                current_output = torch.squeeze(decoder_output, dim=1)
+                top_index = f.softmax(current_output, dim=1)
+                _, topi = top_index.topk(1)
+                decoder_input = torch.LongTensor(
+                    [[topi[i][0] for i in range(batch_size)]])
+                decoder_input = decoder_input.transpose(0, 1)
+                decoder_input = decoder_input.to(self.device)
+
+        all_outputs = torch.stack(all_outputs).transpose(0, 1)
+
+        return all_outputs
+
+    def evaluate(self, input_seq, eos_index):
+        """
+        This function is only used for live-interaction with model!
+        It was created to be used for input interaction with the model!
+        """
+
+        input_seq = torch.unsqueeze(input_seq, dim=0)
+        input_seq = input_seq.to(self.device)
+        input_len = torch.tensor([len(input_seq)])
+
+        encoder_out, encoder_hidden = self.encoder(input_seq, input_len)
+        decoder_input = [[self.bos_indx]]
+        decoder_input = torch.tensor(decoder_input).long()
+        decoder_input = decoder_input.transpose(0, 1)
+        decoder_input = decoder_input.to(self.device)
+        # if self.encoder.rnn_type == "lstm":
+        #     decoder_hidden = (encoder_hidden[0][-self.decoder.num_layers:],
+        #                       encoder_hidden[1][-self.decoder.num_layers:])
+        # else:
+        #     decoder_hidden = encoder_hidden[-self.decoder.num_layers:]
+
+        decoder_hidden = torch.tanh(
+            self.fc(torch.cat((encoder_hidden[-2, :, :], encoder_hidden[-1,
+                                                         :, :]),
+                              dim=1)))
+        decoder_hidden = torch.unsqueeze(decoder_hidden, dim=0)
+
+
+        decoder_all_outputs = []
+
+        for t in range(0, self.max_target_len):
+            decoder_output, decoder_hidden = self.decoder(decoder_input,
+                                                          decoder_hidden)
+
+            current_output = torch.squeeze(decoder_output, dim=1)
+            top_index = f.log_softmax(current_output, dim=1)
+            value, pos_index = top_index.max(dim=1)
+            # value, pos_index = current_output.max(dim=1)
+            if pos_index == eos_index:
+                break
+            decoder_all_outputs.append(pos_index)
+            decoder_input = torch.unsqueeze(pos_index, dim=1)
+            decoder_input = decoder_input.to(self.device)
+
+        return decoder_all_outputs
+
+
+
 class EncoderRNN(nn.Module):
     def __init__(self, hidden_size, embedding, n_layers=1, dropout=0):
         super(EncoderRNN, self).__init__()
