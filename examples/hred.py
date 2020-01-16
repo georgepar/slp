@@ -26,6 +26,14 @@ BATCH_VAL_SIZE = 32
 if __name__ == '__main__':
 
     emb_file = './cache/glove.6B.50d.txt'
-
-    dataset = DummyMovieTriples('./data/', transforms=None)
-
+    emb_dim = 300
+    word2idx, _, embeddings = EmbeddingsLoader(emb_file, emb_dim)
+    tokenizer = SpacyTokenizer()
+    to_token_ids = ToTokenIds()
+    to_tensor = ToTensor()
+    dataset = DummyMovieTriples('./data/', transforms=[tokenizer,
+                                                       to_token_ids,
+                                                       to_tensor])
+    for data in dataset:
+        print(data)
+        import ipdb;ipdb.set_trace()
