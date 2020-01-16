@@ -334,7 +334,7 @@ class TransformerTrainer(Trainer):
         # TODO: BEAMSEARCH!!
         return y_pred, targets
 
-class HRED_MovieTriples_Trainer(SequentialTrainer):
+class HREDMovieTriplesTrainer(SequentialTrainer):
     def parse_batch(
             self,
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
