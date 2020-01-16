@@ -21,6 +21,30 @@ class SequenceClassificationCollator(object):
         targets = mktensor(targets, device=self.device, dtype=torch.long)
         return inputs, targets.to(self.device), lengths
 
+class HRED_Triples_Collator(object):
+    def __init__(self, pad_indx=0, device='cpu'):
+        self.pad_indx = pad_indx
+        self.device = device
+
+    def __call__(self, batch):
+        inputs1, inputs2, inputs3 = map(list, zip(*batch))
+        lengths1 = torch.tensor([len(s) for s in inputs1], device=self.device)
+        lengths2 = torch.tensor([len(s) for s in inputs2], device=self.device)
+        lengths3 = torch.tensor([len(s) for s in inputs3], device=self.device)
+        # Pad and convert to tensor
+        inputs1 = (pad_sequence(inputs1,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+        inputs2 = (pad_sequence(inputs2,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+        inputs3 = (pad_sequence(inputs3,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+        return inputs1, lengths1, inputs2, lengths2, inputs3, lengths3
 
 class TransformerCollator(object):
     def __init__(self, pad_indx=0, device='cpu'):
