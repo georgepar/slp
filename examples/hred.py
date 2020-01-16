@@ -6,8 +6,8 @@ import torch.nn as nn
 from ignite.metrics import Loss
 
 from torch.optim import Adam
-from torchvision.transforms import Compose
 
+from slp.config.special_tokens import HRED_SPECIAL_TOKENS
 from slp.data.utils import train_test_split
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
 from slp.data.DummymovieTriples import DummyMovieTriples
@@ -48,7 +48,10 @@ if __name__ == '__main__':
 
     emb_file = './cache/glove.6B.50d.txt'
     emb_dim = 300
-    word2idx, idx2word, embeddings = EmbeddingsLoader(emb_file, emb_dim).load()
+    word2idx, idx2word, embeddings = EmbeddingsLoader(emb_file, emb_dim,
+                                                      extra_tokens=
+                                                      HRED_SPECIAL_TOKENS
+                                                      ).load()
 
     tokenizer = SpacyTokenizer()
     to_token_ids = ToTokenIds(word2idx)
@@ -58,5 +61,9 @@ if __name__ == '__main__':
 
     train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE,
                                                 BATCH_VAL_SIZE, COLLATE_FN)
+
+    pad_index = word2idx[HRED_SPECIAL_TOKENS.PAD.value]
+    sos_index = word2idx[HRED_SPECIAL_TOKENS.SOU.value]
+    eos_index = word2idx[HRED_SPECIAL_TOKENS.EOU.value]
 
     trainer = trainer_factory(embeddings, pad_index, sos_index, device=DEVICE)
