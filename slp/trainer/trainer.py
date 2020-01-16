@@ -333,3 +333,37 @@ class TransformerTrainer(Trainer):
         y_pred = y_pred.view(targets.size(0), -1)
         # TODO: BEAMSEARCH!!
         return y_pred, targets
+
+class HRED_MovieTriples_Trainer(SequentialTrainer):
+    def parse_batch(
+            self,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs1 = to_device(batch[0],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        lengths1 = to_device(batch[1],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        inputs2 = to_device(batch[2],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        lengths2 = to_device(batch[3],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        inputs3 = to_device(batch[4],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        lengths3 = to_device(batch[5],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        return inputs1, lengths1, inputs2, lengths2, inputs3, lengths3
+
+    def get_predictions_and_targets(
+            self,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs1, lengths1, inputs2, lengths2, inputs3, lengths3 = \
+            self.parse_batch(batch)
+        y_pred = self.model(inputs1, lengths1, inputs2, lengths2, inputs3,
+                            lengths3)
+
+        return y_pred, inputs3
