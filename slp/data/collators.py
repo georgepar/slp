@@ -21,7 +21,7 @@ class SequenceClassificationCollator(object):
         targets = mktensor(targets, device=self.device, dtype=torch.long)
         return inputs, targets.to(self.device), lengths
 
-class HRED_Triples_Collator(object):
+class HRED_MovieTriples_Collator(object):
     def __init__(self, pad_indx=0, device='cpu'):
         self.pad_indx = pad_indx
         self.device = device
