@@ -6,7 +6,8 @@ import torch.nn.functional as F
 from slp.modules.rnn import RNN, WordRNN
 
 class Encoder(nn.Module):
-    def __init__(self, embedding, hidden_size, embeddings_dropout=.1,
+    def __init__(self,embedding, hidden_size,
+                 embeddings_dropout=.1,
                  finetune_embeddings=False, num_layers=1, batch_first=True,
                  bidirectional=False, dropout=0, attention=None, device='cpu'):
         super(Encoder, self).__init__()
@@ -119,12 +120,28 @@ class Decoder(nn.Module):
 
 
 
+self, input_size, hidden_size, num_layers=1, batch_first=True,
+                 bidirectional=False, dropout=0, attention=None,
+                 rnn_type='lstm', device='cpu'):
+
+
 class HRED_MovieTriples(nn.Module):
     def __init__(self, options):
         super(HRED_MovieTriples, self).__init__()
 
-        self.enc = Encoder()
-        self.cont_enc = ContextEncoder()
+        self.enc = Encoder(embedding=options.embedding,
+                           hidden_size=options.enc_hidden_size,
+                           embeddings_dropout=options.embeddings_dropout,
+                           finetune_embeddings=options.finetune_embeddings,
+                           num_layers=options.enc_num_layers,
+                           batch_first=options.batch_first,
+                           bidirectional=options.enc_bidirectional,
+                           dropout=options.enc_dropout,
+                           attention=options.enc_attention,
+                           device=options.device)
+
+
+        self.cont_enc = ContextEncoder(input_size=options.conte)
         self.dec = Decoder()
         self.batch_first = options.batch_first
 
