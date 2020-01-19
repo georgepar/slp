@@ -5,7 +5,6 @@ import torch.nn.functional as F
 
 from slp.modules.rnn import RNN, WordRNN
 
-
 class Encoder(nn.Module):
     def __init__(self, embedding, hidden_size, embeddings_dropout=.1,
                  finetune_embeddings=False, num_layers=1, batch_first=True,
@@ -57,6 +56,13 @@ class ContextEncoder(nn.Module):
 
 
 class Decoder(nn.Module):
+    """
+    This implementation of the decoder is only used for the referenced paper in
+    HRED class. That's because of the used of some linear layers, max-out
+    methods! The decoder also does not uses WordRnn class as it should
+    because we wanted the embedding layer
+
+    """
     def __init__(self, vocab_size, emb_size, hidden_size, embeddings=None,
                  embeddings_dropout=.1, finetune_embeddings=False,
                  num_layers=1, tc=1., batch_first=True, bidirectional=False,
@@ -67,31 +73,46 @@ class Decoder(nn.Module):
         self.teacher_forcing = tc
         self.batch_first = batch_first
         self.device = device
-        self.word_rnn = WordRNN(hidden_size, embeddings, embeddings_dropout,
+        self.word_rnn = RNN(hidden_size, embeddings, embeddings_dropout,
                                 finetune_embeddings, batch_first,
                                 num_layers, bidirectional, merge_bi='cat',
                                 dropout=dropout, attention=attention,
+                                packed_sequence=False,
                                 device=device)
 
-    def forward_step(self,dec_, dec_hidden):
-        pass
+    def forward_step(self, dec_input, dec_hidden, enc_output):
 
-    def forward(self, dec_input, targets, target_lens, dec_hidden=None):
+        self.word_rnn(dec_input)
+
+
+        return dec_out,dec_hidden
+
+    def forward(self, dec_input, targets, target_lens, dec_hidden=None,
+                enc_output=None):
         """
         dec_hidden is used for decoder's hidden state initialization!
         Usually the encoder's last (from the last timestep) hidden state is
         passed to decoder's hidden state.
+        enc_output argument is passed if we want to have attention (it is
+        used only for attention, if you don't want to have attention on your
+        model leave it as is!)
         """
+        max_seq_len = targets.shape[1]
+        decoder_outputs = []
+
+        for i in range(0, max_seq_len):
+            use_teacher_forcing = True if (
+                    random.random() < self.teacher_forcing_ratio) else False
+
+            if use_teacher_forcing:
+                dec_out, dec_hidden = self.forward_step(dec_input, dec_hidden,
+                                                        enc_output)
 
 
-        use_teacher_forcing = True if random.random() < self. \
-            teacher_forcing_ratio else False
 
-        if use_teacher_forcing:
-            pass
 
-        else:
-            pass
+            else:
+                pass
 
 
         #return decoder_outputs,decoder_hidden
@@ -99,13 +120,13 @@ class Decoder(nn.Module):
 
 
 class HRED_MovieTriples(nn.Module):
-    def __init__(self,encoder,context_encoder,decoder,batch_first=True):
-        super(HRED_MovieTriples,self).__init__()
+    def __init__(self, options):
+        super(HRED_MovieTriples, self).__init__()
 
-        self.enc = encoder
-        self.cont_enc = context_encoder
-        self.dec = decoder
-        self.batch_first = batch_first
+        self.enc = Encoder()
+        self.cont_enc = ContextEncoder()
+        self.dec = Decoder()
+        self.batch_first = options.batch_first
 
         #we use a linear layer and tanh act function to initialize the
         # hidden of the decoder.
