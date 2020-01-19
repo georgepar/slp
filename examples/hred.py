@@ -53,8 +53,8 @@ if __name__ == '__main__':
                                                       HRED_SPECIAL_TOKENS
                                                       ).load()
 
-    tokenizer = SpacyTokenizer()
-    to_token_ids = ToTokenIds(word2idx)
+    tokenizer = SpacyTokenizer(specials=HRED_SPECIAL_TOKENS)
+    to_token_ids = ToTokenIds(word2idx,specials=HRED_SPECIAL_TOKENS)
     to_tensor = ToTensor()
     dataset = DummyMovieTriples('./data/dummy_movie_triples', transforms=[
         tokenizer, to_token_ids, to_tensor])
