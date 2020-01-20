@@ -9,8 +9,9 @@ class PadPackedSequence(nn.Module):
         super(PadPackedSequence, self).__init__()
         self.batch_first = batch_first
 
-    def forward(self, x, lengths):
-        max_length = lengths.max().item()
+    def forward(self, x, lengths, max_length):
+#        import pdb; pdb.set_trace()
+#        max_length = lengths.max().item()
         x, _ = pad_packed_sequence(
             x, batch_first=self.batch_first, total_length=max_length)
         return x
@@ -22,6 +23,7 @@ class PackSequence(nn.Module):
         self.batch_first = batch_first
 
     def forward(self, x, lengths):
+#        import pdb; pdb.set_trace()
         x = pack_padded_sequence(
             x, lengths,
             batch_first=self.batch_first,

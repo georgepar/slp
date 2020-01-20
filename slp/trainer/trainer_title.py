@@ -301,6 +301,7 @@ class SequentialTrainer(Trainer):
             self,
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
         inputs, titles, targets, lengths, title_lengths = self.parse_batch(batch)
+       # import pdb; pdb.set_trace()
         y_pred = self.model(inputs, lengths, titles, title_lengths)
         return y_pred, targets
 

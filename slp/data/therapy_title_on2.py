@@ -128,51 +128,43 @@ class PsychologicalDataset(Dataset):
             p = p.split("\n")
             p1 = [x for x in p if x!='']
 
-#            p2 = [(x+ ' '+ y) for x,y in zip(p1[0::2], p1[1::2])]   #wrong
 
-            for i in p1:
+            for (i, j) in zip(p1[::2], p1[1::2]):
                 i = i.split(":")
-                if len(i) != 1 and not '' in i:
-                    if any(s in i[0] for s in self.patient_turns):
+                j = j.split(":")
+                if len(i)!= 1 and len(j)!= 1:
+                    turns.append(i[0])
+                    turns.append(j[0])
+                    d = i[1] + ' ' + j[1]
+                    lista.append(self.text_transforms(d))
+
+            if len(lista) == 0:
+#                import pdb; pdb.set_trace()
+                for (i, j) in zip(p1[::2], p1[1::2]):
+                    i = i.split(":")
+                    j = j.split(":")
+                    if len(i)!= 1:
                         turns.append(i[0])
-                        lista.append(self.text_transforms(i[1]))
+                        isum = i[1]
+                    else:
+                        isum = ''
 
-                        
+                    if len(j)!= 1:
+                        turns.append(j[0])
+                        jsum = j[1]
+                    else:
+                        jsum = ''
 
-#right for on2            for (i, j) in zip(p1[::2], p1[1::2]):
-#                i = i.split(":")
-#                j = j.split(":")
-#                if len(i)!= 1 and len(j)!= 1:
-#                    turns.append(i[0])
-#                    turns.append(j[0])
-#                    d = i[1] + ' ' + j[1]
-#                    lista.append(self.text_transforms(d))
-
-#            if len(lista) == 0:
-#                for (i, j) in zip(p1[::2], p1[1::2]):
-#                    i = i.split(":")
-#                    j = j.split(":")
-#                    if len(i)!= 1:
-#                        turns.append(i[0])
-#                        isum = i[1]
-#                    else:
-#                        isum = ''
-#
-#                    if len(j)!= 1:
-#                        turns.append(j[0])
-#                        jsum = j[1]
-#                    else:
-#                        jsum = ''
-#
-#                    d = isum + ' ' + jsum
-#                    lista.append(self.text_transforms(d))
+                    d = isum + ' ' + jsum
+                    lista.append(self.text_transforms(d))
 #            if len(lista) == 0:
 #                import pdb; pdb.set_trace()
-#
 
-#            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=self.max_word_len)
-            preprocessed_text = lista
+
+#            import pdb; pdb.set_trace()
+            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=self.max_word_len)
             preprocessed_title = self.text_transforms(title)
+
         lab = int("Depression (emotion)" in label)
         return (preprocessed_text, preprocessed_title, lab)
 

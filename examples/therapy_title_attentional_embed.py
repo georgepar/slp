@@ -12,14 +12,14 @@ from sklearn.model_selection import KFold
 from slp.data.collators_title import SequenceClassificationCollator
 from slp.data.therapy_title import PsychologicalDataset, TupleDataset
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor, ReplaceUnknownToken
-from slp.modules.hier_att_net_title import HierAttNet
+from slp.modules.hier_att_net_title_attentional_embed import HierAttNet
 from slp.util.embeddings import EmbeddingsLoader
-from slp.trainer.trainer_title import SequentialTrainer
+from slp.trainer.trainer_title_no_validation import SequentialTrainer
 
-#DEVICE = 'cpu'
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cpu'
+#DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-COLLATE_FN = SequenceClassificationCollator(device=DEVICE)
+COLLATE_FN = SequenceClassificationCollator(device='cpu')
 
 DEBUG = False
 KFOLD = True
@@ -34,10 +34,12 @@ def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train, b
         batch_size=batch_train,
         sampler=train_sampler,
         drop_last=False,
+        num_workers=0,
         collate_fn=COLLATE_FN)
     val_loader = DataLoader(
         dataset,
         batch_size=batch_val,
+        num_workers=0,
         sampler=val_sampler,
         drop_last=False,
         collate_fn=COLLATE_FN)
@@ -65,9 +67,9 @@ def kfold_split(dataset, batch_train, batch_val, k=5, shuffle=True, seed=None):
     for train_indices, val_indices in kfold.split(dataset):
         yield dataloaders_from_indices(dataset, train_indices, val_indices, batch_train, batch_val)
 
-def trainer_factory(embeddings, idx2word, device=DEVICE):
+def trainer_factory(embeddings, idx2word, lex_size, device=DEVICE):
     model = HierAttNet(
-        hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings, idx2word)
+        hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings, idx2word, lex_size)
     model = model.to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr=0.0005)
@@ -93,14 +95,15 @@ def trainer_factory(embeddings, idx2word, device=DEVICE):
 if __name__ == '__main__':
 
     ####### Parameters ########
-    batch_train = 8
-    batch_val = 8
+    batch_train = 100
+    batch_val = 100
 
     max_sent_length = 500  #max number of sentences (turns) in transcript - after padding
     max_word_length = 150   #max length of each sentence (turn) - after padding
     num_classes = 2
-    batch_size = 8
-    hidden_size = 380
+    batch_size = 100
+    hidden_size = 300
+    lex_size = 99
 
     epochs = 40
 
@@ -112,7 +115,7 @@ if __name__ == '__main__':
     tokenizer = SpacyTokenizer()
     replace_unknowns = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(word2idx)
-    to_tensor = ToTensor(device=DEVICE)
+    to_tensor = ToTensor(device='cpu')
 
     bio = PsychologicalDataset(
         '../data/balanced_new_csv.csv', '../../../test_CEL/slp/data/psychotherapy/',
@@ -130,7 +133,7 @@ if __name__ == '__main__':
         cv_scores = []
         import gc
         for train_loader, val_loader in kfold_split(bio, batch_train, batch_val):
-            trainer = trainer_factory(embeddings, idx2word, device=DEVICE)
+            trainer = trainer_factory(embeddings, idx2word, lex_size, device=DEVICE)
             fold_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
             cv_scores.append(fold_score)
             print("**********************")
@@ -141,7 +144,7 @@ if __name__ == '__main__':
         final_score = float(sum(cv_scores)) / len(cv_scores)
     else:
         train_loader, val_loader = train_test_split(bio, batch_train, batch_val)
-        trainer = trainer_factory(embeddings, idx2word, device=DEVICE)
+        trainer = trainer_factory(embeddings, idx2word, lex_size, device=DEVICE)
         final_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
 
     print(f'Final score: {final_score}')

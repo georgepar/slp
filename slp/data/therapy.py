@@ -10,9 +10,7 @@ from torch.utils.data import Dataset
 def pad_sequence(sequences, batch_first=False, padding_len=None, padding_value=0):
     # assuming trailing dimensions and type of all the Tensors
     # in sequences are same and fetching those from sequences[0]
-#    import pdb; pdb.set_trace()
     max_size = sequences[0].size()
-
     trailing_dims = max_size[1:]
     if padding_len is not None:
         max_len = padding_len
@@ -117,29 +115,27 @@ class PsychologicalDataset(Dataset):
         preprocessed_text = self.transcript[idx]
         label = self.label[idx].split("; ")
         title = self.title[idx]
-
         metadata = self.metadata[idx]
-#        import pdb; pdb.set_trace()
+
+
+
         if self.text_transforms is not None:
             lista = []
             turns = []
             p = strip_tags(preprocessed_text)
             p = p.split("\n")
 
-            p1 = [x for x in p if x!='']
-            p2 = [(x+ ' '+ y) for x,y in zip(p1[0::2], p1[1::2])]
+            p = [x for x in p if x!='']
             
-            for i in p2:
+            for i in p:
                 i = i.split(":")
-                if len(i) is not 1:
+                if len(i) == 2:
                     turns.append(i[0])
                     lista.append(self.text_transforms(i[1]))
-
-#            padding_len = len(max(lista, key=len))
-#            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=padding_len)
+            #import pdb; pdb.set_trace()
             preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=self.max_word_len)
 
+            preprocessed_title = self.text_transforms(title)
 
         lab = int("Depression (emotion)" in label)
-        return (preprocessed_text, lab)
-
+        return (preprocessed_text, preprocessed_title, lab)

@@ -3,6 +3,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 
 from slp.modules.util import pad_mask, subsequent_mask
 from slp.util import mktensor
+from slp.data.transforms import ToTensor
 
 
 class SequenceClassificationCollator(object):
@@ -11,15 +12,60 @@ class SequenceClassificationCollator(object):
         self.device = device
 
     def __call__(self, batch):
-        inputs, targets = map(list, zip(*batch))
+        inputs, titles, targets = map(list, zip(*batch))
         lengths = torch.tensor([len(s) for s in inputs], device=self.device)
+        lengths_title = torch.tensor([len(t) for t in titles], device=self.device)
+
+        # Pad and convert to tensor
+        inputs = (pad_sequence(inputs,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+        titles = (pad_sequence(titles,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+
+        targets = mktensor(targets, device=self.device, dtype=torch.long)
+        return inputs, titles, targets.to(self.device), lengths, lengths_title
+
+
+class BertCollator(object):
+    def __init__(self, pad_indx=0, device='cpu'):
+        self.pad_indx = pad_indx
+        self.device = device
+
+    def __call__(self, batch):
+#        import pdb; pdb.set_trace()
+        inputs, targets = map(list, zip(*batch))
         # Pad and convert to tensor
         inputs = (pad_sequence(inputs,
                                batch_first=True,
                                padding_value=self.pad_indx)
                   .to(self.device))
         targets = mktensor(targets, device=self.device, dtype=torch.long)
-        return inputs, targets.to(self.device), lengths
+
+        attention_masks = []
+        segments = []
+        for seq in inputs:
+            seq_mask = [float(i>0) for i in seq]
+            attention_masks.append(seq_mask)
+            segm = [0] * len(seq)
+            segments.append(segm)
+
+        masks = mktensor(attention_masks, device=self.device, dtype=torch.long)
+        segments = mktensor(segments, device=self.device, dtype=torch.long)
+
+        return inputs, targets.to(self.device), masks.to(self.device), segments.to(self.device)
+
+
+
+
+
+
+
+
+
 
 
 class TransformerCollator(object):

@@ -1,5 +1,6 @@
 import spacy
 import torch
+import re
 
 import sentencepiece as spm
 from transformers import BertTokenizer
@@ -8,6 +9,11 @@ from spacy.attrs import ORTH
 from slp.config import SPECIAL_TOKENS
 from slp.util import mktensor
 
+
+def remove_punctuation(txt):
+    ch = "[.?:_'!,)(]"
+    txt = re.sub(ch, '', txt)
+    return txt 
 
 class SentencepieceTokenizer(object):
     def __init__(
