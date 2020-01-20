@@ -1,5 +1,6 @@
 import copy
 import torch
+import torch.nn as nn
 
 from typing import cast, Callable, Optional, Tuple
 
@@ -42,3 +43,49 @@ def sort_sequences(inputs: torch.Tensor, lengths: torch.Tensor) -> (
         return t[unsorted_idx]
 
     return inputs[sorted_idx], lengths_sorted, unsort
+
+
+
+class Maxout(nn.Module):
+    def __init__(self, pool_size):
+        super().__init__()
+        self._pool_size = pool_size
+
+    def forward(self, x):
+        assert x.shape[-1] % self._pool_size == 0, \
+            'Wrong input last dim size ({}) for Maxout({})'.format(x.shape[-1], self._pool_size)
+        m, i = x.view(*x.shape[:-1], x.shape[-1] // self._pool_size, self._pool_size).max(-1)
+        return m
+
+def max_out(x):
+    # make sure s2 is even and that the input is 2 dimension
+    if len(x.size()) == 2:
+        s1, s2 = x.size()
+        x = x.unsqueeze(1)
+        x = x.view(s1, s2 // 2, 2)
+        x, _ = torch.max(x, 2)
+
+    elif len(x.size()) == 3:
+        s1, s2, s3 = x.size()
+        x = x.unsqueeze(1)
+        x = x.view(s1, s2, s3 // 2, 2)
+        x, _ = torch.max(x, 3)
+
+    return x
+
+class Maxout2(nn.Module):
+
+    def __init__(self, d_in, d_out, pool_size):
+        super().__init__()
+        self.d_in, self.d_out, self.pool_size = d_in, d_out, pool_size
+        self.lin = nn.Linear(d_in, d_out * pool_size)
+
+
+    def forward(self, inputs):
+        shape = list(inputs.size())
+        shape[-1] = self.d_out
+        shape.append(self.pool_size)
+        max_dim = len(shape) - 1
+        out = self.lin(inputs)
+        m, i = out.view(*shape).max(max_dim)
+        return m
