@@ -10,7 +10,7 @@ from torch.optim import Adam
 from slp.config.special_tokens import HRED_SPECIAL_TOKENS
 from slp.data.utils import train_test_split
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
-from slp.data.DummymovieTriples import DummyMovieTriples
+from slp.data.DummySubtleTriples import DummySubTriples
 from slp.data.collators import HRED_MovieTriples_Collator
 from slp.util.embeddings import EmbeddingsLoader
 from slp.trainer.trainer import HREDMovieTriplesTrainer
@@ -47,18 +47,19 @@ def trainer_factory(embeddings, pad_index, sos_index, device=DEVICE):
 if __name__ == '__main__':
 
     emb_file = './cache/glove.6B.50d.txt'
-    emb_dim = 300
+    emb_dim = 50
     word2idx, idx2word, embeddings = EmbeddingsLoader(emb_file, emb_dim,
                                                       extra_tokens=
                                                       HRED_SPECIAL_TOKENS
                                                       ).load()
 
     tokenizer = SpacyTokenizer(specials=HRED_SPECIAL_TOKENS)
-    to_token_ids = ToTokenIds(word2idx,specials=HRED_SPECIAL_TOKENS)
+    to_token_ids = ToTokenIds(word2idx, specials=HRED_SPECIAL_TOKENS)
     to_tensor = ToTensor()
-    dataset = DummyMovieTriples('./data/dummy_movie_triples', transforms=[
+    dataset = DummySubTriples('./data/corpus0sDialogues.txt', transforms=[
         tokenizer, to_token_ids, to_tensor])
 
+    print(dataset[0])
     train_loader, val_loader = train_test_split(dataset, BATCH_TRAIN_SIZE,
                                                 BATCH_VAL_SIZE, COLLATE_FN)
 
