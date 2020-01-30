@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 
+
 class DummySubTriples(Dataset):
     def __init__(self, directory, transforms=None, train=True):
 
@@ -20,7 +21,7 @@ class DummySubTriples(Dataset):
                     u2 = line[4:]
 
             if index % 6 == 0 and line == '' and (not index == 0):
-                triplets.append((u1, u2, []))
+                triplets.append((u1, u2, ''))
 
         return triplets
 
@@ -33,7 +34,6 @@ class DummySubTriples(Dataset):
 
     def __getitem__(self, idx):
         s1, s2, s3 = self.triples[idx]
-
         if self.transforms is not None:
             for t in self.transforms:
                 s1 = t(s1)
