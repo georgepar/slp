@@ -35,18 +35,20 @@ class HRED_SPECIAL_TOKENS(Enum):
     """
 
     PAD = '[PAD]'
-    UNK = '[UNK]'
+    UNK = '<unk>'
+    s = '</s>'
+    d = '</d>'
     SOU = '[SOU]'
     EOU = '[EOU]'
     SOD = '[SOD]'
     EOD = '[EOD]'
-    SP1 = '[SP1]'
-    SP2 = '[SP2]'
-    SP3 = '[SP3]'
-    SPM = '[SPM]'
-    VOV = '[VOV]'
-    OFFS = '[OFFS]'
-    PAUSE = '[PAUSE]'
+    SP1 = '<first_speaker>'
+    SP2 = '<second_speaker>'
+    SP3 = '<third_speaker>'
+    SPM = '<minor_speaker>'
+    VOV = '<voice_over>'
+    OFFS = '<off_screen>'
+    PAUSE = '<pause>'
     CLS = '[CLS]'
 
     @classmethod
