@@ -3,11 +3,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from slp.modules.rnn import RNN, WordRNN
+from slp.modules.rnn import WordRNN2
 from slp.modules.embed import Embed
 from slp.modules.util import Maxout2
+
+
 class Encoder(nn.Module):
-    def __init__(self,embedding, hidden_size,
+    def __init__(self, input_size, vocab_size, hidden_size, embedding=None,
                  embeddings_dropout=.1,
                  finetune_embeddings=False, num_layers=1, batch_first=True,
                  bidirectional=False, dropout=0, attention=None, device='cpu'):
@@ -15,11 +17,18 @@ class Encoder(nn.Module):
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
         self.device = device
-        self.word_rnn = WordRNN(hidden_size, embedding, embeddings_dropout,
-                                finetune_embeddings, batch_first,
-                                num_layers, bidirectional, merge_bi='cat',
-                                dropout=dropout, attention=attention,
-                                device=device)
+        self.word_rnn = WordRNN2(embedding_dim=input_size,
+                                 vocab_size=vocab_size,
+                                 hidden_size=hidden_size,
+                                 embeddings=embedding,
+                                 embeddings_dropout=embeddings_dropout,
+                                 finetune_embeddings=finetune_embeddings,
+                                 batch_first=batch_first,
+                                 layers=num_layers,
+                                 bidirectional=bidirectional,
+                                 merge_bi='cat', dropout=dropout,
+                                 attention=attention,
+                                 device=self.device)
 
     def forward(self, inputs, lengths):
         out, hidden = self.word_rnn(inputs, lengths)
@@ -29,15 +38,15 @@ class Encoder(nn.Module):
         # kai backward kai episis na kanw L2 pooling over!!!
         #3.  Episis na tsekarw an kanthe fora to hidden einai 0 !!!
 
-        return out,hidden
+        return out, hidden
 
 
 class ContextEncoder(nn.Module):
-    def __init__(self, emb_size, hidden_size, num_layers=1, batch_first=True,
+    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True,
                  bidirectional=False, dropout=0, attention=None,
                  rnn_type='gru', device='cpu'):
         super(ContextEncoder, self).__init__()
-        self.emb_size = emb_size
+        self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.batch_first = batch_first
@@ -54,21 +63,21 @@ class ContextEncoder(nn.Module):
                rnn_type=rnn_type, device=device)
         """
         if self.rnn_type == 'lstm':
-            self.rnn = nn.LSTM(input_size=self.emb_size,
+            self.rnn = nn.LSTM(input_size=self.input_size,
                                hidden_size=self.hidden_size,
                                num_layers=self.num_layers,
                                bidirectional=self.bidirectional,
                                dropout=self.dropout,
                                batch_first=self.batch_first)
         elif self.rnn_type == 'rnn':
-            self.rnn = nn.RNN(input_size=self.emb_size,
+            self.rnn = nn.RNN(input_size=self.input_size,
                               hidden_size=self.hidden_size,
                               num_layers=self.num_layers,
                               bidirectional=self.bidirectional,
                               dropout=self.dropout,
                               batch_first=self.batch_first)
         elif self.rnn_type == 'gru':
-            self.rnn = nn.GRU(input_size=self.emb_size,
+            self.rnn = nn.GRU(input_size=self.input_size,
                               hidden_size=self.hidden_size,
                               num_layers=self.num_layers,
                               bidirectional=self.bidirectional,
@@ -107,7 +116,9 @@ class Decoder(nn.Module):
         self.teacher_forcing_ratio = tc_ratio
         self.batch_first = batch_first
         self.device = device
-        self.word_rnn = WordRNN(hidden_size, embeddings, embeddings_dropout,
+        self.word_rnn = WordRNN2(emb_size,vocab_size,hidden_size,
+                                 embeddings,
+                                 embeddings_dropout,
                                 finetune_embeddings, batch_first,
                                 num_layers, bidirectional, merge_bi=merge_bi,
                                 dropout=dropout, attention=attention,
@@ -223,8 +234,8 @@ class HREDDecoder(nn.Module):
                               trainable=self.finetune_embeddings)
 
         self.cont_to_dec = nn.Linear(options.contenc_hidden_size,
-                                     self.hid_size)
-        self.dec_to_emb2 = nn.Linear(self.hid_size, self.emb_size*2, False)
+                                     self.hidden_size)
+        self.dec_to_emb2 = nn.Linear(self.hidden_size, self.emb_size*2, False)
         self.cont_to_emb2 = nn.Linear(options.contenc_hidden_size,
                                       self.emb_size*2, False)
         self.emb_to_emb2 = nn.Linear(self.emb_size, self.emb_size*2, True)
@@ -304,11 +315,13 @@ class HREDDecoder(nn.Module):
 
         # return decoder_outputs,decoder_hidden
 
-class HREDMovieTriples(nn.Module):
-    def __init__(self, options):
-        super(HREDMovieTriples, self).__init__()
-
-        self.enc = Encoder(embedding=options.enc_embedding,
+class HRED(nn.Module):
+    def __init__(self, options, emb_size, vocab_size, enc_embeddings,
+                 dec_embeddings,device):
+        super(HRED, self).__init__()
+        self.enc = Encoder(input_size=emb_size,
+                           vocab_size=vocab_size,
+                           embedding=enc_embeddings,
                            hidden_size=options.enc_hidden_size,
                            embeddings_dropout=options.embeddings_dropout,
                            finetune_embeddings=options.enc_finetune_embeddings,
@@ -316,35 +329,32 @@ class HREDMovieTriples(nn.Module):
                            batch_first=options.batch_first,
                            bidirectional=options.enc_bidirectional,
                            dropout=options.enc_dropout,
-                           attention=options.enc_attention,
-                           device=options.device)
+                           device=device)
 
-        self.cont_enc = ContextEncoder(emb_size=options.contenc_emb_size,
+        self.cont_enc = ContextEncoder(input_size=options.contenc_input_size,
                                        hidden_size=options.contenc_hidden_size,
                                        num_layers=options.contenc_num_layers,
-                                       batch_first=options.contenc_batch_first,
+                                       batch_first=options.batch_first,
                                        bidirectional=
                                        options.contenc_bidirectional,
                                        dropout=options.contenc_dropout,
-                                       attention=options.contenc_attention,
                                        rnn_type=options.contenc_rnn_type,
-                                       device=options.device)
+                                       device=device)
 
-        self.dec = HREDDecoder(options,vocab_size=options.vocab_size,
-                           emb_size=options.emb_size,
+        self.dec = HREDDecoder(options, vocab_size=vocab_size,
+                           emb_size=emb_size,
                            hidden_size=options.dec_hidden_size,
-                           embeddings=options.dec_embedding,
-                           embeddings_dropout=options.embedding_dropout,
+                           embeddings=dec_embeddings,
+                           embeddings_dropout=options.embeddings_dropout,
                            finetune_embeddings=options.dec_finetune_embeddings,
                            num_layers=options.dec_num_layers,
                            tc_ratio=options.teacherforcing_ratio,
                            batch_first=options.batch_first,
                            bidirectional=options.dec_bidirectional,
                            dropout=options.dec_dropout,
-                           attention=options.dec_attention,
                            merge_bi=options.dec_merge_bi,
                            rnn_type=options.dec_rnn_type,
-                           device=options.device)
+                           device=device)
 
         self.batch_first = options.batch_first
 
