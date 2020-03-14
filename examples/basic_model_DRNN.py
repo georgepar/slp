@@ -12,7 +12,7 @@ from sklearn.model_selection import KFold
 from slp.data.collators import SequenceClassificationCollator
 from slp.data.therapy_title import PsychologicalDataset, TupleDataset
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor, ReplaceUnknownToken
-from slp.modules.basic_model import HierAttNet
+from slp.modules.basic_model_DRNN import HierAttNet
 from slp.util.embeddings import EmbeddingsLoader
 from slp.trainer.trainer_title_no_validation import SequentialTrainer
 
@@ -33,13 +33,15 @@ def dataloaders_from_indices(dataset, train_indices, val_indices, batch_train, b
         dataset,
         batch_size=batch_train,
         sampler=train_sampler,
-        drop_last=True,
+        drop_last=False,
+        num_workers=0,
         collate_fn=COLLATE_FN)
     val_loader = DataLoader(
         dataset,
         batch_size=batch_val,
+        num_workers=0,
         sampler=val_sampler,
-        drop_last=True,
+        drop_last=False,
         collate_fn=COLLATE_FN)
 
     return train_loader, val_loader
@@ -57,7 +59,6 @@ def train_test_split(dataset, batch_train, batch_val,
     train_indices = indices[test_split:]
     val_indices = indices[:test_split]
 
-    import pdb; pdb.set_trace()
     return dataloaders_from_indices(dataset, train_indices, val_indices, batch_train, batch_val)
 
 
@@ -94,19 +95,18 @@ def trainer_factory(embeddings, device=DEVICE):
 if __name__ == '__main__':
 
     ####### Parameters ########
-    batch_train = 8
-    batch_val = 8
+    batch_train = 4
+    batch_val = 4
 
     max_sent_length = 500  #max number of sentences (turns) in transcript - after padding
     max_word_length = 150   #max length of each sentence (turn) - after padding
     num_classes = 2
-    batch_size = 8
+    batch_size = 4
     hidden_size = 300
 
     epochs = 40
 
 #    loader = EmbeddingsLoader('../data/glove.6B.300d.txt', 300)
-
     loader = EmbeddingsLoader('/data/embeddings/glove.840B.300d.txt', 300)
     word2idx, idx2word, embeddings = loader.load()
     embeddings = torch.tensor(embeddings)
@@ -117,10 +117,7 @@ if __name__ == '__main__':
     to_tensor = ToTensor(device=DEVICE)
 
     bio = PsychologicalDataset(
-#        '../data/balanced_new_csv.csv', 
-        '../../../test_dataset.csv',
-#        '../../../depressive_dataset.csv',
-	'../../../test_CEL/slp/data/psychotherapy/',
+        '../data/balanced_new_csv.csv', '../../../test_CEL/slp/data/psychotherapy/',
         max_word_length,
         text_transforms = Compose([
             tokenizer,
@@ -128,20 +125,6 @@ if __name__ == '__main__':
             to_token_ids,
             to_tensor]))
 
-    de = 0
-    nd = 0
-    m = 0
-#    for i, (t,x,feat, l) in enumerate(bio):
-#        m += 1
-#        if (l==1):
-#            de += 1
-#        else:
-#            nd += 1
-    print(m)
-    print("----------------")
-    print(de)
-    print(nd)
-    print("----------------")
 
 
 
@@ -149,7 +132,6 @@ if __name__ == '__main__':
         cv_scores = []
         import gc
         for train_loader, val_loader in kfold_split(bio, batch_train, batch_val):
-#            import pdb; pdb.set_trace()
             trainer = trainer_factory(embeddings, device=DEVICE)
             fold_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
             cv_scores.append(fold_score)

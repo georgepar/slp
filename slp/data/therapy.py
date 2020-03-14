@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 def pad_sequence(sequences, batch_first=False, padding_len=None, padding_value=0):
     # assuming trailing dimensions and type of all the Tensors
     # in sequences are same and fetching those from sequences[0]
+#    import pdb; pdb.set_trace()
     max_size = sequences[0].size()
     trailing_dims = max_size[1:]
     if padding_len is not None:

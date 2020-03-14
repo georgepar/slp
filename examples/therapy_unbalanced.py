@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
-from ignite.metrics import Loss, Accuracy
+from ignite.metrics import Loss, Accuracy, Precision, Recall
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision.transforms import Compose
 from sklearn.model_selection import KFold
@@ -73,15 +73,23 @@ def trainer_factory(embeddings, device=DEVICE):
     criterion = nn.CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr=0.0005)
 
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+    avg_prec = precision.mean()
+    avg_rec = recall.mean()
+    F1 = (precision * recall * 2 / (precision + recall + 1e-7)).mean()
     metrics = {
         'accuracy': Accuracy(),
+        'presicion': avg_prec,
+        'recall': avg_rec,
+        'f1': F1,
         'loss': Loss(criterion)
     }
 
     trainer = SequentialTrainer(
         model,
         optimizer,
-        checkpoint_dir='../checkpoints' if not DEBUG else None,
+        checkpoint_dir=None, # '../checkpoints' if not DEBUG else None,
         metrics=metrics,
         non_blocking=True,
         patience=10,
@@ -118,8 +126,9 @@ if __name__ == '__main__':
 
     bio = PsychologicalDataset(
 #        '../data/balanced_new_csv.csv', 
-        '../../../test_dataset.csv',
+#        '../../../test_dataset.csv',
 #        '../../../depressive_dataset.csv',
+        '../../../unbalanced_dataset.csv',
 	'../../../test_CEL/slp/data/psychotherapy/',
         max_word_length,
         text_transforms = Compose([
@@ -131,12 +140,12 @@ if __name__ == '__main__':
     de = 0
     nd = 0
     m = 0
-#    for i, (t,x,feat, l) in enumerate(bio):
-#        m += 1
-#        if (l==1):
-#            de += 1
-#        else:
-#            nd += 1
+    for i, (t,x,l) in enumerate(bio):
+        m += 1
+        if (l==1):
+            de += 1
+        else:
+            nd += 1
     print(m)
     print("----------------")
     print(de)
