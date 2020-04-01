@@ -59,21 +59,21 @@ class SentAttNet(nn.Module):
 
         self.sent = nn.Linear(2 * hidden_size, 2 * hidden_size)
         self.context = nn.Linear(2 * hidden_size, 1, bias=False)
-        self.fc = nn.Linear(2 * hidden_size + 3, num_classes)
+        self.fc = nn.Linear(2 * hidden_size, num_classes)
 
         self.pack = PackSequence(batch_first=True)
         self.unpack = PadPackedSequence(batch_first=True)
 
 
-    def forward(self, inputs, features, lengths, hidden_state):
+    def forward(self, inputs, features, lengths, titles, hidden_state):
 #        import pdb; pdb.set_trace()
 
         f_output, lengths = self.pack(inputs, lengths)
         f_output, h_output = self.gru(f_output, hidden_state)
         f_output = self.unpack(f_output, lengths)
 
-        #titles = torch.unsqueeze(titles, dim=1)
-#        f_output = torch.cat((f_output,features), dim=1)
+        titles = torch.unsqueeze(titles, dim=1)
+        f_output = torch.cat((f_output,titles), dim=1)
 
 
         output = self.sent(f_output)
@@ -84,7 +84,7 @@ class SentAttNet(nn.Module):
         output = F.softmax(output, dim=1)
         output = (f_output * output).sum(1)
         
-        output = torch.cat((output,features), dim=1)
+#        output = torch.cat((output,features), dim=1)
         output = self.fc(output).squeeze()
 
         return output, h_output
@@ -120,6 +120,9 @@ class HierAttNet(nn.Module):
         text = inputs.permute(1, 0, 2)
         all_word_lengths = []
         output_list_text = []
+
+#        import pdb; pdb.set_trace()
+
         for i in text:
 
             word_lengths = i.size(1) - (i==0).sum(dim=1)
@@ -136,20 +139,18 @@ class HierAttNet(nn.Module):
 
 
 
-        #output_title, self.word_hidden_state = self.word_att_net_text(titles,		  # try without title
-	#							title_lengths,
-	#							self.word_hidden_state, 
-	#							self.idx2word,
-	#				        		self.lex_size,
-	#							is_title=True) #[8,600]
-        #self.word_hidden_state = repackage_hidden(self.word_hidden_state)
-        
+        output_title, self.word_hidden_state = self.word_att_net_text(titles,	### title
+								title_lengths,
+								self.word_hidden_state, 
+								is_title=True) #[8,600]
+        self.word_hidden_state = repackage_hidden(self.word_hidden_state)
+
         # output_list_text = (S, B, 600)
         # output_list_text = (S, B, 760)
 #        import pdb; pdb.set_trace()
         
         output_list_text = pad_sequence(output_list_text, padding_len=self.batch_size)
-        output, self.sent_hidden_state = self.sent_att_net(output_list_text, features, lengths, self.sent_hidden_state)
+        output, self.sent_hidden_state = self.sent_att_net(output_list_text, features, lengths, output_title, self.sent_hidden_state)
         self.sent_hidden_state = repackage_hidden(self.sent_hidden_state)
         return output
 

@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
-from ignite.metrics import Loss, Accuracy
+from ignite.metrics import Loss, Accuracy, Precision, Recall
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision.transforms import Compose
 from sklearn.model_selection import KFold
@@ -57,7 +57,7 @@ def train_test_split(dataset, batch_train, batch_val,
     train_indices = indices[test_split:]
     val_indices = indices[:test_split]
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     return dataloaders_from_indices(dataset, train_indices, val_indices, batch_train, batch_val)
 
 
@@ -72,9 +72,17 @@ def trainer_factory(embeddings, device=DEVICE):
     model = model.to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr=0.0005)
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+    avg_prec = precision.mean()
+    avg_rec = recall.mean()
+    F1 = (precision * recall * 2/(precision + recall + 1e-7)).mean()
 
     metrics = {
         'accuracy': Accuracy(),
+        'precision': avg_prec,
+        'recall': avg_rec,
+        'f1': F1,
         'loss': Loss(criterion)
     }
 
@@ -83,6 +91,7 @@ def trainer_factory(embeddings, device=DEVICE):
         optimizer,
         checkpoint_dir='../checkpoints' if not DEBUG else None,
         metrics=metrics,
+        model_checkpoint = '../experiment_model.best.pth',
         non_blocking=True,
         patience=10,
         loss_fn=criterion,
@@ -118,8 +127,9 @@ if __name__ == '__main__':
 
     bio = PsychologicalDataset(
 #        '../data/balanced_new_csv.csv', 
-        '../../../test_dataset.csv',
+#        '../../../test_dataset.csv',
 #        '../../../depressive_dataset.csv',
+        '../../../whole-dataset.csv',
 	'../../../test_CEL/slp/data/psychotherapy/',
         max_word_length,
         text_transforms = Compose([
@@ -131,25 +141,23 @@ if __name__ == '__main__':
     de = 0
     nd = 0
     m = 0
-#    for i, (t,x,feat, l) in enumerate(bio):
-#        m += 1
-#        if (l==1):
-#            de += 1
-#        else:
-#            nd += 1
+    for i, (t,x,feat, l) in enumerate(bio):
+        m += 1
+        if (l==1):
+            de += 1
+        else:
+            nd += 1
     print(m)
     print("----------------")
     print(de)
     print(nd)
     print("----------------")
 
-
-
     if KFOLD:
         cv_scores = []
         import gc
         for train_loader, val_loader in kfold_split(bio, batch_train, batch_val):
-#            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
             trainer = trainer_factory(embeddings, device=DEVICE)
             fold_score = trainer.fit(train_loader, val_loader, epochs=MAX_EPOCHS)
             cv_scores.append(fold_score)

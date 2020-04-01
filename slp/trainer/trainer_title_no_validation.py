@@ -54,9 +54,12 @@ class Trainer(object):
         self.accumulation_steps = accumulation_steps
         self.checkpoint_dir = checkpoint_dir
 
+#        import pdb; pdb.set_trace()
+
         model_checkpoint = self._check_checkpoint(model_checkpoint)
         optimizer_checkpoint = self._check_checkpoint(optimizer_checkpoint)
 
+        
         self.model = cast(nn.Module, from_checkpoint(
                 model_checkpoint, model, map_location=torch.device('cpu')))
         self.model = self.model.type(dtype).to(device)

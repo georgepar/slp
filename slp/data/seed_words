@@ -1,0 +1,28 @@
+depressed = ['temper' 'pulled' 'guidance' 'required' 'agree' 'motivation'
+ 'field' 'scary' 'tough' 'school' 'vacation' 'responsible' 'study'
+ 'crossroads' 'wink' 'competitive' 'groove' 'anxiousness'
+ 'procrastination' 'established' 'usually' 'knowing' 'technically'
+ 'med' 'putting' 'library' 'prepare' 'overcome' 'read' 'counselor'
+ 'may' 'education' 'routine' 'awhile' 'studying' 'depressing' 'comes'
+ 'pushing' 'research' 'reality' 'alright' 'brothers' 'road'
+ 'responsibility' 'frustrating' 'books' 'problem' 'listening' 'girlfriend'
+ 'fast' 'thoughts' 'mentioned' 'fear' 'reading' 'helping' 'older' 'write'
+ 'answer' 'monday' 'friday' 'lose' 'means' 'dad' 'phone' 'move' 'control'
+ 'mom' 'especially' 'important' 'hour' 'yesterday' 'close' 'believe' 'sit'
+ 'job' 'gets' 'making' 'called' 'sleep' 'weeks' 'real' 'fame', 'familiar' 'feared' 'family']
+
+not-depressed = ['jenny' 'concord' 'glasses' 'tense' 'jabs' 'booked' 'upsets' 'thrilled'
+ 'frustrates' 'anxious' 'weekend' 'subtle' 'paying' 'incredibly'
+ 'denying' 'sat' 'expensive' 'idea' 'wrong' 'afford'
+ 'psychoanalysts' 'mail' 'metaphoric' 'transactional' 'costly' 'firms' 'low' 'tired' 'reality'
+ 'budgeted' 'pauses' 'taxing' 'excited' 'kids' 'symbolize' 'relationships'
+ 'money' 'snappy' 'provoking' 'bonus' 'upfront' 'purchased' 'wrote'
+ 'psychoanalytic' 'mailing' 'compelled' 'guilty' 'unclear' 'bump' 'wins' 'great' 'job'
+ 'outsider' 'problematic' 'substantial' 'agrees'
+  'conversation' 'boundaries' 'pro' 'lease' 'fee'
+ 'wanting' 'comfortable' 'pretending' 'mad' 'begins' 'timing' 'arent'
+ 'practical' 'functions' 'involved' 'detail' 'pay' 'deals' 'consequences'
+ 'therapists' 'referring' 'desperate' 'engaged' 'cousins' 'relieved'
+ ]
+
+

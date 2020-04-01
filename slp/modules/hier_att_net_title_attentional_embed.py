@@ -9,7 +9,6 @@ from slp.load_lexicons.get_all_6lexicons import LexiconFeatures
 DEVICE = 'cpu'
 #DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-
 def repackage_hidden(h):
     """Wraps hidden states in new Tensors, to detach them from their history."""
 

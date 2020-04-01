@@ -128,7 +128,8 @@ if __name__ == '__main__':
 #        '../data/balanced_new_csv.csv', 
 #        '../../../test_dataset.csv',
 #        '../../../depressive_dataset.csv',
-        '../../../unbalanced_dataset.csv',
+#        '../../../unbalanced_dataset.csv',
+        '../../../whole-dataset.csv',
 	'../../../test_CEL/slp/data/psychotherapy/',
         max_word_length,
         text_transforms = Compose([
@@ -140,12 +141,12 @@ if __name__ == '__main__':
     de = 0
     nd = 0
     m = 0
-    for i, (t,x,l) in enumerate(bio):
-        m += 1
-        if (l==1):
-            de += 1
-        else:
-            nd += 1
+#    for i, (t,x,f,l) in enumerate(bio):
+#        m += 1
+#        if (l==1):
+#            de += 1
+#        else:
+#            nd += 1
     print(m)
     print("----------------")
     print(de)
