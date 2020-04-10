@@ -75,7 +75,7 @@ class Trainer(object):
         if "loss" not in metrics:
             if self.parallel:
                 metrics["loss"] = Loss(
-                    lambda x, y: self.loss_fn(x, y).mean()
+                    lambda x, y: self.loss_fn(x, y).mean()  # type: ignore
                 )  # type: ignore
             else:
                 metrics["loss"] = Loss(self.loss_fn)
@@ -211,10 +211,10 @@ class Trainer(object):
         if self.trainer.has_event_handler(self.val_handler, Events.EPOCH_COMPLETED):
             self.trainer.remove_event_handler(self.val_handler, Events.EPOCH_COMPLETED)
 
-        self.val_handler.attach(
+        self.val_handler.attach(  # type: ignore
             self.trainer,
             self.train_evaluator,
-            single_batch,  # type: ignore
+            single_batch,
             validation=False,
         )
         out = self.trainer.run(single_batch, max_epochs=100)
@@ -223,10 +223,10 @@ class Trainer(object):
     def fit_debug(
         self: TrainerType, train_loader: DataLoader, val_loader: DataLoader
     ) -> State:
-        train_loader = iter(train_loader)
-        train_subset = [next(train_loader), next(train_loader)]
+        train_loader = iter(train_loader)  # type: ignore
+        train_subset = [next(train_loader), next(train_loader)]  # type: ignore
         val_loader = iter(val_loader)  # type: ignore
-        val_subset = [next(val_loader), next(val_loader)]  # type ignore
+        val_subset = [next(val_loader), next(val_loader)]  # type: ignore
         out = self.fit(train_subset, val_subset, epochs=6)  # type: ignore
         return out
 
