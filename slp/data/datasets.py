@@ -7,18 +7,20 @@ class LMDataset(Dataset):
     """Wraps a wikitext dataset from pytorch
     NLP which is provided as a list of tokens
     """
+
     def __init__(self, tokens, max_len=256):
         self.max_len = max_len
 
-        self.data = [self._split_samples(tokens, idx)
-                     for idx in tqdm(range(len(tokens) - 1),
-                                     total=len(tokens) - 1)]
+        self.data = [
+            self._split_samples(tokens, idx)
+            for idx in tqdm(range(len(tokens) - 1), total=len(tokens) - 1)
+        ]
         self.transforms = []
 
     def _split_samples(self, tokens, idx):
         _len = min(self.max_len, len(tokens) - 1 - idx)
-        inputs = tokens[idx:idx + _len]
-        targets = tokens[idx + 1:idx + 1 + _len]
+        inputs = tokens[idx : idx + _len]
+        targets = tokens[idx + 1 : idx + 1 + _len]
         return inputs, targets
 
     def map(self, fn, lazy=True):

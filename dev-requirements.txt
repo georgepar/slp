@@ -3,3 +3,4 @@ pytest-cov==2.7.1
 flake8==3.7.6
 mypy==0.701
 nox==2019.5.30
+black==19.10b0

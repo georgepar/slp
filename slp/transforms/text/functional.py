@@ -3,17 +3,18 @@ import re
 from sklearn.utils import check_array
 import torch
 
+
 def strip_punctuation(s):
-    return re.sub(r'[^a-zA-Z\s]', ' ', s)
+    return re.sub(r"[^a-zA-Z\s]", " ", s)
 
 
 def preprocess(s):
     # flake8: noqa W605
-    return re.sub(r'\s+', ' ', strip_punctuation(s).lower())
+    return re.sub(r"\s+", " ", strip_punctuation(s).lower())
 
 
 def split_tokenizer(x):
-    return x.split(' ')
+    return x.split(" ")
 
 
 def untokenize(x):
@@ -25,7 +26,7 @@ def gaussian_noise(X, mu=0.0, std=0.1):
     return X + np.random.normal(mu, std, X.shape)
 
 
-def aggregate_vecs(vectors, aggregation='mean'):
+def aggregate_vecs(vectors, aggregation="mean"):
     if isinstance(aggregation, str):
         aggregation = [aggregation]
     feats = []

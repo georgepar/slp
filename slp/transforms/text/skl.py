@@ -40,7 +40,7 @@ class NltkTokenizer(BaseEstimator, TransformerMixin):
 
 
 class SpacyTokenizer(BaseEstimator, TransformerMixin):
-    def __init__(self, lang='en'):
+    def __init__(self, lang="en"):
         self.nlp = spacy.load(lang)
 
     def transform(self, X, y=None):
@@ -51,19 +51,21 @@ class SpacyTokenizer(BaseEstimator, TransformerMixin):
 
 
 class NBOWVectorizer(BaseEstimator, TransformerMixin):
-    def __init__(self,
-                 embeddings,
-                 word2idx,
-                 aggregation='mean',
-                 lowercase=True,
-                 tokenizer=None,
-                 stopwords=True):
+    def __init__(
+        self,
+        embeddings,
+        word2idx,
+        aggregation="mean",
+        lowercase=True,
+        tokenizer=None,
+        stopwords=True,
+    ):
         self.aggregation = aggregation
         self.embeddings = embeddings
         self.word2idx = word2idx
         self.dim = embeddings[0].size
         self.stopwords = stopwords
-        self.stops = set(nltk.corpus.stopwords.words('english'))
+        self.stops = set(nltk.corpus.stopwords.words("english"))
         self.lowercase = lowercase
         if tokenizer is None:
             self.tokenizer = lambda x: x
@@ -84,8 +86,9 @@ class NBOWVectorizer(BaseEstimator, TransformerMixin):
                 vectors.append(self.embeddings[self.word2idx[word]])
             if not vectors:
                 vectors.append(np.zeros(self.dim))
-            feats = functional.aggregate_vecs(np.array(vectors),
-                                              aggregation=self.aggregation)
+            feats = functional.aggregate_vecs(
+                np.array(vectors), aggregation=self.aggregation
+            )
             docs.append(feats)
 
         assert len(docs) == len(X)
