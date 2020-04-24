@@ -1,0 +1,5 @@
+git submodule update --init --recursive
+
+
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+export PYTHONPATH=$PYTHONPATH:$(pwd)/cmusdk
