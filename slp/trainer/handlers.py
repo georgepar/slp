@@ -40,13 +40,14 @@ class EvaluationHandler(object):
         self.early_stopping = early_stopping
 
     def __call__(self, engine: Engine, evaluator: Engine,
-                 dataloader: DataLoader, validation: bool = True):
+                 dataloader: DataLoader, validation: bool = True, test:bool = False):
         if engine.state.epoch % self.validate_every != 0:
             return
         evaluator.run(dataloader)
         system.print_separator(n=35, print_fn=self.print_fn)
         metrics = evaluator.state.metrics
         phase = 'Validation' if validation else 'Training'
+        phase = 'Test' if test else phase
         self.print_fn('Epoch {} {} results'
                       .format(engine.state.epoch, phase))
         system.print_separator(symbol='-', n=35, print_fn=self.print_fn)
@@ -63,8 +64,9 @@ class EvaluationHandler(object):
             system.print_separator(n=35, print_fn=self.print_fn)
 
     def attach(self, trainer: Engine, evaluator: Engine,
-               dataloader: DataLoader, validation: bool = True):
+               dataloader: DataLoader, validation: bool = True, test: bool = False):
         trainer.add_event_handler(
             Events.EPOCH_COMPLETED,
             self, evaluator, dataloader,
-            validation=validation)
+            validation=validation,
+            test=test)

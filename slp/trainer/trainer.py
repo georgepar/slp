@@ -246,6 +246,26 @@ class SequentialTrainer(Trainer):
         y_pred = self.model(inputs, lengths)
         return y_pred, targets
 
+    def fit(self: TrainerType,
+            train_loader: DataLoader,
+            val_loader: DataLoader,
+            test_loader: DataLoader,
+            epochs: int = 50) -> State:
+        self.val_handler.attach(self.trainer,
+                                self.train_evaluator,
+                                train_loader,
+                                validation=False)
+        self.val_handler.attach(self.trainer,
+                                self.valid_evaluator,
+                                val_loader,
+                                validation=True)
+        self.val_handler.attach(self.trainer,
+                                self.valid_evaluator,
+                                test_loader,
+                                validation=False,
+                                test=True)
+        self.model.zero_grad()
+        self.trainer.run(train_loader, max_epochs=epochs)
 
 class Seq2seqTrainer(SequentialTrainer):
     def parse_batch(
@@ -290,3 +310,153 @@ class TransformerTrainer(Trainer):
         y_pred = y_pred.view(targets.size(0), -1)
         # TODO: BEAMSEARCH!!
         return y_pred, targets
+
+class DATrainer(Trainer):
+    def parse_batch(
+            self,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs = to_device(batch[0],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        targets = to_device(batch[1],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        domains = to_device(batch[2],
+                                device=self.device,
+                                non_blocking=self.non_blocking)
+        lengths = to_device(batch[3],
+                                device=self.device,
+                                non_blocking=self.non_blocking)
+        return inputs, targets, domains, lengths
+
+    def get_predictions_and_targets(
+            self: TrainerType,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs, targets, domains, lengths = self.parse_batch(batch)
+        y_pred, d_pred = self.model(inputs, lengths)
+        return y_pred, targets, d_pred, domains
+
+    def train_step(self: TrainerType,
+                   engine: Engine,
+                   batch: List[torch.Tensor]) -> float:
+        self.model.train()
+        y_pred, targets, d_pred, domains = self.get_predictions_and_targets(batch)
+        loss = self.loss_fn(y_pred, targets, d_pred, domains, engine.state.epoch)  # type: ignore
+        if self.parallel:
+            loss = loss.mean()
+        loss = loss / self.accumulation_steps
+        loss.backward(retain_graph=self.retain_graph)
+        if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
+            self.optimizer.step()  # type: ignore
+            self.optimizer.zero_grad()
+        loss_value: float = loss.item()
+        return loss_value
+
+    def eval_step(
+            self: TrainerType,
+            engine: Engine,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        self.model.eval()
+        with torch.no_grad():
+            y_pred, targets, d_pred, domains = self.get_predictions_and_targets(batch)
+            d = {'domain_pred'  : d_pred,
+		         'domain_targets'  : domains,
+                 'epoch' : engine.state.epoch}
+            return y_pred, targets, d
+    
+    def fit(self: TrainerType,
+            train_loader: DataLoader,
+            val_loader: DataLoader,
+            test_loader: DataLoader,
+            epochs: int = 50) -> State:
+        self.val_handler.attach(self.trainer,
+                                self.train_evaluator,
+                                train_loader,
+                                validation=False)
+        self.val_handler.attach(self.trainer,
+                                self.valid_evaluator,
+                                val_loader,
+                                validation=True)
+        self.val_handler.attach(self.trainer,
+                                self.valid_evaluator,
+                                test_loader,
+                                validation=False,
+                                test=True)
+        self.model.zero_grad()
+        self.trainer.run(train_loader, max_epochs=epochs)
+
+class VADATrainer(Trainer):
+    def parse_batch(
+            self,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs = to_device(batch[0],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        targets = to_device(batch[1],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        domains = to_device(batch[2],
+                                device=self.device,
+                                non_blocking=self.non_blocking)
+        lengths = to_device(batch[3],
+                                device=self.device,
+                                non_blocking=self.non_blocking)
+        return inputs, targets, domains, lengths
+
+    def get_predictions_and_targets(
+            self: TrainerType,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs, targets, domains, lengths = self.parse_batch(batch)
+        y_pred, d_pred = self.model(inputs, lengths)
+        return y_pred, targets, d_pred, domains, inputs, lengths
+
+    def train_step(self: TrainerType,
+                   engine: Engine,
+                   batch: List[torch.Tensor]) -> float:
+        self.model.train()
+        y_pred, targets, d_pred, domains, inputs, lengths = self.get_predictions_and_targets(batch)
+        loss = self.loss_fn(y_pred, targets, d_pred, domains, engine.state.epoch, inputs, lengths)  # type: ignore
+        if self.parallel:
+            loss = loss.mean()
+        loss = loss / self.accumulation_steps
+        loss.backward(retain_graph=self.retain_graph)
+        if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
+            self.optimizer.step()  # type: ignore
+            self.optimizer.zero_grad()
+        loss_value: float = loss.item()
+        return loss_value
+
+    def eval_step(
+            self: TrainerType,
+            engine: Engine,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        self.model.eval()
+        with torch.no_grad():
+            y_pred, targets, d_pred, domains, inputs, lengths = self.get_predictions_and_targets(batch)
+            d = {'domain_pred'  : d_pred,
+		         'domain_targets'  : domains,
+                 'epoch' : engine.state.epoch,
+                 'inputs' : inputs,
+                 'lengths' : lengths}
+            return y_pred, targets, d
+    
+    def fit(self: TrainerType,
+            train_loader: DataLoader,
+            val_loader: DataLoader,
+            test_loader: DataLoader,
+            epochs: int = 50) -> State:
+        self.val_handler.attach(self.trainer,
+                                self.train_evaluator,
+                                train_loader,
+                                validation=False)
+        self.val_handler.attach(self.trainer,
+                                self.valid_evaluator,
+                                val_loader,
+                                validation=True)
+        self.val_handler.attach(self.trainer,
+                                self.valid_evaluator,
+                                test_loader,
+                                validation=False,
+                                test=True)
+        self.model.zero_grad()
+        self.trainer.run(train_loader, max_epochs=epochs)

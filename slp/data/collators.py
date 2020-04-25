@@ -21,6 +21,22 @@ class SequenceClassificationCollator(object):
         targets = mktensor(targets, device=self.device, dtype=torch.long)
         return inputs, targets.to(self.device), lengths
 
+class DACollator(object):
+    def __init__(self, pad_indx=0, device='cpu'):
+        self.pad_indx = pad_indx
+        self.device = device
+
+    def __call__(self, batch):
+        inputs, targets, domains = map(list, zip(*batch))
+        lengths = torch.tensor([len(s) for s in inputs], device=self.device)
+        # Pad and convert to tensor
+        inputs = (pad_sequence(inputs,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+        targets = mktensor(targets, device=self.device, dtype=torch.long)
+        domains = mktensor(domains, device=self.device, dtype=torch.long)
+        return inputs, targets.to(self.device), domains.to(self.device), lengths
 
 class TransformerCollator(object):
     def __init__(self, pad_indx=0, device='cpu'):
