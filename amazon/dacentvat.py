@@ -13,7 +13,7 @@ from slp.data.collators import DACollator
 from slp.data.amz import AmazonZiser17
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
 from slp.modules.daclassifer import DAClassifier, DALoss, DASubsetRandomSampler
-from slp.modules.vat import ConditionalEntropyLoss, VADALoss, VAT
+from slp.modules.vat import ConditionalEntropyLoss, VADALoss, VAT, VADAWordRNN, VADAClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer.trainer import VADATrainer
 from slp.util.embeddings import EmbeddingsLoader
@@ -33,8 +33,8 @@ def transform_d(output):
     return d_pred, d_targets
 
 
-#DEVICE = 'cpu'
-DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cpu'
+#DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 collate_fn = DACollator(device='cpu')
 
@@ -109,9 +109,9 @@ if __name__ == '__main__':
 
     train_loader, dev_loader, test_loader = train_test_split(source_dataset, target_dataset, test_dataset, 32, 32)
 
-    sent_encoder = WordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
-                           packed_sequence=True, attention=True, device=DEVICE)
-    model = DAClassifier(sent_encoder, 512, 2, 2)
+    sent_encoder = VADAWordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
+                               packed_sequence=True, attention=True, device=DEVICE)
+    model = VADAClassifier(sent_encoder, 512, 2, 2)
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
                      lr=1e-3)
