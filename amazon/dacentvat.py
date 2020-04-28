@@ -33,8 +33,8 @@ def transform_d(output):
     return d_pred, d_targets
 
 
-DEVICE = 'cpu'
-#DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+#DEVICE = 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 collate_fn = DACollator(device='cpu')
 
@@ -45,7 +45,7 @@ def dataloaders_from_indices(source_dataset, target_dataset, test_dataset,
     s_dataset_size = len(source_dataset)
     target_indices = list(range(t_dataset_size))
     dataset = ConcatDataset([source_dataset, target_dataset])
-    x = 16
+    x = 8
     train_sampler = DASubsetRandomSampler(s_train_indices, target_indices, s_dataset_size, x, batch_train)
     val_sampler = SubsetRandomSampler(val_indices)
     test_sampler = SubsetRandomSampler(t_indices)
@@ -54,17 +54,17 @@ def dataloaders_from_indices(source_dataset, target_dataset, test_dataset,
         dataset,
         batch_size=batch_train,
         sampler=train_sampler,
-        drop_last=False,
+        drop_last=True,
         collate_fn=collate_fn)
     val_loader = DataLoader(
         source_dataset,
         batch_size=batch_val,
         sampler=val_sampler,
-        drop_last=False,
+        drop_last=True,
         collate_fn=collate_fn)
     test_loader = DataLoader(
         test_dataset,
-        batch_size=batch_val,
+        batch_size=16,
         sampler=test_sampler,
         drop_last=False,
         collate_fn=collate_fn)
@@ -107,7 +107,8 @@ if __name__ == '__main__':
     test_dataset = test_dataset.map(to_token_ids)
     test_dataset = test_dataset.map(to_tensor)
 
-    train_loader, dev_loader, test_loader = train_test_split(source_dataset, target_dataset, test_dataset, 32, 32)
+    train_loader, dev_loader, test_loader = train_test_split(source_dataset, target_dataset,
+                                                             test_dataset, 16, 16)
 
     sent_encoder = VADAWordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
                                packed_sequence=True, attention=True, device=DEVICE)
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     da_loss = nn.CrossEntropyLoss()
     trg_cent_loss = ConditionalEntropyLoss()
     vat_loss = VAT(model)
-    criterion = VADALoss(cl_loss, da_loss, trg_cent_loss, vat_loss)   
+    criterion = VADALoss(cl_loss, da_loss, trg_cent_loss, vat_loss)
     metrics = {
         'loss': Loss(criterion),
         'accuracy': Accuracy(transform_pred_tar),

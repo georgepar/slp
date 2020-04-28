@@ -360,10 +360,10 @@ class DATrainer(Trainer):
         with torch.no_grad():
             y_pred, targets, d_pred, domains = self.get_predictions_and_targets(batch)
             d = {'domain_pred'  : d_pred,
-		         'domain_targets'  : domains,
-                 'epoch' : engine.state.epoch}
+		'domain_targets'  : domains,
+                'epoch' : engine.state.epoch}
             return y_pred, targets, d
-    
+
     def fit(self: TrainerType,
             train_loader: DataLoader,
             val_loader: DataLoader,
@@ -434,10 +434,10 @@ class VADATrainer(Trainer):
         with torch.no_grad():
             y_pred, targets, d_pred, domains, inputs, lengths = self.get_predictions_and_targets(batch)
             d = {'domain_pred'  : d_pred,
-		         'domain_targets'  : domains,
-                 'epoch' : engine.state.epoch,
-                 'inputs' : inputs,
-                 'lengths' : lengths}
+		'domain_targets'  : domains,
+                'epoch' : engine.state.epoch,
+                'inputs' : inputs,
+                'lengths' : lengths}
             return y_pred, targets, d
     
     def fit(self: TrainerType,

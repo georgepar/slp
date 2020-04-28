@@ -33,7 +33,7 @@ class DACELoss(nn.Module):
     def forward(self, pred, tar, domain_pred, domain_targets, epoch):
         s_predictions = torch.stack([p for p,t in zip (pred, tar) if t>=0])
         s_targets = torch.stack([t for t in tar if t>=0])
-        if -1 in tar: 
+        if -1 in tar:
             t_predictions = torch.stack([p for p,t in zip(pred, tar) if t<0])
             loss_ce = self.loss_fn_ce(t_predictions)
         else:
@@ -45,7 +45,6 @@ class DACELoss(nn.Module):
 def switch_attr(m):
     if hasattr(m, 'track_running_stats'):
         m.track_running_stats ^= True
-            
 
 def _l2_normalize(d):
     d_reshaped = d.view(d.shape[0], -1, *(1 for _ in range(d.dim() - 2)))
@@ -72,27 +71,34 @@ class VAT(nn.Module):
             p, _ = self.model(x, lengths)
             pred = F.softmax(p, dim=1)
         # prepare random unit tensor
-        self.model.apply(switch_attr)
-        sh = self.model.encoder.embed(x).shape
-        d = torch.rand(sh).to(x.device)
-        d = _l2_normalize(d)
+        with torch.enable_grad():
+            flag = False
+            if not self.model.training:
+                self.model.train()
+                flag = True
+            self.model.apply(switch_attr)
+            sh = self.model.encoder.embed(x).shape
+            d = torch.rand(sh).to(x.device)
+            d = _l2_normalize(d)
 
-        # calc adversarial direction
-        for _ in range(self.ip):
-            d.requires_grad_()
-            pred_hat, _ = self.model(x, lengths, noise=True, d=d)
+            # calc adversarial direction
+            for _ in range(self.ip):
+                d.requires_grad_()
+                pred_hat, _ = self.model(x, lengths, noise=True, d=d)
+                logp_hat = F.log_softmax(pred_hat, dim=1)
+                adv_distance = F.kl_div(logp_hat, pred, reduction='batchmean')
+                adv_distance.backward()
+                #grad = torch.autograd.grad(adv_distance, d)[0]
+                d = _l2_normalize(d.grad)
+                self.model.zero_grad()
+            # calc LDS
+            r_adv = d * self.eps
+            pred_hat, _ = self.model(x, lengths, noise=True, d=r_adv)
             logp_hat = F.log_softmax(pred_hat, dim=1)
-            adv_distance = F.kl_div(logp_hat, pred, reduction='batchmean')
-            adv_distance.backward()
-            d = _l2_normalize(d.grad)
-            self.model.zero_grad()
-    
-        # calc LDS
-        r_adv = d * self.eps
-        pred_hat, _ = self.model(x, lengths, noise=True, d=r_adv)
-        logp_hat = F.log_softmax(pred_hat, dim=1)
-        lds = F.kl_div(logp_hat, pred, reduction='batchmean')
-        self.model.apply(switch_attr)
+            lds = F.kl_div(logp_hat, pred, reduction='batchmean')
+            self.model.apply(switch_attr)
+            if flag:
+                self.model.eval()
         return lds
 
 class VADALoss(nn.Module):
@@ -104,22 +110,26 @@ class VADALoss(nn.Module):
         self.loss_fn_vat = loss_fn_vat
 
     def forward(self, pred, tar, domain_pred, domain_targets, epoch, inputs, lengths):
-        s_predictions = torch.stack([p for p,t in zip (pred, tar) if t>=0])
-        s_targets = torch.stack([t for t in tar if t>=0])
-        s_inputs = torch.stack([i for i,t in zip (inputs, tar) if t>=0])
-        s_lengths = torch.stack([l for l,t in zip (lengths, tar) if t>=0])
-        if -1 in tar: 
-            t_predictions = torch.stack([p for p,t in zip(pred, tar) if t<0])
-            t_inputs = torch.stack([i for i,t in zip (inputs, tar) if t<0])
-            t_lengths = torch.stack([l for l,t in zip (lengths, tar) if t<0])
+        if 0 in domain_targets:
+            s_predictions = torch.stack([p for p,d in zip (pred, domain_targets) if d==0])
+            s_targets = torch.stack([t for t,d in zip(tar,domain_targets) if d==0])
+            s_inputs = torch.stack([i for i,d in zip (inputs, domain_targets) if d==0])
+            s_lengths = torch.stack([l for l,d in zip (lengths, domain_targets) if d==0])
+            loss_cl = self.loss_fn_cl(s_predictions, s_targets)
+            loss_vat_s = self.loss_fn_vat(s_inputs, s_lengths)
+        else:
+            loss_cl = 0
+            loss_vat_s = 0
+        if 1 in domain_targets:
+            t_predictions = torch.stack([p for p,d in zip(pred, domain_targets) if d==1])
+            t_inputs = torch.stack([i for i,d in zip (inputs, domain_targets) if d==1])
+            t_lengths = torch.stack([l for l,d in zip (lengths, domain_targets) if d==1])
             loss_ce = self.loss_fn_ce(t_predictions)
             loss_vat_t = self.loss_fn_vat(t_inputs, t_lengths)
         else:
             loss_ce = 0
             loss_vat_t = 0
-        loss_cl = self.loss_fn_cl(s_predictions, s_targets)
         loss_d = self.loss_fn_d(domain_pred, domain_targets)
-        loss_vat_s = self.loss_fn_vat(s_inputs, s_lengths)
         #import ipdb; ipdb.set_trace()
         return loss_cl + 0.01 * loss_d + 0.01 * loss_ce + loss_vat_s + 0.01 * loss_vat_t #NOTSURE
 
