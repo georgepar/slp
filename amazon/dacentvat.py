@@ -33,8 +33,8 @@ def transform_d(output):
     return d_pred, d_targets
 
 
-DEVICE = 'cpu'
-#DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+#DEVICE = 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 collate_fn = DACollator(device='cpu')
 
@@ -66,17 +66,17 @@ def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
         dataset,
         batch_size=batch_train,
         sampler=train_sampler,
-        drop_last=False,
+        drop_last=True,
         collate_fn=collate_fn)
     val_loader = DataLoader(
         dataset,
         batch_size=batch_val,
         sampler=val_sampler,
-        drop_last=False,
+        drop_last=True,
         collate_fn=collate_fn)
     test_loader = DataLoader(
         test_dataset,
-        batch_size=batch_val,
+        batch_size=16,
         sampler=test_sampler,
         drop_last=False,
         collate_fn=collate_fn)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     da_loss = nn.CrossEntropyLoss()
     trg_cent_loss = ConditionalEntropyLoss()
     vat_loss = VAT(model)
-    criterion = VADALoss(cl_loss, da_loss, trg_cent_loss, vat_loss)   
+    criterion = VADALoss(cl_loss, da_loss, trg_cent_loss, vat_loss)
     metrics = {
         'loss': Loss(criterion),
         'accuracy': Accuracy(transform_pred_tar),
