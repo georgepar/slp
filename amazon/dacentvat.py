@@ -38,17 +38,29 @@ DEVICE = 'cpu'
 
 collate_fn = DACollator(device='cpu')
 
-def dataloaders_from_indices(source_dataset, target_dataset, test_dataset,
-                            s_train_indices, val_indices, t_indices,
-                            batch_train, batch_val):
-    t_dataset_size = len(target_dataset)
-    s_dataset_size = len(source_dataset)
-    target_indices = list(range(t_dataset_size))
+def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
+                              batch_train, batch_val, batch_test, 
+                              val_size=0.2):
     dataset = ConcatDataset([source_dataset, target_dataset])
-    x = 16
-    train_sampler = DASubsetRandomSampler(s_train_indices, target_indices, s_dataset_size, x, batch_train)
-    val_sampler = SubsetRandomSampler(val_indices)
-    test_sampler = SubsetRandomSampler(t_indices)
+
+    s_dataset_size = len(source_dataset)
+    s_indices = list(range(s_dataset_size))
+    s_val_split = int(np.floor(val_size * s_dataset_size))
+    s_train_indices = s_indices[s_val_split:]
+    s_val_indices = s_indices[:s_val_split]
+
+    t_dataset_size = len(target_dataset)
+    t_indices = list(range(t_dataset_size))
+    t_val_split = int(np.floor(val_size * t_dataset_size))
+    t_train_indices = t_indices[t_val_split:]
+    t_val_indices = t_indices[:t_val_split]
+
+    testset_size = len(test_dataset)
+    test_indices = list(range(testset_size))
+    x = 12
+    train_sampler = DASubsetRandomSampler(s_train_indices, t_train_indices, s_dataset_size, x, batch_train)
+    val_sampler = DASubsetRandomSampler(s_val_indices, t_val_indices, s_dataset_size, x, batch_val)
+    test_sampler = SubsetRandomSampler(test_indices)
 
     train_loader = DataLoader(
         dataset,
@@ -57,7 +69,7 @@ def dataloaders_from_indices(source_dataset, target_dataset, test_dataset,
         drop_last=False,
         collate_fn=collate_fn)
     val_loader = DataLoader(
-        source_dataset,
+        dataset,
         batch_size=batch_val,
         sampler=val_sampler,
         drop_last=False,
@@ -69,19 +81,6 @@ def dataloaders_from_indices(source_dataset, target_dataset, test_dataset,
         drop_last=False,
         collate_fn=collate_fn)
     return train_loader, val_loader, test_loader
-
-
-def train_test_split(source_dataset, target_dataset, test_dataset,
-                     batch_train, batch_val, val_size=0.2):
-    s_dataset_size = len(source_dataset)
-    s_indices = list(range(s_dataset_size))
-    test_dataset_size = len(test_dataset)
-    t_indices = list(range(test_dataset_size))
-    val_split = int(np.floor(val_size * s_dataset_size))
-    train_indices = s_indices[val_split:]
-    val_indices = s_indices[:val_split]
-    return dataloaders_from_indices(source_dataset, target_dataset, test_dataset, train_indices, val_indices, t_indices, batch_train, batch_val)
-
 
 if __name__ == '__main__':
     loader = EmbeddingsLoader(
@@ -107,7 +106,10 @@ if __name__ == '__main__':
     test_dataset = test_dataset.map(to_token_ids)
     test_dataset = test_dataset.map(to_tensor)
 
-    train_loader, dev_loader, test_loader = train_test_split(source_dataset, target_dataset, test_dataset, 32, 32)
+    train_loader, dev_loader, test_loader = dataloaders_from_datasets(source_dataset, 
+                                                                      target_dataset, 
+                                                                      test_dataset, 
+                                                                      32, 32, 32)
 
     sent_encoder = VADAWordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
                                packed_sequence=True, attention=True, device=DEVICE)
