@@ -166,7 +166,14 @@ class Trainer(object):
             return y_pred, targets
 
     def predict(self: TrainerType, dataloader: DataLoader) -> State:
-        return self.valid_evaluator.run(dataloader)
+        print_fn = self.pbar.log_message
+        self.valid_evaluator.run(dataloader)
+        system.print_separator(n=35, print_fn=print_fn)
+        metrics = self.valid_evaluator.state.metrics
+        print_fn('Target test results')
+        system.print_separator(symbol='-', n=35, print_fn=print_fn)
+        for name, value in metrics.items():
+            print_fn('{:<15} {:<15}'.format(name, value))
 
     def fit(self: TrainerType,
             train_loader: DataLoader,
@@ -259,11 +266,11 @@ class SequentialTrainer(Trainer):
                                 self.valid_evaluator,
                                 val_loader,
                                 validation=True)
-        self.val_handler.attach(self.trainer,
-                                self.valid_evaluator,
-                                test_loader,
-                                validation=False,
-                                test=True)
+        #self.val_handler.attach(self.trainer,
+        #                        self.valid_evaluator,
+        #                        test_loader,
+        #                        validation=False,
+        #                        test=True)
         self.model.zero_grad()
         self.trainer.run(train_loader, max_epochs=epochs)
 
@@ -360,8 +367,8 @@ class DATrainer(Trainer):
         with torch.no_grad():
             y_pred, targets, d_pred, domains = self.get_predictions_and_targets(batch)
             d = {'domain_pred'  : d_pred,
-		'domain_targets'  : domains,
-                'epoch' : engine.state.epoch}
+		         'domain_targets'  : domains,
+                 'epoch' : engine.state.epoch}
             return y_pred, targets, d
 
     def fit(self: TrainerType,
@@ -377,11 +384,11 @@ class DATrainer(Trainer):
                                 self.valid_evaluator,
                                 val_loader,
                                 validation=True)
-        self.val_handler.attach(self.trainer,
-                                self.valid_evaluator,
-                                test_loader,
-                                validation=False,
-                                test=True)
+        #self.val_handler.attach(self.trainer,
+        #                        self.valid_evaluator,
+        #                        test_loader,
+        #                        validation=False,
+        #                        test=True)
         self.model.zero_grad()
         self.trainer.run(train_loader, max_epochs=epochs)
 
@@ -434,7 +441,7 @@ class VADATrainer(Trainer):
         with torch.no_grad():
             y_pred, targets, d_pred, domains, inputs, lengths = self.get_predictions_and_targets(batch)
             d = {'domain_pred'  : d_pred,
-		'domain_targets'  : domains,
+		        'domain_targets'  : domains,
                 'epoch' : engine.state.epoch,
                 'inputs' : inputs,
                 'lengths' : lengths}
@@ -453,10 +460,10 @@ class VADATrainer(Trainer):
                                 self.valid_evaluator,
                                 val_loader,
                                 validation=True)
-        self.val_handler.attach(self.trainer,
-                                self.valid_evaluator,
-                                test_loader,
-                                validation=False,
-                                test=True)
+        #self.val_handler.attach(self.trainer,
+        #                        self.valid_evaluator,
+        #                        test_loader,
+        #                        validation=False,
+        #                        test=True)
         self.model.zero_grad()
         self.trainer.run(train_loader, max_epochs=epochs)

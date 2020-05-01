@@ -25,18 +25,35 @@ def transform_pred_tar(output):
     targets = torch.stack([t for t in targets if t>=0])
     return y_pred, targets
 
-
 def transform_d(output):
     y_pred, targets, d = output
     d_pred = d['domain_pred']
     d_targets = d['domain_targets']
     return d_pred, d_targets
 
+def transform_t(output):
+    y_pred, targets, d = output
+    d_pred = d['domain_pred']
+    d_targets = d['domain_targets']
+    y_pred = torch.stack([p for p,d in zip(y_pred, d_targets) if d==1])
+    return y_pred
 
 #DEVICE = 'cpu'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-collate_fn = DACollator(device='cpu')
+import argparse 
+parser = argparse.ArgumentParser(description="Domains and losses")
+parser.add_argument("-s", "--source", default="books", help="Source Domain")
+parser.add_argument("-t", "--target", default="dvd", help="Target Domain")
+parser.add_argument("-a", type=float, default=0.01, help="Domain Adversarial HyperParameter")
+parser.add_argument("-b", type=float, default=0.01, help="C.E. HyperParameter")
+parser.add_argument("-c", type=float, default=0.01, help="VAT HyperParameter")
+args = parser.parse_args()
+SOURCE = args.source
+TARGET = args.target
+a = args.a
+b = args.b
+c = args.c
 
 def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
                               batch_train, batch_val, batch_test, 
@@ -57,7 +74,7 @@ def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
 
     testset_size = len(test_dataset)
     test_indices = list(range(testset_size))
-    x = 12
+    x = 16
     train_sampler = DASubsetRandomSampler(s_train_indices, t_train_indices, s_dataset_size, x, batch_train)
     val_sampler = DASubsetRandomSampler(s_val_indices, t_val_indices, s_dataset_size, x, batch_val)
     test_sampler = SubsetRandomSampler(test_indices)
@@ -82,6 +99,9 @@ def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
         collate_fn=collate_fn)
     return train_loader, val_loader, test_loader
 
+
+collate_fn = DACollator(device='cpu')
+
 if __name__ == '__main__':
     loader = EmbeddingsLoader(
         './cache/glove.840B.300d.txt', 300)
@@ -91,17 +111,17 @@ if __name__ == '__main__':
     to_token_ids = ToTokenIds(word2idx)
     to_tensor = ToTensor(device='cpu')
 
-    source_dataset = AmazonZiser17(ds="electronics", dl=0, labeled=True)
+    source_dataset = AmazonZiser17(ds=SOURCE, dl=0, labeled=True)
     source_dataset = source_dataset.map(tokenizer)
     source_dataset = source_dataset.map(to_token_ids)
     source_dataset = source_dataset.map(to_tensor)
 
-    target_dataset = AmazonZiser17(ds="dvd", dl=1, labeled=False)
+    target_dataset = AmazonZiser17(ds=TARGET, dl=1, labeled=False)
     target_dataset = target_dataset.map(tokenizer)
     target_dataset = target_dataset.map(to_token_ids)
     target_dataset = target_dataset.map(to_tensor)
 
-    test_dataset = AmazonZiser17(ds="dvd", dl=1, labeled=True)
+    test_dataset = AmazonZiser17(ds=TARGET, dl=1, labeled=True)
     test_dataset = test_dataset.map(tokenizer)
     test_dataset = test_dataset.map(to_token_ids)
     test_dataset = test_dataset.map(to_tensor)
@@ -109,7 +129,7 @@ if __name__ == '__main__':
     train_loader, dev_loader, test_loader = dataloaders_from_datasets(source_dataset, 
                                                                       target_dataset, 
                                                                       test_dataset, 
-                                                                      32, 32, 32)
+                                                                      64, 64, 64)
 
     sent_encoder = VADAWordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
                                packed_sequence=True, attention=True, device=DEVICE)
@@ -121,13 +141,14 @@ if __name__ == '__main__':
     da_loss = nn.CrossEntropyLoss()
     trg_cent_loss = ConditionalEntropyLoss()
     vat_loss = VAT(model)
-    criterion = VADALoss(cl_loss, da_loss, trg_cent_loss, vat_loss)
+    criterion = VADALoss(cl_loss, da_loss, trg_cent_loss, vat_loss, a, b, c)
     metrics = {
         'loss': Loss(criterion),
         'accuracy': Accuracy(transform_pred_tar),
         'Domain accuracy': Accuracy(transform_d),
         'Class. Loss': Loss(cl_loss, transform_pred_tar),
-        'D.A. Loss': Loss(da_loss, transform_d)
+        'D.A. Loss': Loss(da_loss, transform_d),
+        'Trg. Cent. Loss': Loss(trg_cent_loss, transform_t)
     }
 
     trainer = VADATrainer(model, optimizer,

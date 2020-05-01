@@ -102,12 +102,15 @@ class VAT(nn.Module):
         return lds
 
 class VADALoss(nn.Module):
-    def __init__(self, loss_fn_cl, loss_fn_d, loss_fn_ce, loss_fn_vat):
+    def __init__(self, loss_fn_cl, loss_fn_d, loss_fn_ce, loss_fn_vat, a, b, c):
         super(VADALoss, self).__init__()
         self.loss_fn_cl = loss_fn_cl
         self.loss_fn_d = loss_fn_d
         self.loss_fn_ce = loss_fn_ce
         self.loss_fn_vat = loss_fn_vat
+        self.a = a
+        self.b = b
+        self.c = c
 
     def forward(self, pred, tar, domain_pred, domain_targets, epoch, inputs, lengths):
         if 0 in domain_targets:
@@ -116,7 +119,7 @@ class VADALoss(nn.Module):
             s_inputs = torch.stack([i for i,d in zip (inputs, domain_targets) if d==0])
             s_lengths = torch.stack([l for l,d in zip (lengths, domain_targets) if d==0])
             loss_cl = self.loss_fn_cl(s_predictions, s_targets)
-            loss_vat_s = self.loss_fn_vat(s_inputs, s_lengths)
+            loss_vat_s = self.loss_fn_vat(s_inputs, s_lengths) if self.c>0 else 0
         else:
             loss_cl = 0
             loss_vat_s = 0
@@ -124,14 +127,13 @@ class VADALoss(nn.Module):
             t_predictions = torch.stack([p for p,d in zip(pred, domain_targets) if d==1])
             t_inputs = torch.stack([i for i,d in zip (inputs, domain_targets) if d==1])
             t_lengths = torch.stack([l for l,d in zip (lengths, domain_targets) if d==1])
-            loss_ce = self.loss_fn_ce(t_predictions)
-            loss_vat_t = self.loss_fn_vat(t_inputs, t_lengths)
+            loss_ce = self.loss_fn_ce(t_predictions) if self.b>0 else 0
+            loss_vat_t = self.loss_fn_vat(t_inputs, t_lengths) if self.c>0 else 0
         else:
             loss_ce = 0
             loss_vat_t = 0
-        loss_d = self.loss_fn_d(domain_pred, domain_targets)
-        #import ipdb; ipdb.set_trace()
-        return loss_cl + 0.01 * loss_d + 0.01 * loss_ce + loss_vat_s + 0.01 * loss_vat_t #NOTSURE
+        loss_d = self.loss_fn_d(domain_pred, domain_targets) if self.a>0 else 0
+        return loss_cl + self.a * loss_d + self.b * loss_ce + self.c *  loss_vat_s + self.c * loss_vat_t #NOTSURE
 
 class VADAClassifier(nn.Module):
     def __init__(self, encoder, encoded_features, num_classes, num_domains):

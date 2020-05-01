@@ -17,10 +17,17 @@ from slp.modules.rnn import WordRNN
 from slp.trainer.trainer import SequentialTrainer
 from slp.util.embeddings import EmbeddingsLoader
 
+import argparse 
+parser = argparse.ArgumentParser(description="Domains and losses")
+parser.add_argument("-s", "--source", default="books", help="Source Domain")
+parser.add_argument("-t", "--target", default="dvd", help="Target Domain")
+args = parser.parse_args()
+SOURCE = args.source
+TARGET = args.target
+
 def transform_pred_tar(output):
     y_pred, targets, d  = output
     return y_pred, targets
-
 
 def transform_d(output):
     y_pred, targets, d = output
@@ -29,7 +36,7 @@ def transform_d(output):
     return d_pred, d_targets
 
 #DEVICE = 'cpu'
-DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 
 collate_fn = SequenceClassificationCollator(device='cpu')
 
@@ -42,7 +49,7 @@ if __name__ == '__main__':
     to_token_ids = ToTokenIds(word2idx)
     to_tensor = ToTensor(device='cpu')
 
-    dataset = AmazonZiser17(ds="kitchen", dl=0, labeled=True)
+    dataset = AmazonZiser17(ds=SOURCE, dl=0, labeled=True)
     dataset = dataset.map(tokenizer)
     dataset = dataset.map(to_token_ids)
     dataset = dataset.map(to_tensor)
@@ -67,7 +74,7 @@ if __name__ == '__main__':
         drop_last=False,
         collate_fn=collate_fn)
     
-    dataset2 = AmazonZiser17(ds="electronics", dl=1, labeled=True)
+    dataset2 = AmazonZiser17(ds=TARGET, dl=1, labeled=True)
     dataset2 = dataset2.map(tokenizer)
     dataset2 = dataset2.map(to_token_ids)
     dataset2 = dataset2.map(to_tensor)
@@ -91,11 +98,18 @@ if __name__ == '__main__':
     }
 
     trainer = SequentialTrainer(model, optimizer,
-                      checkpoint_dir=None,
+                      checkpoint_dir='./checkpoints/',
                       metrics=metrics,
                       non_blocking=True,
                       retain_graph=True,
-                      patience=10,
+                      patience=5,
                       loss_fn=criterion,
                       device=DEVICE)
-    trainer.fit(train_loader, val_loader, test_loader, epochs=20)
+    trainer.fit(train_loader, val_loader, test_loader, epochs=10)
+    trainer = SequentialTrainer(model, optimizer=None,
+                      checkpoint_dir='./checkpoints/',
+                      model_checkpoint='experiment_model.best.pth',
+                      metrics=metrics,
+                      loss_fn=criterion,
+                      device=DEVICE) 
+    trainer.predict(test_loader)
