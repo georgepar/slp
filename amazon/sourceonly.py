@@ -35,6 +35,23 @@ def transform_d(output):
     d_targets = d['domain_targets']
     return d_pred, d_targets
 
+def evaluation(trainer, test_loader, device):
+    trainer.model.eval()
+    predictions = []
+    labels = []
+    metric = Accuracy()
+    with torch.no_grad():
+        for index, batch in enumerate(test_loader):
+            review = batch[0].to(device)
+            label = batch[1].to(device)
+            domain = batch[2].to(device)
+            lengths = batch[3].to(device)
+            pred, dpred = trainer.model(review, length)
+            predictions.append(pred)
+            labels.append(label)
+    acc = metric(predictions, labels)
+    return acc
+
 #DEVICE = 'cpu'
 DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 
@@ -80,7 +97,7 @@ if __name__ == '__main__':
     dataset2 = dataset2.map(to_tensor)
     test_loader = DataLoader(
         dataset2,
-        batch_size=32,
+        batch_size=1,
         drop_last=False,
         collate_fn=collate_fn)
 
@@ -109,7 +126,5 @@ if __name__ == '__main__':
     trainer = SequentialTrainer(model, optimizer=None,
                       checkpoint_dir='./checkpoints/',
                       model_checkpoint='experiment_model.best.pth',
-                      metrics=metrics,
-                      loss_fn=criterion,
                       device=DEVICE) 
-    trainer.predict(test_loader)
+    print(evaluation(trainer, val_loader, DEVICE))        
