@@ -49,6 +49,21 @@ def transform_t(output):
     y_pred = torch.stack([p for p,d in zip(y_pred, d_targets) if d==1])
     return y_pred
 
+def evaluation(trainer, test_loader, device):
+    trainer.model.eval()
+    predictions = []
+    labels = []
+    metric = Accuracy()
+    with torch.no_grad():
+        for index, batch in enumerate(test_loader):
+            review = batch[0].to(device)
+            label = batch[1].to(device)
+            length = batch[2].to(device)
+            pred = trainer.model(review, length)
+            metric.update((pred, label))
+    acc = metric.compute()
+    return acc
+
 #DEVICE = 'cpu'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 

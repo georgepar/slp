@@ -17,7 +17,7 @@ from slp.modules.rnn import WordRNN
 from slp.trainer.trainer import SequentialTrainer
 from slp.util.embeddings import EmbeddingsLoader
 
-import argparse 
+import argparse
 parser = argparse.ArgumentParser(description="Domains and losses")
 parser.add_argument("-s", "--source", default="books", help="Source Domain")
 parser.add_argument("-t", "--target", default="dvd", help="Target Domain")
@@ -44,16 +44,14 @@ def evaluation(trainer, test_loader, device):
         for index, batch in enumerate(test_loader):
             review = batch[0].to(device)
             label = batch[1].to(device)
-            domain = batch[2].to(device)
-            lengths = batch[3].to(device)
-            pred, dpred = trainer.model(review, length)
-            predictions.append(pred)
-            labels.append(label)
-    acc = metric(predictions, labels)
+            length = batch[2].to(device)
+            pred = trainer.model(review, length)
+            metric.update((pred, label))
+    acc = metric.compute()
     return acc
 
 #DEVICE = 'cpu'
-DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 collate_fn = SequenceClassificationCollator(device='cpu')
 
@@ -74,7 +72,7 @@ if __name__ == '__main__':
     indices = list(range(dataset_size))
     val_size = 0.2
     val_split = int(np.floor(val_size * dataset_size))
-    train_indices = indices[val_split:] 
+    train_indices = indices[val_split:]
     val_indices = indices[:val_split]
     train_sampler = SubsetRandomSampler(train_indices)
     val_sampler = SubsetRandomSampler(val_indices)
@@ -90,7 +88,7 @@ if __name__ == '__main__':
         sampler=val_sampler,
         drop_last=False,
         collate_fn=collate_fn)
-    
+
     dataset2 = AmazonZiser17(ds=TARGET, dl=1, labeled=True)
     dataset2 = dataset2.map(tokenizer)
     dataset2 = dataset2.map(to_token_ids)
@@ -108,7 +106,7 @@ if __name__ == '__main__':
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
                      lr=1e-3)
-    criterion = nn.CrossEntropyLoss()   
+    criterion = nn.CrossEntropyLoss()
     metrics = {
         'loss': Loss(criterion),
         'accuracy': Accuracy()
@@ -122,9 +120,9 @@ if __name__ == '__main__':
                       patience=5,
                       loss_fn=criterion,
                       device=DEVICE)
-    trainer.fit(train_loader, val_loader, test_loader, epochs=10)
+    trainer.fit(train_loader, val_loader, test_loader, epochs=20)
     trainer = SequentialTrainer(model, optimizer=None,
                       checkpoint_dir='./checkpoints/',
                       model_checkpoint='experiment_model.best.pth',
-                      device=DEVICE) 
-    print(evaluation(trainer, val_loader, DEVICE))        
+                      device=DEVICE)
+    print(evaluation(trainer, test_loader, DEVICE))
