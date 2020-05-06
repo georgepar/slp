@@ -1,4 +1,5 @@
 import numpy as np
+import os 
 
 import torch
 import torch.nn as nn
@@ -11,12 +12,22 @@ from torch.utils.data import Dataset, DataLoader, ConcatDataset, SubsetRandomSam
 
 from slp.data.collators import DACollator
 from slp.data.amz import AmazonZiser17
-from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor
+from slp.data.transforms import ToTokenIds, ToTensor
 from slp.modules.daclassifer import DAClassifier, DALoss, DASubsetRandomSampler
 from slp.modules.vat import ConditionalEntropyLoss, VADALoss, VAT, VADAWordRNN, VADAClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer.trainer import VADATrainer
 from slp.util.embeddings import EmbeddingsLoader
+from nltk.tokenize import wordpunct_tokenize
+
+class MyTokenizer(object):
+   def __init__(self, lower=True):
+      self.lower = lower
+   def __call__(self, x):
+      if self.lower:
+         x = x.lower()
+      x = wordpunct_tokenize(x)
+      return x
 
 def transform_pred_tar(output):
     y_pred, targets, d  = output
@@ -48,12 +59,14 @@ parser.add_argument("-t", "--target", default="dvd", help="Target Domain")
 parser.add_argument("-a", type=float, default=0.01, help="Domain Adversarial HyperParameter")
 parser.add_argument("-b", type=float, default=0.01, help="C.E. HyperParameter")
 parser.add_argument("-c", type=float, default=0.01, help="VAT HyperParameter")
+parser.add_argument("-i", default="0", help="Path")
 args = parser.parse_args()
 SOURCE = args.source
 TARGET = args.target
 a = args.a
 b = args.b
 c = args.c
+path = args.i
 
 def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
                               batch_train, batch_val, batch_test, 
@@ -107,7 +120,8 @@ if __name__ == '__main__':
         './cache/glove.840B.300d.txt', 300)
     word2idx, _, embeddings = loader.load()
 
-    tokenizer = SpacyTokenizer()
+    tokenizer = MyTokenizer()
+    #tokenizer = SpacyTokenizer()
     to_token_ids = ToTokenIds(word2idx)
     to_tensor = ToTensor(device='cpu')
 
@@ -129,7 +143,7 @@ if __name__ == '__main__':
     train_loader, dev_loader, test_loader = dataloaders_from_datasets(source_dataset, 
                                                                       target_dataset, 
                                                                       test_dataset, 
-                                                                      64, 64, 64)
+                                                                      32, 32, 1)
 
     sent_encoder = VADAWordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
                                packed_sequence=True, attention=True, device=DEVICE)
@@ -147,16 +161,21 @@ if __name__ == '__main__':
         'accuracy': Accuracy(transform_pred_tar),
         'Domain accuracy': Accuracy(transform_d),
         'Class. Loss': Loss(cl_loss, transform_pred_tar),
-        'D.A. Loss': Loss(da_loss, transform_d),
-        'Trg. Cent. Loss': Loss(trg_cent_loss, transform_t)
+        'D.A. Loss': Loss(da_loss, transform_d)
     }
 
     trainer = VADATrainer(model, optimizer,
-                      checkpoint_dir=None,
+                      checkpoint_dir=os.path.join("./checkpoints", path),
                       metrics=metrics,
                       non_blocking=True,
                       retain_graph=True,
-                      patience=20,
+                      patience=5,
                       loss_fn=criterion,
                       device=DEVICE)
     trainer.fit(train_loader, dev_loader, test_loader, epochs=20)
+    trainer = VADATrainer(model, optimizer=None,
+                          checkpoint_dir= os.path.join("./checkpoints", path),
+                          model_checkpoint='experiment_model.best.pth',
+                          device=DEVICE)
+    print(a, b, c, SOURCE, TARGET)
+    print(evaluation(trainer, test_loader, DEVICE))

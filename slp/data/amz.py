@@ -21,10 +21,10 @@ class AmazonZiser17(Dataset):
                     review = row[2:]
                 else:
                     label, review = int(row[0]), row[1:]
-                if len(review)<10000:
-                    self.labels.append(label)
-                    self.reviews.append(review)
-                    self.domains.append(self.domain)
+                #if len(review)<10000:
+                self.labels.append(label)
+                self.reviews.append(review)
+                self.domains.append(self.domain)
 
     def map(self, t):
         self.transforms.append(t)
