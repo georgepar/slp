@@ -348,15 +348,21 @@ class DATrainer(Trainer):
                    batch: List[torch.Tensor]) -> float:
         self.model.train()
         y_pred, targets, d_pred, domains = self.get_predictions_and_targets(batch)
-        loss = self.loss_fn(y_pred, targets, d_pred, domains, engine.state.epoch)  # type: ignore
+        loss1 = self.loss_fn(y_pred, targets, d_pred, domains, engine.state.epoch)  # type: ignore
+        loss_fn2 = da_loss = nn.CrossEntropyLoss()
+        loss2 = 0.01 * loss_fn2(d_pred, domains)
         if self.parallel:
-            loss = loss.mean()
-        loss = loss / self.accumulation_steps
-        loss.backward(retain_graph=self.retain_graph)
+            loss1 = loss1.mean()
+            loss2 = loss2.mean()
+        loss1 = loss1 / self.accumulation_steps
+        loss1.backward(retain_graph=self.retain_graph)
+        if engine.state.epoch>0:
+            loss2 = loss2 / self.accumulation_steps
+            loss2.backward(retain_graph=self.retain_graph)
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
             self.optimizer.step()  # type: ignore
             self.optimizer.zero_grad()
-        loss_value: float = loss.item()
+        loss_value: float = loss1.item()
         return loss_value
 
     def eval_step(

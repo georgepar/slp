@@ -58,14 +58,15 @@ def evaluation(trainer, test_loader, device):
         for index, batch in enumerate(test_loader):
             review = batch[0].to(device)
             label = batch[1].to(device)
-            length = batch[2].to(device)
-            pred = trainer.model(review, length)
+            domain = batch[2].to(device)
+            length = batch[3].to(device)
+            pred, _ = trainer.model(review, length)
             metric.update((pred, label))
     acc = metric.compute()
     return acc
 
 #DEVICE = 'cpu'
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cuda:1' if torch.cuda.is_available() else 'cpu'
 
 import argparse 
 parser = argparse.ArgumentParser(description="Domains and losses")
@@ -102,7 +103,7 @@ def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
 
     testset_size = len(test_dataset)
     test_indices = list(range(testset_size))
-    x = 16
+    x = 8
     train_sampler = DASubsetRandomSampler(s_train_indices, t_train_indices, s_dataset_size, x, batch_train)
     val_sampler = DASubsetRandomSampler(s_val_indices, t_val_indices, s_dataset_size, x, batch_val)
     test_sampler = SubsetRandomSampler(test_indices)
@@ -121,7 +122,7 @@ def dataloaders_from_datasets(source_dataset, target_dataset, test_dataset,
         collate_fn=collate_fn)
     test_loader = DataLoader(
         test_dataset,
-        batch_size=16,
+        batch_size=1,
         sampler=test_sampler,
         drop_last=False,
         collate_fn=collate_fn)

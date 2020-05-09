@@ -18,10 +18,11 @@ class AmazonZiser17(Dataset):
             for row in f:
                 if labf == "unl.txt":
                     label = -1
-                    review = row[2:]
+                    review = row[3:]
                 else:
-                    label, review = int(row[0]), row[1:]
-                #if len(review)<10000:
+                    label, review = int(row[0]), row[2:]
+                if len(review)>10000:
+                   review = review[:10000]
                 self.labels.append(label)
                 self.reviews.append(review)
                 self.domains.append(self.domain)

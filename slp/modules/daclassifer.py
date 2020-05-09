@@ -29,8 +29,8 @@ class DALoss(nn.Module):
         targets = torch.stack([t for t in tar if t>=0])
         loss_cl = self.loss_fn_cl(predictions, targets)
         loss_d = self.loss_fn_d(domain_pred, domain_targets)
-        if epoch > 2:
-            return loss_cl + 0.01 * loss_d #NOTSURE
+        if epoch > 0:
+            return loss_cl + 0 * loss_d #NOTSURE
         else:
             return loss_cl
 
