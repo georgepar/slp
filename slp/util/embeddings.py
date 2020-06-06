@@ -12,13 +12,22 @@ from slp.util import types
 
 
 class EmbeddingsLoader(object):
-    def __init__(self,
-                 embeddings_file: str, dim: int,
-                 extra_tokens: Any = SPECIAL_TOKENS) -> None:
+    '''
+    vocab is a filename with all words you want to keep, one word per line
+    '''
+    def __init__(
+        self, embeddings_file: str, dim: int, extra_tokens: Any = SPECIAL_TOKENS,
+        vocab: Optional[str] = None
+    ) -> None:
         self.embeddings_file = embeddings_file
         self.cache_ = self._get_cache_name()
         self.dim_ = dim
         self.extra_tokens = extra_tokens
+        self.keep_words = None
+        if vocab is not None:
+            with open(vocab, 'r') as fd:
+                self.keep_words = [w.strip() for w in fd.readlines()]
+                self.keep_words = set(self.keep_words)
 
     def _get_cache_name(self) -> str:
         head, tail = os.path.split(self.embeddings_file)
@@ -58,13 +67,16 @@ class EmbeddingsLoader(object):
             embeddings (numpy.ndarray): the word embeddings matrix
         """
         # in order to avoid this time consuming operation, cache the results
-        try:
-            cache = self._load_cache()
-            log.info("Loaded word embeddings from cache.")
-            return cache
-        except OSError:
-            log.warning(
-                f"Didn't find embeddings cache file {self.embeddings_file}")
+        if self.keep_words is None:
+            try:
+                cache = self._load_cache()
+                log.info("Loaded word embeddings from cache.")
+                return cache
+            except OSError:
+                log.warning(
+                    f"Didn't find embeddings cache file {self.embeddings_file}")
+        else:
+            log.info("You providaed a vocabulary file. Ignoring cache")
 
         # create the necessary dictionaries and the word embeddings matrix
         if not os.path.exists(self.embeddings_file):
@@ -100,6 +112,8 @@ class EmbeddingsLoader(object):
                 word = values[0]
 
                 if word in word2idx:
+                    continue
+                if self.keep_words is not None and word not in self.keep_words:
                     continue
 
                 vector = np.asarray(values[1:], dtype=np.float32)
