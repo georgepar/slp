@@ -38,6 +38,41 @@ class DACollator(object):
         domains = mktensor(domains, device=self.device, dtype=torch.long)
         return inputs, targets.to(self.device), domains.to(self.device), lengths
 
+class BertCollator(object):
+    def __init__(self, pad_indx=0, device='cpu'):
+        self.pad_indx = pad_indx
+        self.device = device
+
+    def pad_and_mask(self, tensors):
+        lengths = torch.tensor([len(s) for s in tensors],
+                               device=self.device)
+        max_length = torch.max(lengths)
+        tensors = (pad_sequence(tensors,
+                                batch_first=True,
+                                padding_value=self.pad_indx)
+                   .to(self.device))
+        attention_masks = []
+        segments = []
+        for seq in tensors:
+            seq_mask = [float(i>0) for i in seq]
+            attention_masks.append(seq_mask)
+            segm = [0] * len(seq)
+            segments.append(segm)
+        return tensors, lengths, segments, attention_masks
+
+    @staticmethod
+    def get_inputs_and_targets(batch):
+        inputs, targets = map(list, zip(*batch))
+        return inputs, targets
+
+    def __call__(self, batch):
+        inputs, targets = self.get_inputs_and_targets(batch)
+        inputs, _, segments, attention_masks = self.pad_and_mask(inputs)
+        targets = mktensor(targets, device=self.device, dtype=torch.long)
+        segments = mktensor(segments, device=self.device, dtype=torch.long)
+        attention_masks = mktensor(attention_masks, device=self.device, dtype=torch.long)
+        return inputs,  targets.to(self.device), segments.to(self.device), attention_masks.to(self.device)
+
 class TransformerCollator(object):
     def __init__(self, pad_indx=0, device='cpu'):
         self.pad_indx = pad_indx

@@ -13,4 +13,4 @@ class Classifier(nn.Module):
 
     def forward(self, *args, **kwargs):
         x = self.encoder(*args, **kwargs)
-        return self.clf(x)
+        return self.clf(x[1])

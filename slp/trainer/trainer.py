@@ -16,7 +16,7 @@ from typing import cast, List, Optional, Tuple, TypeVar
 from slp.util import types
 from slp.util.parallel import DataParallelModel, DataParallelCriterion
 
-from slp.trainer.handlers import CheckpointHandler, EvaluationHandler
+from slp.trainer.handlers import CheckpointHandler, EvaluationHandler, PeriodicNewbob
 from slp.util import from_checkpoint, to_device
 from slp.util import log
 from slp.util import system
@@ -473,3 +473,34 @@ class VADATrainer(Trainer):
         #                        test=True)
         self.model.zero_grad()
         self.trainer.run(train_loader, max_epochs=epochs)
+
+class BertTrainer(Trainer):
+    def __init__(self, *args, newbob_period=1, **kwargs):
+        super(BertTrainer, self).__init__(*args, **kwargs)
+        self.newbob = PeriodicNewbob(newbob_period)
+        self.newbob.attach(self.valid_evaluator, self.optimizer)
+
+    def parse_batch(
+            self,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs = to_device(batch[0],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        target = to_device(batch[1],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        segms = to_device(batch[2],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        attention_masks = to_device(batch[3],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        return inputs, target, segms, attention_masks
+
+    def get_predictions_and_targets(
+            self: TrainerType,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs, target, segms, attention_masks = self.parse_batch(batch)
+        output = self.model(inputs, token_type_ids=segms)
+        output = torch.squeeze(output, dim=1)
+        return output, target
