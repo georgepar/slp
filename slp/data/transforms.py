@@ -9,6 +9,36 @@ from slp.config import SPECIAL_TOKENS
 from slp.util import mktensor
 
 
+class CharacterTokenizer(object):
+    def __init__(
+            self, character_vocab, prepend_bos=False, append_eos=False, specials=SPECIAL_TOKENS
+        ):
+        self.prepend_bos = prepend_bos
+        self.append_eos = append_eos
+        self.vocab = character_vocab
+        self.specials = specials
+        self.vocab = [specials.PAD.value, specials.BOS.value, specials.EOS.value] + self.vocab
+        self.c2i = {c: i for i, c in enumerate(self.vocab)}
+        self.i2c = {i: c for i, c in enumerate(self.vocab)}
+
+    def detokenize(self, ids):
+        return ''.join([self.i2c[i] for i in ids])
+
+    def __call__(self, sentence):
+        chars = []
+        prev_char = ''
+        for c in sentence:
+            if c not in self.vocab or (prev_char == " " and c == " "):
+                continue
+            chars.append(self.c2i[c])
+        if self.prepend_bos:
+            chars = [self.c2i[self.specials.BOS.value]] + chars
+
+        if self.append_eos:
+            chars = chars + [self.c2i[self.specials.EOS.value]]
+        return chars
+
+
 class SentencepieceTokenizer(object):
     def __init__(
             self,
