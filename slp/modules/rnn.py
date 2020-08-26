@@ -8,6 +8,58 @@ from slp.modules.helpers import PackSequence, PadPackedSequence
 from slp.modules.util import pad_mask
 
 
+class StackedLSTMCell(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers=1, dropout=0.):
+        super(StackedLSTMCell, self).__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.num_layers = num_layers
+        self.layers = nn.ModuleList()
+
+        for i in range(num_layers):
+            self.layers.append(nn.LSTMCell(input_size, hidden_size))
+            input_size = hidden_size
+
+    def forward(self, inputs, hidden):
+        h_0, c_0 = hidden
+        h_1, c_1 = [], []
+        for i, layer in enumerate(self.layers):
+            h_1_i, c_1_i = layer(inputs, (h_0[i], c_0[i]))
+            inputs = h_1_i
+            if i + 1 != self.num_layers:
+                inputs = self.dropout(inputs)
+            h_1 += [h_1_i]
+            c_1 += [c_1_i]
+
+        h_1 = torch.stack(h_1)
+        c_1 = torch.stack(c_1)
+        return inputs, (h_1, c_1)
+
+
+class StackedGRUCell(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers=1, dropout=0.):
+        super(StackedGRUCell, self).__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.num_layers = num_layers
+        self.layers = nn.ModuleList()
+
+        for i in range(num_layers):
+            self.layers.append(nn.GRUCell(input_size, hidden_size))
+            input_size = hidden_size
+
+    def forward(self, inputs, hidden):
+        h_0 = hidden
+        h_1 = []
+        for i, layer in enumerate(self.layers):
+            h_1_i = layer(inputs, h_0[i])
+            inputs = h_1_i
+            if i + 1 != self.num_layers:
+                inputs = self.dropout(inputs)
+            h_1 += [h_1_i]
+
+        h_1 = torch.stack(h_1)
+        return inputs, h_1
+
+
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, batch_first=True,
                  layers=1, bidirectional=False, merge_bi='cat', dropout=0,
