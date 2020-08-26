@@ -13,6 +13,35 @@ def calc_scores(dk):
     return fn
 
 
+class GlobalAttention(nn.Module):
+    def __init__(self, dim, dim_out):
+        super(GlobalAttention, self).__init__()
+        self.linear_in = nn.Linear(dim, dim, bias=False)
+        self.sm = nn.Softmax(dim=1)
+        self.linear_out = nn.Linear(dim*2, dim_out, bias=False)
+        self.tanh = nn.Tanh()
+
+    def forward(self, inputs, context, attention_mask=None):
+        """
+        inputs: batch x dim
+        context: batch x sourceL x dim
+        """
+        targetT = self.linear_in(inputs).unsqueeze(2)  # batch x dim x 1
+
+        # Get attention
+        attn = torch.bmm(context, targetT).squeeze(2)  # batch x sourceL
+        if attention_mask is not None:
+            attn.data.masked_fill_(attention_mask > .5, -1e-5)
+        attn = self.sm(attn)
+        attn3 = attn.view(attn.size(0), 1, attn.size(1))  # batch x 1 x sourceL
+
+        weightedContext = torch.bmm(attn3, context).squeeze(1)  # batch x dim
+        contextCombined = torch.cat((weightedContext, inputs), 1)
+
+        contextOutput = self.tanh(self.linear_out(contextCombined))
+        return contextOutput, attn
+
+
 class Attention(nn.Module):
     """Some Information about Attention"""
     def __init__(self,
