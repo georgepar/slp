@@ -172,3 +172,19 @@ def json_load(fname: str) -> types.GenericDict:
 def json_dump(data: types.GenericDict, fname: str) -> None:
     with open(fname, 'w') as fd:
         json.dump(data, fd)
+
+
+def find_substring_occurences(string, substring):
+    """
+    Function: Returning all the index of substring in a string
+    Arguments: String and the search string
+    Return:Returning a list
+    """
+    length = len(substring)
+    c=0
+    indexes = []
+    while c < len(string):
+        if string[c:c+length] == substring:
+            indexes.append(c)
+        c=c+1
+    return indexes
