@@ -21,5 +21,5 @@ critical = LOGGER.critical
 
 if __name__ == "__main__":
     name = "test"
-    log.info("hello")
-    log.debug("hello")
+    LOGGER.info("hello")
+    LOGGER.debug("hello")

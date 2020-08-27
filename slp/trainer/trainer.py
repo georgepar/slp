@@ -38,7 +38,7 @@ class Trainer(object):
         patience: int = 10,
         validate_every: int = 1,
         accumulation_steps: int = 1,
-        loss_fn: Union[_Loss, DataParallelCriterion] = None,
+        loss_fn: Optional[Union[_Loss, DataParallelCriterion]] = None,
         non_blocking: bool = True,
         retain_graph: bool = False,
         dtype: torch.dtype = torch.float,
@@ -54,6 +54,9 @@ class Trainer(object):
         self.patience = patience
         self.accumulation_steps = accumulation_steps
         self.checkpoint_dir = checkpoint_dir
+
+        if self.loss_fn is None:
+            raise ValueError("You must provide a loss function")
 
         model_checkpoint = self._check_checkpoint(model_checkpoint)
         optimizer_checkpoint = self._check_checkpoint(optimizer_checkpoint)
@@ -223,10 +226,10 @@ class Trainer(object):
     def fit_debug(
         self: TrainerType, train_loader: DataLoader, val_loader: DataLoader
     ) -> State:
-        train_loader = iter(train_loader)
-        train_subset = [next(train_loader), next(train_loader)]
+        train_loader = iter(train_loader)  # type: ignore
+        train_subset = [next(train_loader), next(train_loader)]  # type: ignore
         val_loader = iter(val_loader)  # type: ignore
-        val_subset = [next(val_loader), next(val_loader)]  # type ignore
+        val_subset = [next(val_loader), next(val_loader)]  # type: ignore
         out = self.fit(train_subset, val_subset, epochs=6)  # type: ignore
         return out
 

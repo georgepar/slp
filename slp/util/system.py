@@ -102,9 +102,10 @@ def run_cmd(command: str) -> Tuple[int, str]:
     pipe = subprocess.Popen(
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
-
-    stdout = "".join([line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")])
-    pipe.stdout.close()
+    stdout = ""
+    if pipe.stdout is not None:
+        stdout = "".join([line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")])
+        pipe.stdout.close()
     returncode = pipe.wait()
     return returncode, stdout
 
