@@ -3,7 +3,7 @@ from torch.autograd import Variable
 
 
 class GaussianNoise(nn.Module):
-    def __init__(self, stddev, mean=.0):
+    def __init__(self, stddev, mean=0.0):
         """
         Additive Gaussian Noise layer
         Args:
@@ -16,12 +16,11 @@ class GaussianNoise(nn.Module):
 
     def forward(self, x):
         if self.training:
-            noise = Variable(x.data.new(x.size()).normal_(self.mean,
-                                                          self.stddev))
+            noise = Variable(x.data.new(x.size()).normal_(self.mean, self.stddev))
             return x + noise
         return x
 
     def __repr__(self):
-        return '{} (mean={}, stddev={})'.format(self.__class__.__name__,
-                                                str(self.mean),
-                                                str(self.stddev))
+        return "{} (mean={}, stddev={})".format(
+            self.__class__.__name__, str(self.mean), str(self.stddev)
+        )

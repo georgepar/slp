@@ -3,8 +3,7 @@ import copy
 import torch
 import torch.nn.functional as F
 
-from torchvision.transforms import (  # type: ignore
-    Compose, ToTensor, Normalize)
+from torchvision.transforms import Compose, ToTensor, Normalize  # type: ignore
 from torchvision.datasets import MNIST  # type: ignore
 from torch import nn
 from torch.utils.data import DataLoader
@@ -40,42 +39,41 @@ class Net(nn.Module):
 def get_data_loaders(train_batch_size, val_batch_size):
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
     train_loader = DataLoader(
-        MNIST(download=True, root=".",
-              transform=data_transform,
-              train=True),
-        batch_size=train_batch_size, shuffle=True)
+        MNIST(download=True, root=".", transform=data_transform, train=True),
+        batch_size=train_batch_size,
+        shuffle=True,
+    )
     val_loader = DataLoader(
-        MNIST(download=False,
-              root=".",
-              transform=data_transform,
-              train=False),
-        batch_size=val_batch_size, shuffle=False)
+        MNIST(download=False, root=".", transform=data_transform, train=False),
+        batch_size=val_batch_size,
+        shuffle=False,
+    )
     return train_loader, val_loader
 
 
-if __name__ == '__main__':
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if __name__ == "__main__":
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     train_loader, val_loader = get_data_loaders(32, 32)
     model = Net()
     optimizer = Adam(model.parameters(), lr=1e-2)
     criterion = nn.NLLLoss()
-    metrics = {
-        'accuracy': Accuracy(),
-        'loss': Loss(criterion)
-    }
-    trainer = Trainer(model, optimizer,
-                      checkpoint_dir='../checkpoints/' if not DEBUG else None,
-                      metrics=metrics,
-                      non_blocking=False,
-                      patience=1,
-                      loss_fn=criterion)
+    metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
+    trainer = Trainer(
+        model,
+        optimizer,
+        checkpoint_dir="../checkpoints/" if not DEBUG else None,
+        metrics=metrics,
+        non_blocking=False,
+        patience=1,
+        loss_fn=criterion,
+    )
     if DEBUG:
-        log.info('Starting end to end test')
-        print('--------------------------------------------------------------')
+        log.info("Starting end to end test")
+        print("--------------------------------------------------------------")
         trainer.fit_debug(train_loader, val_loader)
-        log.info('Overfitting single batch')
-        print('--------------------------------------------------------------')
+        log.info("Overfitting single batch")
+        print("--------------------------------------------------------------")
         trainer.overfit_single_batch(train_loader)
     else:
         trainer.fit(train_loader, val_loader, epochs=50)

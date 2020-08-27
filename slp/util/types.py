@@ -5,9 +5,9 @@ from torch.optim.optimizer import Optimizer
 
 from typing import Dict, Union, List, TypeVar, Tuple
 
-T = TypeVar('T')
-K = TypeVar('K')
-V = TypeVar('V')
+T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
 
 NdTensor = Union[np.ndarray, torch.Tensor, List[T]]
 

@@ -8,7 +8,7 @@ from slp.data.transforms import ToTensor
 class SpellCorrectorDataset(Dataset):
     def __init__(self, fname, tokenizer=None):
         self.data = []
-        with open(fname, "r", errors='ignore') as fd:
+        with open(fname, "r", errors="ignore") as fd:
             for l in fd:
                 try:
                     dat = l.strip().split("\t")
@@ -16,7 +16,7 @@ class SpellCorrectorDataset(Dataset):
                         self.data.append(dat)
                 except:
                     print(l)
-            #self.data = [line.strip().split("\t") for line in fd]
+            # self.data = [line.strip().split("\t") for line in fd]
         lengths = [len(d[0]) for d in self.data]
         print("Read {} lines".format(len(self.data)))
         self.tokenizer = tokenizer

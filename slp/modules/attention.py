@@ -10,6 +10,7 @@ from slp.modules.feedforward import FF
 def calc_scores(dk):
     def fn(q, k):
         return torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(dk)
+
     return fn
 
 
@@ -18,7 +19,7 @@ class GlobalAttention(nn.Module):
         super(GlobalAttention, self).__init__()
         self.linear_in = nn.Linear(dim, dim, bias=False)
         self.sm = nn.Softmax(dim=1)
-        self.linear_out = nn.Linear(dim*2, dim_out, bias=False)
+        self.linear_out = nn.Linear(dim * 2, dim_out, bias=False)
         self.tanh = nn.Tanh()
 
     def forward(self, inputs, context, attention_mask=None):
@@ -31,7 +32,7 @@ class GlobalAttention(nn.Module):
         # Get attention
         attn = torch.bmm(context, targetT).squeeze(2)  # batch x sourceL
         if attention_mask is not None:
-            attn.data.masked_fill_(attention_mask > .5, -1e-5)
+            attn.data.masked_fill_(attention_mask > 0.5, -1e-5)
         attn = self.sm(attn)
         attn3 = attn.view(attn.size(0), 1, attn.size(1))  # batch x 1 x sourceL
 
@@ -44,11 +45,10 @@ class GlobalAttention(nn.Module):
 
 class Attention(nn.Module):
     """Some Information about Attention"""
-    def __init__(self,
-                 attention_size=512,
-                 input_size=None,
-                 dropout=.1,
-                 grad_checkpoint=False):
+
+    def __init__(
+        self, attention_size=512, input_size=None, dropout=0.1, grad_checkpoint=False
+    ):
         super(Attention, self).__init__()
         if input_size is None:
             input_size = attention_size
@@ -61,11 +61,11 @@ class Attention(nn.Module):
         self._reset_parameters()
 
     def forward(self, x, queries=None, values=None, attention_mask=None):
-        '''
+        """
         x : (B, L, D)
         queries : (B, L, D)
         values : (B, L, D)
-        '''
+        """
         if queries is None:
             queries = x
         if values is None:
@@ -96,22 +96,28 @@ class Attention(nn.Module):
 
 class MultiheadAttentionSerial(nn.Module):
     """Serial MultiheadAttention"""
-    def __init__(self,
-                 attention_size=512,
-                 num_heads=8,
-                 input_size=None,
-                 dropout=.1,
-                 grad_checkpoint=False):
+
+    def __init__(
+        self,
+        attention_size=512,
+        num_heads=8,
+        input_size=None,
+        dropout=0.1,
+        grad_checkpoint=False,
+    ):
         super(MultiheadAttentionSerial, self).__init__()
         if input_size is None:
             input_size = attention_size
         self.head_size = int(attention_size / num_heads)
         self.heads = [
-            Attention(input_size,
-                      self.head_size,
-                      dropout=dropout,
-                      grad_checkpoint=grad_checkpoint)
-            for _ in num_heads]
+            Attention(
+                input_size,
+                self.head_size,
+                dropout=dropout,
+                grad_checkpoint=grad_checkpoint,
+            )
+            for _ in num_heads
+        ]
 
     def forward(self, x, queries=None, values=None, attention_mask=None):
         """
@@ -120,11 +126,10 @@ class MultiheadAttentionSerial(nn.Module):
         values : (B, L, D)
         """
         # list of (B, L, A / H)
-        out = [h(x,
-                 queries=queries,
-                 values=values,
-                 attention_mask=attention_mask)
-               for h in self.heads]
+        out = [
+            h(x, queries=queries, values=values, attention_mask=attention_mask)
+            for h in self.heads
+        ]
 
         # (B, L, A)
         out = torch.cat(out, dim=-1)
@@ -132,12 +137,14 @@ class MultiheadAttentionSerial(nn.Module):
 
 
 class MultiheadAttentionParallel(nn.Module):
-    def __init__(self,
-                 attention_size=512,
-                 num_heads=8,
-                 input_size=None,
-                 dropout=.1,
-                 grad_checkpoint=False):
+    def __init__(
+        self,
+        attention_size=512,
+        num_heads=8,
+        input_size=None,
+        dropout=0.1,
+        grad_checkpoint=False,
+    ):
         super(MultiheadAttentionParallel, self).__init__()
         if input_size is None:
             input_size = attention_size
@@ -149,11 +156,13 @@ class MultiheadAttentionParallel(nn.Module):
         self.k = nn.Linear(input_size, attention_size, bias=False)
         self.q = nn.Linear(input_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
-        self.output = FF(attention_size,
-                         attention_size,
-                         activation='none',
-                         layer_norm=True,
-                         dropout=dropout)
+        self.output = FF(
+            attention_size,
+            attention_size,
+            activation="none",
+            layer_norm=True,
+            dropout=dropout,
+        )
         self.drop = nn.Dropout(dropout)
         self._reset_parameters()
 
@@ -163,10 +172,9 @@ class MultiheadAttentionParallel(nn.Module):
         out => (B, H, L, A/H)
         """
         batch_size, max_length, _ = x.size()
-        return (x
-                .view(batch_size, max_length,
-                      self.num_heads, self.head_size)
-                .permute(0, 2, 1, 3))
+        return x.view(batch_size, max_length, self.num_heads, self.head_size).permute(
+            0, 2, 1, 3
+        )
 
     def _merge_heads(self, x):
         """
@@ -212,7 +220,7 @@ class MultiheadAttentionParallel(nn.Module):
         nn.init.xavier_uniform_(self.q.weight)
         nn.init.xavier_uniform_(self.v.weight)
         nn.init.xavier_uniform_(self.output.fc.weight)
-        nn.init.constant_(self.output.fc.bias, 0.)
+        nn.init.constant_(self.output.fc.bias, 0.0)
 
 
 MultiheadAttention = MultiheadAttentionParallel

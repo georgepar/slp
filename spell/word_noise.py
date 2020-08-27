@@ -35,7 +35,7 @@ def insert_error_to_word(word, use_common_errors=False, bigram=False, error_type
     if error_type == "del":
         bigram = False
         idx = random.randint(0, len(word) - 1)
-        to_insert = ''
+        to_insert = ""
         continue_idx = idx + 1
     elif error_type == "ins":
         bigram = False
@@ -74,7 +74,7 @@ def word_noise(word, num_errors=1, only_common_errors=False):
     num_errors = min(num_errors, max(len(word) - 4, 1))
     for _ in range(num_errors):
         error_type = np.random.choice(ERROR_TYPES)
-        bigram = np.random.choice([True, False], p=[.3, .7])
+        bigram = np.random.choice([True, False], p=[0.3, 0.7])
         if only_common_errors:
             use_common_errors = True
         else:
@@ -86,7 +86,7 @@ def word_noise(word, num_errors=1, only_common_errors=False):
             word,
             use_common_errors=use_common_errors,
             bigram=bigram,
-            error_type=error_type
+            error_type=error_type,
         )
     return word
 
@@ -94,18 +94,22 @@ def word_noise(word, num_errors=1, only_common_errors=False):
 def create_word_misspellings(word, iterations=100, only_common_errors=False):
     misspellings = []
     for _ in range(iterations):
-        num_errors = np.random.choice([1, 2], p=[.8, .2])
-        noisy_word = word_noise(word, num_errors=num_errors, only_common_errors=only_common_errors)
+        num_errors = np.random.choice([1, 2], p=[0.8, 0.2])
+        noisy_word = word_noise(
+            word, num_errors=num_errors, only_common_errors=only_common_errors
+        )
         if noisy_word != word:
             misspellings.append((noisy_word, word))
     return list(set(misspellings))
 
 
 def mkspellcorpus(words, n_jobs=32, only_common_errors=False):
-    corpus = ParallelRunner(
-        n_jobs=n_jobs, total=len(words)
-    )(
-        delayed(create_word_misspellings)(word, iterations=MAX_MISSPELLINGS_PER_WORD, only_common_errors=only_common_errors)
+    corpus = ParallelRunner(n_jobs=n_jobs, total=len(words))(
+        delayed(create_word_misspellings)(
+            word,
+            iterations=MAX_MISSPELLINGS_PER_WORD,
+            only_common_errors=only_common_errors,
+        )
         for word in words
     )
     corpus = [el for sublist in corpus for el in sublist]
@@ -113,12 +117,12 @@ def mkspellcorpus(words, n_jobs=32, only_common_errors=False):
 
 
 def parse_args():
-    parser= argparse.ArgumentParser("Generate word misspelling corpus")
+    parser = argparse.ArgumentParser("Generate word misspelling corpus")
     parser.add_argument("--vocab", type=str, help="Vocabulary file")
     parser.add_argument("--njobs", type=int, help="njobs")
     parser.add_argument("--common", action="store_true", help="Use common errors only")
     parser.add_argument("--output", type=str, help="Output pickle file")
-    args=parser.parse_args()
+    args = parser.parse_args()
     return args
 
 
@@ -127,11 +131,13 @@ def main():
     vocab = args.vocab
     corpus_file = args.output
     only_common_errors = args.common
-    with open(vocab, 'r') as fd:
+    with open(vocab, "r") as fd:
         words = [l.strip() for l in fd]
 
-    corpus = mkspellcorpus(words, n_jobs=args.njobs, only_common_errors=only_common_errors)
-    with open(corpus_file, 'w') as fd:
+    corpus = mkspellcorpus(
+        words, n_jobs=args.njobs, only_common_errors=only_common_errors
+    )
+    with open(corpus_file, "w") as fd:
         for src, tgt in corpus:
             fd.write("{}\t{}\n".format(src, tgt))
 

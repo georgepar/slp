@@ -26,9 +26,7 @@ def merge_counts(x, y):
 
 
 def count_parallel(filenames, n_jobs=32):
-    counts = ParallelRunner(
-        n_jobs=n_jobs, total=len(filenames)
-    )(
+    counts = ParallelRunner(n_jobs=n_jobs, total=len(filenames))(
         delayed(count_file)(fname) for fname in filenames
     )
     merged = {}
@@ -46,11 +44,11 @@ def filter_counts(counts, thres=10):
 
 
 def parse_args():
-    parser= argparse.ArgumentParser("Corpus frequency counter")
+    parser = argparse.ArgumentParser("Corpus frequency counter")
     parser.add_argument("--corpora", type=str, help="Path to corpora")
     parser.add_argument("--njobs", type=int, help="njobs")
     parser.add_argument("--output", type=str, help="Output pickle file")
-    args=parser.parse_args()
+    args = parser.parse_args()
     return args
 
 
