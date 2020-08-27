@@ -24,7 +24,7 @@ def run_tests(session):
 
 @nox.session
 def lint(session):
-    session.install("flake8")
+    session.install("black")
     run_lint(session)
 
 
