@@ -104,7 +104,9 @@ def run_cmd(command: str) -> Tuple[int, str]:
     )
     stdout = ""
     if pipe.stdout is not None:
-        stdout = "".join([line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")])
+        stdout = "".join(
+            [line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")]
+        )
         pipe.stdout.close()
     returncode = pipe.wait()
     return returncode, stdout
