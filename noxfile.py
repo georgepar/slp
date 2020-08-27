@@ -9,9 +9,9 @@ def install_reqs(session):
 
 
 def run_lint(session):
-    session.run("flake8", "slp")
-    session.run("flake8", "examples")
-    session.run("flake8", "tests")
+    session.run("black", "--check", "slp")
+    session.run("black", "--check", "examples")
+    session.run("black", "--check", "tests")
 
 
 def run_typecheck(session):
