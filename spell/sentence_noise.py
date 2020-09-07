@@ -11,7 +11,7 @@ from slp.util.system import find_substring_occurences
 
 def read_word_misspellings(corpus):
     misspellings = {}
-    with open(corpus, 'r') as fd:
+    with open(corpus, "r") as fd:
         for line in fd:
             tgt, src = line.strip().split("\t")
             misspellings[src] = misspellings.get(src, []) + [tgt]
@@ -19,12 +19,12 @@ def read_word_misspellings(corpus):
 
 
 def read_sentences(corpus):
-    with open(corpus, 'r') as fd:
+    with open(corpus, "r") as fd:
         sentences = [l.strip() for l in fd]
     return sentences
 
 
-def word_sentence_noise(s, word_misspellings, ratio=.5):
+def word_sentence_noise(s, word_misspellings, ratio=0.5):
     noisy_sentence = ""
     for w in s.split(" "):
         noisy_sentence += " "
@@ -38,7 +38,7 @@ def word_sentence_noise(s, word_misspellings, ratio=.5):
     return noisy_sentence
 
 
-def mess_up_spacing(s, ratio=.3):
+def mess_up_spacing(s, ratio=0.3):
     noisy_sentence = s
     space_idxes = find_substring_occurences(s, " ")
     for idx in space_idxes:
@@ -46,16 +46,19 @@ def mess_up_spacing(s, ratio=.3):
             # only mess up spaces around words
             if random.random() < ratio:
                 neighbor = idx + np.random.choice([-2, -1, 1, 2])
-                noisy_sentence = noisy_sentence[:neighbor] + " " + noisy_sentence[neighbor:]
-                noisy_sentence = noisy_sentence[:idx] + noisy_sentence[idx+1:]
+                noisy_sentence = (
+                    noisy_sentence[:neighbor] + " " + noisy_sentence[neighbor:]
+                )
+                noisy_sentence = noisy_sentence[:idx] + noisy_sentence[idx + 1 :]
     return noisy_sentence
 
 
-def make_sentence_noise_fn(word_misspellings, word_ratio=.5, spacing_ratio=.3):
+def make_sentence_noise_fn(word_misspellings, word_ratio=0.5, spacing_ratio=0.3):
     def sentence_noise(sentence):
         sentence = word_sentence_noise(sentence, word_misspellings, ratio=word_ratio)
         sentence = mess_up_spacing(sentence, ratio=spacing_ratio)
         return sentence
+
     return sentence_noise
 
 
@@ -63,10 +66,10 @@ def create_sentence_corpus(
     sentence_corpus,
     word_misspelling_corpus,
     output_file,
-    keep_original=.3,
-    word_ratio=.5,
-    spacing_ratio=.3,
-    num_iter=10
+    keep_original=0.3,
+    word_ratio=0.5,
+    spacing_ratio=0.3,
+    num_iter=10,
 ):
     word_misspellings = read_word_misspellings(word_misspelling_corpus)
     sentences = read_sentences(sentence_corpus)
@@ -84,11 +87,11 @@ def create_sentence_corpus(
 
 
 def parse_args():
-    parser= argparse.ArgumentParser("Generate sentence misspelling corpus")
+    parser = argparse.ArgumentParser("Generate sentence misspelling corpus")
     parser.add_argument("--corpus", type=str, help="Base sentence corpus file")
     parser.add_argument("--misspellings", type=str, help="Word misspelling corpus")
     parser.add_argument("--output", type=str, help="Output sentence corpus file")
-    args=parser.parse_args()
+    args = parser.parse_args()
     return args
 
 
@@ -98,4 +101,3 @@ if __name__ == "__main__":
     word_misspelling_corpus = args.misspellings
     output_file = args.output
     create_sentence_corpus(sentence_corpus, word_misspelling_corpus, output_file)
-

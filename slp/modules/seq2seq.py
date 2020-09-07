@@ -1,9 +1,7 @@
 import random
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from slp.modules.rnn import RNN, StackedGRUCell, StackedLSTMCell
 from slp.modules.attention import GlobalAttention
 
 from slp.modules.util import pad_mask
@@ -11,8 +9,14 @@ from slp.modules.util import pad_mask
 
 class RNNEncoder(nn.Module):
     def __init__(
-        self, hidden_size, vocab_size, embedding_size=256,
-        layers=1, dropout=0.1, rnn_type='gru', packed_sequence=True
+        self,
+        hidden_size,
+        vocab_size,
+        embedding_size=256,
+        layers=1,
+        dropout=0.1,
+        rnn_type="gru",
+        packed_sequence=True,
     ):
         super(RNNEncoder, self).__init__()
         bidirectional = False  # Use unidirectional for now
@@ -20,16 +24,21 @@ class RNNEncoder(nn.Module):
         self.embed = nn.Embedding(vocab_size, embedding_size)
         self.encoded_size = hidden_size if not bidirectional else 2 * hidden_size
         self.rnn = RNN(
-            embedding_size, hidden_size, batch_first=batch_first,
-            layers=layers, bidirectional=bidirectional,
-            dropout=dropout, rnn_type=rnn_type,
-            packed_sequence=packed_sequence
+            embedding_size,
+            hidden_size,
+            batch_first=batch_first,
+            layers=layers,
+            bidirectional=bidirectional,
+            dropout=dropout,
+            rnn_type=rnn_type,
+            packed_sequence=packed_sequence,
         )
-    
+
     def forward(self, src, lengths):
         inputs = self.embed(src)
         out, _, hidden = self.rnn(inputs, lengths)
         return out, hidden
+
 
 """
 class RNNDecoderCell(nn.Module):
@@ -69,16 +78,26 @@ class RNNDecoderCell(nn.Module):
 
 class RNNDecoderCell(nn.Module):
     def __init__(
-        self, hidden_size, vocab_size, embedding_size=256,
-        layers=1, dropout=0.1, attention=False,
-        rnn_type='gru', tie=False
+        self,
+        hidden_size,
+        vocab_size,
+        embedding_size=256,
+        layers=1,
+        dropout=0.1,
+        attention=False,
+        rnn_type="gru",
+        tie=False,
     ):
         super(RNNDecoderCell, self).__init__()
         self.embed = nn.Embedding(vocab_size, embedding_size)
         self.rnn_type = rnn_type
-        rnn_cls = nn.LSTM if self.rnn_type == 'lstm' else nn.GRU
+        rnn_cls = nn.LSTM if self.rnn_type == "lstm" else nn.GRU
         self.rnn = rnn_cls(
-            embedding_size, hidden_size, num_layers=layers, batch_first=True, bidirectional=False
+            embedding_size,
+            hidden_size,
+            num_layers=layers,
+            batch_first=True,
+            bidirectional=False,
         )
         self.attend = attention
         if self.attend:
@@ -105,11 +124,22 @@ class RNNDecoderCell(nn.Module):
 
 class Seq2SeqRNN(nn.Module):
     def __init__(
-        self, hidden_size, encoder_vocab_size, decoder_vocab_size,
-        embedding_size=256, tie_decoder=False, encoder_layers=1,
-        decoder_layers=1, encoder_dropout=0.1, decoder_dropout=0.1,
-        rnn_type='gru', packed_sequence=True, attention=False, 
-        sos=1, eos=2, teacher_forcing_p=.4,
+        self,
+        hidden_size,
+        encoder_vocab_size,
+        decoder_vocab_size,
+        embedding_size=256,
+        tie_decoder=False,
+        encoder_layers=1,
+        decoder_layers=1,
+        encoder_dropout=0.1,
+        decoder_dropout=0.1,
+        rnn_type="gru",
+        packed_sequence=True,
+        attention=False,
+        sos=1,
+        eos=2,
+        teacher_forcing_p=0.4,
     ):
         super(Seq2SeqRNN, self).__init__()
         self.eos = eos
@@ -118,15 +148,24 @@ class Seq2SeqRNN(nn.Module):
         self.hidden_size = hidden_size
         self.teacher_forcing_p = teacher_forcing_p
         self.encoder = RNNEncoder(
-            hidden_size, encoder_vocab_size, embedding_size=embedding_size,
-            layers=encoder_layers, dropout=encoder_dropout,
-            rnn_type=rnn_type, packed_sequence=packed_sequence
+            hidden_size,
+            encoder_vocab_size,
+            embedding_size=embedding_size,
+            layers=encoder_layers,
+            dropout=encoder_dropout,
+            rnn_type=rnn_type,
+            packed_sequence=packed_sequence,
         )
 
         self.decoder = RNNDecoderCell(
-            hidden_size, decoder_vocab_size, embedding_size=embedding_size,
-            layers=decoder_layers, dropout=decoder_dropout, attention=attention,
-            rnn_type=rnn_type, tie=tie_decoder
+            hidden_size,
+            decoder_vocab_size,
+            embedding_size=embedding_size,
+            layers=decoder_layers,
+            dropout=decoder_dropout,
+            attention=attention,
+            rnn_type=rnn_type,
+            tie=tie_decoder,
         )
 
     def encode(self, src, src_len):
@@ -134,15 +173,21 @@ class Seq2SeqRNN(nn.Module):
         attention_mask = pad_mask(src_len, device=src.device)
         return encoder_outputs, encoder_hidden, attention_mask
 
-    def decoder_outputs(self, tgt, encoder_hidden, encoder_outputs, attention_mask=None, teacher_forcing_p=0.):
+    def decoder_outputs(
+        self,
+        tgt,
+        encoder_hidden,
+        encoder_outputs,
+        attention_mask=None,
+        teacher_forcing_p=0.0,
+    ):
         outputs = []
-        inputs =  torch.zeros(tgt.size(0), 1, dtype=tgt.dtype) + self.sos
+        inputs = torch.zeros(tgt.size(0), 1, dtype=tgt.dtype) + self.sos
         inputs = inputs.to(tgt.device)
         hidden = encoder_hidden
         for i in range(tgt.size(1)):
             dec, hidden = self.decoder(
-                inputs, hidden, encoder_outputs,
-                attention_mask=attention_mask
+                inputs, hidden, encoder_outputs, attention_mask=attention_mask
             )
             teacher_force = random.random() < teacher_forcing_p
             outputs.append(dec)
@@ -153,9 +198,12 @@ class Seq2SeqRNN(nn.Module):
 
     def forward(self, src, tgt, src_len):
         encoder_outputs, encoder_hidden, attention_mask = self.encode(src, src_len)
-        teacher_forcing_p = 0. if not self.training else self.teacher_forcing_p
+        teacher_forcing_p = 0.0 if not self.training else self.teacher_forcing_p
         decoder_outputs = self.decoder_outputs(
-            tgt, encoder_hidden, encoder_outputs, attention_mask=attention_mask, teacher_forcing_p=teacher_forcing_p
+            tgt,
+            encoder_hidden,
+            encoder_outputs,
+            attention_mask=attention_mask,
+            teacher_forcing_p=teacher_forcing_p,
         )
         return decoder_outputs
-

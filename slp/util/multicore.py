@@ -17,5 +17,3 @@ class ParallelRunner(Parallel):
             self._pbar.total = self.n_dispatched_tasks
         self._pbar.n = self.n_completed_tasks
         self._pbar.refresh()
-
-
