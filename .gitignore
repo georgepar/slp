@@ -2,7 +2,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+*.pth
+*.model
+*.vocab
+*.p
+*.pkl
+*.pickle
 # C extensions
 *.so
 examples/MNIST/
