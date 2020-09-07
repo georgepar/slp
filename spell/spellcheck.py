@@ -24,7 +24,7 @@ config = {
     "device": "cuda",
     "parallel": False,
     "num_workers": 1,
-    "batch_size": 512,
+    "batch_size": 128,
     "lr": 1e-3,
     "epochs": 10,
     "hidden_size": 256,

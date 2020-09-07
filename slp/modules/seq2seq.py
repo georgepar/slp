@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from slp.modules.attention import GlobalAttention
-
+from slp.modules.rnn import RNN
 from slp.modules.util import pad_mask
 
 
