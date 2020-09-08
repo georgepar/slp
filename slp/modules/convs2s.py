@@ -1,6 +1,10 @@
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from slp.modules.embed import PositionalEncoding
 
 
 class Encoder(nn.Module):
@@ -17,13 +21,14 @@ class Encoder(nn.Module):
     ):
         super().__init__()
         self.device = device
-        self.scale = torch.sqrt(torch.FloatTensor([0.5])).to(device)
-
+        # self.scale = torch.sqrt(torch.FloatTensor([0.5])).to(device)
+        self.scale = math.sqrt(0.5)
         assert kernel_size % 2 == 1, "Kernel size must be odd!"
 
         self.tok_embedding = nn.Embedding(input_dim, emb_dim)
-        self.pos_embedding = nn.Embedding(max_length, emb_dim)
-
+        self.pos_embedding = PositionalEncoding(
+            max_length + 2, embedding_dim=emb_dim, skip=False, device=device
+        )
         self.emb2hid = nn.Linear(emb_dim, hid_dim)
         self.hid2emb = nn.Linear(hid_dim, emb_dim)
 
@@ -51,17 +56,10 @@ class Encoder(nn.Module):
         E: Embedding dim
         H: Hidden dim
         """
-        batch_size = src.shape[0]
-        src_len = src.shape[1]
-        # pos = [0, 1, 2, 3, ..., src len - 1]
-        pos = (
-            torch.arange(0, src_len).unsqueeze(0).repeat(batch_size, 1).to(self.device)
-        )  # [B , L]
-
         tok_embedded = self.tok_embedding(src)  # [B , L , E]
-        pos_embedded = self.pos_embedding(pos)  # [B , L , E]
+        pos_embedded = self.pos_embedding(src)  # [B , L , E]
         embedded = self.dropout(tok_embedded + pos_embedded)  # [B , L , E]
-
+        # embedded = self.dropout(tok_embedded)
         conv_input = self.emb2hid(embedded)  # [B, L, H]
         conv_input = conv_input.permute(0, 2, 1)  # [B, H, L]
 
@@ -96,10 +94,12 @@ class Decoder(nn.Module):
         self.trg_pad_idx = trg_pad_idx
         self.device = device
 
-        self.scale = torch.sqrt(torch.FloatTensor([0.5])).to(device)
-
+        # self.scale = torch.sqrt(torch.FloatTensor([0.5])).to(device)
+        self.scale = math.sqrt(0.5)
         self.tok_embedding = nn.Embedding(output_dim, emb_dim)
-        self.pos_embedding = nn.Embedding(max_length, emb_dim)
+        self.pos_embedding = PositionalEncoding(
+            max_length + 2, embedding_dim=emb_dim, skip=False, device=device
+        )
 
         self.emb2hid = nn.Linear(emb_dim, hid_dim)
         self.hid2emb = nn.Linear(hid_dim, emb_dim)
@@ -170,15 +170,11 @@ class Decoder(nn.Module):
         O:  Output dimension
         """
         batch_size = trg.shape[0]
-        trg_len = trg.shape[1]
-
-        pos = (
-            torch.arange(0, trg_len).unsqueeze(0).repeat(batch_size, 1).to(self.device)
-        )  # [B , TL]
 
         tok_embedded = self.tok_embedding(trg)  # [B , TL , E]
-        pos_embedded = self.pos_embedding(pos)  # [B , TL , E]
+        pos_embedded = self.pos_embedding(trg)  # [B , TL , E]
         embedded = self.dropout(tok_embedded + pos_embedded)  # [B , TL , E]
+        # embedded = self.dropout(tok_embedded)  # [B , TL , E]
 
         conv_input = self.emb2hid(embedded)  # [B , TL , H]
         conv_input = conv_input.permute(0, 2, 1)  # [B , H , TL]
@@ -275,4 +271,4 @@ class Seq2Seq(nn.Module):
         # attention: [B, TL - 1, SL] Attention scores matrix
         output, attention = self.decoder(trg, encoder_conved, encoder_combined)
 
-        return output, attention
+        return output  # , attention
