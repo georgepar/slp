@@ -1,3 +1,5 @@
+import os
+
 import torch
 from torch.utils.data import Dataset
 
@@ -7,15 +9,18 @@ from slp.data.transforms import ToTensor
 class SpellCorrectorDataset(Dataset):
     def __init__(self, fname, tokenizer=None, max_length=256):
         self.data = []
-        with open(fname, "r", errors="ignore") as fd:
-            for l in fd:
-                try:
-                    dat = l.strip().split("\t")
 
-                    if len(dat) == 2 and len(dat[1]) > 2 and len(dat[1]) < max_length:
+        with open(fname, "r", errors="ignore") as fd:
+            for ln in fd:
+                try:
+                    dat = ln.strip().split("\t")
+
+                    if (
+                        len(dat) == 2 and len(dat[1]) > 2 and len(dat[1]) < max_length and len(dat[0]) < max_length
+                    ):
                         self.data.append(dat)
                 except:
-                    print(l)
+                    pass
             # self.data = [line.strip().split("\t") for line in fd]
         print("Read {} lines".format(len(self.data)))
         self.tokenizer = tokenizer
