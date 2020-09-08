@@ -12,9 +12,10 @@ class PositionalEncoding(nn.Module):
     PE(pos,2i+1)=cos(pos/10000^(2i/dmodel))
     """
 
-    def __init__(self, max_length, embedding_dim=512, device="cpu"):
+    def __init__(self, max_length, embedding_dim=512, skip=True, device="cpu"):
         super(PositionalEncoding, self).__init__()
         self.max_length = max_length
+        self.skip = skip
         self.embedding_dim = embedding_dim
         pe = torch.zeros(max_length, embedding_dim, dtype=torch.float, device=device)
         embedding_indices = torch.arange(
@@ -36,7 +37,11 @@ class PositionalEncoding(nn.Module):
         x => (B, L, E) sequence of embedded tokens
         """
         # (B, L, E)
-        return x + self.pe[:, : x.size(1)]
+
+        if self.skip:
+            return x + self.pe[:, : x.size(1)]
+        else:
+            return self.pe[:, : x.size(1)]
 
 
 class Embed(nn.Module):
