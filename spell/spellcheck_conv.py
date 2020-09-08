@@ -19,18 +19,18 @@ DEBUG = False
 
 
 config = {
-    "device": "cpu",
-    "parallel": False,
-    "num_workers": 1,
-    "batch_size": 128,
+    "device": "cuda",
+    "parallel": True,
+    "num_workers": 4,
+    "batch_size": 300,
     "lr": 1e-3,
     "epochs": 10,
     "hidden_size": 256,
     "embedding_size": 256,
     "encoder_kernel_size": 5,
     "decoder_kernel_size": 5,
-    "encoder_layers": 2,
-    "decoder_layers": 2,
+    "encoder_layers": 10,
+    "decoder_layers": 10,
     "encoder_dropout": 0.2,
     "decoder_dropout": 0.2,
     "max_length": 256,
@@ -68,7 +68,7 @@ def train_epoch(model, optimizer, criterion, train_loader, device="cpu", paralle
         optimizer.zero_grad()
 
         source, target, _ = map(lambda x: x.to(device), batch)
-        decoded, _ = model(source, target[:, :-1])
+        decoded = model(source, target[:, :-1])
         target = target[:, 1:]
 
         if parallel:
@@ -113,7 +113,7 @@ def eval_epoch(model, criterion, val_loader, device="cpu", parallel=True):
     with torch.no_grad():
         for batch in tqdm(val_loader):
             source, target, _ = map(lambda x: x.to(device), batch)
-            decoded, _ = model(source, target[:, :-1])
+            decoded = model(source, target[:, :-1])
             target = target[:, 1:]
 
             if parallel:
