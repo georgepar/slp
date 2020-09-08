@@ -65,7 +65,7 @@ class Encoder(nn.Module):
         conv_input = self.emb2hid(embedded)  # [B, L, H]
         conv_input = conv_input.permute(0, 2, 1)  # [B, H, L]
 
-        for i, conv in enumerate(self.convs):
+        for _, conv in enumerate(self.convs):
             conved = conv(self.dropout(conv_input))  # [B, 2 * H, L]
             conved = F.glu(conved, dim=1)  # [B, H, L]
             conved = (conved + conv_input) * self.scale  # [B, H, L]
@@ -186,7 +186,7 @@ class Decoder(nn.Module):
         batch_size = conv_input.shape[0]
         hid_dim = conv_input.shape[1]
 
-        for i, conv in enumerate(self.convs):
+        for _, conv in enumerate(self.convs):
             conv_input = self.dropout(conv_input)
 
             # need to pad so decoder can't "cheat"
@@ -217,33 +217,62 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, encoder, decoder):
+    def __init__(
+        self,
+        src_vocab_size,
+        tgt_vocab_size,
+        embedding_size=256,
+        hidden_size=512,
+        encoder_layers=10,
+        decoder_layers=10,
+        encoder_kernel_size=5,
+        decoder_kernel_size=5,
+        encoder_dropout=0.25,
+        decoder_dropout=0.25,
+        max_length=256,
+        pad_idx=0,
+        device="cpu",
+    ):
         super().__init__()
 
-        self.encoder = encoder
-        self.decoder = decoder
+        self.encoder = Encoder(
+            src_vocab_size,
+            embedding_size,
+            hidden_size,
+            encoder_layers,
+            encoder_kernel_size,
+            encoder_dropout,
+            device,
+            max_length=max_length,
+        )
+        self.decoder = Decoder(
+            tgt_vocab_size,
+            embedding_size,
+            hidden_size,
+            decoder_layers,
+            decoder_kernel_size,
+            decoder_dropout,
+            pad_idx,
+            device,
+            max_length=max_length,
+        )
 
     def forward(self, src, trg):
+        """Conv S2S forward pass
+        Args:
+            src (torch.tensor): [B , SL] Source sequence tokens
+            trg (torch.tensor): [B, TL - 1] Target sequence without EOS
 
-        # src = [batch size, src len]
-        # trg = [batch size, trg len - 1] (<eos> token sliced off the end)
-
-        # calculate z^u (encoder_conved) and (z^u + e) (encoder_combined)
-        # encoder_conved is output from final encoder conv. block
-        # encoder_combined is encoder_conved plus (elementwise) src embedding plus
-        #  positional embeddings
+        B: Batch size
+        SL: Source sequence length
+        TL: Target sequence length
+        """
+        # encoder_conved: [B , SL , E] Output from last encoder conv layer
+        # encoder_combined: [B, SL, E] encoder_conved + src_embedded
         encoder_conved, encoder_combined = self.encoder(src)
 
-        # encoder_conved = [batch size, src len, emb dim]
-        # encoder_combined = [batch size, src len, emb dim]
-
-        # calculate predictions of next words
-        # output is a batch of predictions for each word in the trg sentence
-        # attention a batch of attention scores across the src sentence for
-        #  each word in the trg sentence
+        # output: [B , TL - 1 , O] Predictions for each word in the trg sentence
+        # attention: [B, TL - 1, SL] Attention scores matrix
         output, attention = self.decoder(trg, encoder_conved, encoder_combined)
-
-        # output = [batch size, trg len - 1, output dim]
-        # attention = [batch size, trg len - 1, src len]
 
         return output, attention

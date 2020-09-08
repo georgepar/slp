@@ -5,14 +5,14 @@ from slp.data.transforms import ToTensor
 
 
 class SpellCorrectorDataset(Dataset):
-    def __init__(self, fname, tokenizer=None):
+    def __init__(self, fname, tokenizer=None, max_length=256):
         self.data = []
         with open(fname, "r", errors="ignore") as fd:
             for l in fd:
                 try:
                     dat = l.strip().split("\t")
 
-                    if len(dat) == 2 and len(dat[1]) > 2 and len(dat[1]) < 256:
+                    if len(dat) == 2 and len(dat[1]) > 2 and len(dat[1]) < max_length:
                         self.data.append(dat)
                 except:
                     print(l)
