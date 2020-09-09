@@ -22,7 +22,7 @@ config = {
     "device": "cuda",
     "parallel": True,
     "num_workers": 4,
-    "batch_size": 300,
+    "batch_size": 400,
     "lr": 1e-3,
     "epochs": 10,
     "hidden_size": 256,
@@ -58,84 +58,110 @@ def parse_args():
 collate_fn = Sequence2SequenceCollator(device="cpu")
 
 
+class RunningLoss(object):
+    def __init__(self):
+        self.n_items = 0
+        self.accumulator = 0
+
+    def push(self, value):
+        self.accumulator += value
+        self.n_items += 1
+
+    def get(self):
+        return self.accumulator / self.n_items if self.n_items > 0 else 0
+
+
+class RunningAccuracy(object):
+    def __init__(self):
+        self.n_total = 0
+        self.n_correct = 0
+
+    def push(self, predicted, target):
+        y_hat, y = predicted[target != 0].view(-1), target[target != 0].view(-1)
+        self.n_correct += (y_hat == y).sum().item()
+        self.n_total += len(y_hat)
+
+    def get(self):
+        return self.n_correct / self.n_total if self.n_total > 0 else 0
+
+
+def step(model, source, target, parallel=False, device="cpu"):
+    decoded = model(source, target[:, :-1])
+    target = target[:, 1:]
+
+    if parallel:
+        loss = criterion(
+            [d.contiguous().view(-1, d.size(-1)) for d in decoded],
+            target.contiguous().view(-1),
+        )
+        loss = loss.mean()
+        gathered = nn.parallel.gather(decoded, "cuda:0")
+    else:
+        loss = criterion(
+            decoded.contiguous().view(-1, decoded.size(-1)),
+            target.contiguous().view(-1),
+        )
+        gathered = decoded
+
+    predicted = gathered.argmax(-1)
+
+    return loss, predicted, target
+
+
 def train_epoch(model, optimizer, criterion, train_loader, device="cpu", parallel=True):
     model = model.train()
-    avg_loss, nbatch = 0, len(train_loader)
-    n_correct, n_tokens = 0.0, 0.0
     clip = config["gradient_clip"]
+
+    running_loss = RunningLoss()
+    running_acc = RunningAccuracy()
 
     for bxi, batch in enumerate(tqdm(train_loader), 1):
         optimizer.zero_grad()
 
         source, target, _ = map(lambda x: x.to(device), batch)
-        decoded = model(source, target[:, :-1])
-        target = target[:, 1:]
+        loss, predicted, target = step(
+            model, source, target, parallel=parallel, device=device
+        )
 
-        if parallel:
-            loss = criterion(
-                [d.contiguous().view(-1, d.size(-1)) for d in decoded],
-                target.contiguous().view(-1),
-            )
-            loss = loss.mean()
-            gathered = nn.parallel.gather(decoded, "cuda:0")
-        else:
-            loss = criterion(
-                decoded.contiguous().view(-1, decoded.size(-1)),
-                target.contiguous().view(-1),
-            )
-            gathered = decoded
-
-        dec_tok = gathered.argmax(-1)
-        y_hat, y = dec_tok[target != 0].view(-1), target[target != 0].view(-1)
-        n_correct += (y_hat == y).sum()
-        n_tokens += len(y_hat)
-        avg_loss += loss.item()
-
+        running_acc.push(predicted, target)
+        running_loss.push(loss.item())
         if bxi % 100 == 0:
             print(
-                "Train iteration: {} \t Loss: {} \t Acc: {}".format(
-                    bxi, avg_loss / bxi, n_correct / n_tokens
-                )
+                f"Train iteration: {bxi} \t Loss: {running_loss.get()} \t Acc: {running_acc.get()}"
             )
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
-    avg_loss = avg_loss / nbatch
 
-    return avg_loss
+    return running_loss.get()
 
 
 def eval_epoch(model, criterion, val_loader, device="cpu", parallel=True):
     model = model.eval()
-    avg_loss, nbatch = 0, len(val_loader)
-    n_correct, n_tokens = 0.0, 0.0
-    with torch.no_grad():
-        for batch in tqdm(val_loader):
-            source, target, _ = map(lambda x: x.to(device), batch)
-            decoded = model(source, target[:, :-1])
-            target = target[:, 1:]
 
-            if parallel:
-                loss = criterion(
-                    [d.contiguous().view(-1, d.size(-1)) for d in decoded],
-                    target.contiguous().view(-1),
+    running_loss = RunningLoss()
+    running_acc = RunningAccuracy()
+
+    with torch.no_grad():
+        for bxi, batch in enumerate(tqdm(val_loader), 1):
+
+            source, target, _ = map(lambda x: x.to(device), batch)
+            loss, predicted, target = step(
+                model, source, target, parallel=parallel, device=device
+            )
+
+            running_acc.push(predicted, target)
+            running_loss.push(loss.item())
+
+            if bxi % 100 == 0:
+                print(
+                    "Train iteration: {} \t Loss: {} \t Acc: {}".format(
+                        bxi, running_loss.get(), running_acc.get()
+                    )
                 )
-                loss = loss.mean()
-                gathered = nn.parallel.gather(decoded, "cuda:0")
-            else:
-                loss = criterion(
-                    decoded.contiguous().view(-1, decoded.size(-1)),
-                    target.contiguous().view(-1),
-                )
-                gathered = decoded
-            dec_tok = gathered.argmax(-1)
-            y_hat, y = dec_tok[target != 0].view(-1), target[target != 0].view(-1)
-            n_correct += (y_hat == y).sum()
-            n_tokens += len(y_hat)
-            avg_loss += loss.item()
-        avg_loss = avg_loss / nbatch
-        accuracy = n_correct / n_tokens
+
+    avg_loss, accuracy = running_loss.get(), running_acc.get()
 
     return avg_loss, accuracy
 
