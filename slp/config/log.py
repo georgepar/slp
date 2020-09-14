@@ -3,12 +3,12 @@ import logging.handlers
 import os
 import sys
 
-
 LOG_PATH = os.path.dirname(os.path.realpath(__file__))
 
 if os.path.exists(os.path.join(LOG_PATH, "../../logs")):
     LOG_PATH = os.path.join(LOG_PATH, "../../logs")
 
+print("LOGGING INTO: {}".format(LOG_PATH))
 LEVEL = logging.INFO
 
 DEFAULT_LOGGING = {
@@ -21,7 +21,7 @@ DEFAULT_LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "INFO",
+            "level": "ERROR",
             "class": "logging.StreamHandler",
             "formatter": "default",
             "stream": sys.stdout,

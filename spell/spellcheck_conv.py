@@ -2,8 +2,8 @@ import argparse
 
 import torch
 import torch.nn as nn
+import transformers
 from sklearn.metrics import accuracy_score
-from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -11,8 +11,9 @@ import constants
 from slp.config import SPECIAL_TOKENS
 from slp.data.collators import Sequence2SequenceCollator
 from slp.data.spelling import SpellCorrectorDataset
-from slp.data.transforms import CharacterTokenizer
+from slp.data.transforms import CharacterTokenizer, WordpieceTokenizer
 from slp.modules.convs2s import Seq2Seq
+from slp.util import log
 from slp.util.parallel import DataParallelCriterion, DataParallelModel
 
 DEBUG = False
@@ -20,20 +21,21 @@ DEBUG = False
 
 config = {
     "device": "cuda",
-    "parallel": True,
-    "num_workers": 4,
-    "batch_size": 400,
+    "parallel": False,
+    "num_workers": 2,
+    "batch_size": 128,
     "lr": 1e-3,
-    "epochs": 10,
-    "hidden_size": 256,
+    "max_steps": 200000,
+    "checkpoint_steps": 10000,
+    "hidden_size": 512,
     "embedding_size": 256,
-    "encoder_kernel_size": 5,
-    "decoder_kernel_size": 5,
-    "encoder_layers": 10,
-    "decoder_layers": 10,
-    "encoder_dropout": 0.2,
-    "decoder_dropout": 0.2,
-    "max_length": 256,
+    "encoder_kernel_size": 3,
+    "decoder_kernel_size": 3,
+    "encoder_layers": 8,
+    "decoder_layers": 6,
+    "encoder_dropout": 0.3,
+    "decoder_dropout": 0.3,
+    "max_length": 140,
     "gradient_clip": 0.1,
     # "teacher_forcing": 0.4,
 }
@@ -108,35 +110,6 @@ def step(model, source, target, parallel=False, device="cpu"):
     return loss, predicted, target
 
 
-def train_epoch(model, optimizer, criterion, train_loader, device="cpu", parallel=True):
-    model = model.train()
-    clip = config["gradient_clip"]
-
-    running_loss = RunningLoss()
-    running_acc = RunningAccuracy()
-
-    for bxi, batch in enumerate(tqdm(train_loader), 1):
-        optimizer.zero_grad()
-
-        source, target, _ = map(lambda x: x.to(device), batch)
-        loss, predicted, target = step(
-            model, source, target, parallel=parallel, device=device
-        )
-
-        running_acc.push(predicted, target)
-        running_loss.push(loss.item())
-        if bxi % 100 == 0:
-            print(
-                f"Train iteration: {bxi} \t Loss: {running_loss.get()} \t Acc: {running_acc.get()}"
-            )
-
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
-        optimizer.step()
-
-    return running_loss.get()
-
-
 def eval_epoch(model, criterion, val_loader, device="cpu", parallel=True):
     model = model.eval()
 
@@ -155,7 +128,7 @@ def eval_epoch(model, criterion, val_loader, device="cpu", parallel=True):
             running_loss.push(loss.item())
 
             if bxi % 100 == 0:
-                print(
+                log.info(
                     "Train iteration: {} \t Loss: {} \t Acc: {}".format(
                         bxi, running_loss.get(), running_acc.get()
                     )
@@ -166,34 +139,63 @@ def eval_epoch(model, criterion, val_loader, device="cpu", parallel=True):
     return avg_loss, accuracy
 
 
-def train(
+def train_iterations(
     model,
     optimizer,
+    scheduler,
     criterion,
     train_loader,
     val_loader,
-    epochs=50,
+    max_steps=100000,
+    checkpoint_steps=5000,
     device="cpu",
     parallel=True,
 ):
-    for e in range(epochs):
-        _ = train_epoch(
-            model, optimizer, criterion, train_loader, device=device, parallel=parallel
+    model = model.train()
+    clip = config["gradient_clip"]
+
+    running_loss = RunningLoss()
+    running_acc = RunningAccuracy()
+
+    train_generator = iter(train_loader)
+
+    for bxi in tqdm(range(1, max_steps + 1), total=max_steps):
+        optimizer.zero_grad()
+        batch = next(train_generator)
+
+        source, target, _ = map(lambda x: x.to(device), batch)
+        loss, predicted, target = step(
+            model, source, target, parallel=parallel, device=device
         )
-        train_loss, train_acc = eval_epoch(
-            model, criterion, train_loader, device=device, parallel=parallel
-        )
-        print(
-            "Epoch: {}\tTrain loss: {}\tTrain accuracy: {}".format(
-                e, train_loss, train_acc
+
+        running_acc.push(predicted, target)
+        running_loss.push(loss.item())
+
+        if bxi % 100 == 0:
+            log.info(
+                f"Train iteration: {bxi} \t Loss: {running_loss.get()} \t Acc: {running_acc.get()} \t LR: {optimizer.param_groups[0]['lr']}"
             )
-        )
-        val_loss, val_acc = eval_epoch(
-            model, criterion, val_loader, device=device, parallel=parallel
-        )
-        print("Epoch: {}\tVal loss: {}\tVal accuracy: {}".format(e, val_loss, val_acc))
-        torch.save(model.state_dict(), "spell_check.model.{}.pth".format(e))
-        torch.save(optimizer.state_dict(), "spell_check.opt.{}.pth".format(e))
+
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
+        optimizer.step()
+        scheduler.step()
+
+        if bxi % checkpoint_steps == 0:
+            model.eval()
+            val_loss, val_acc = eval_epoch(
+                model, criterion, val_loader, device=device, parallel=parallel
+            )
+            log.info(
+                "Step: {}\tVal loss: {}\tVal accuracy: {}".format(
+                    bxi, val_loss, val_acc
+                )
+            )
+            torch.save(model.state_dict(), "spell_check.model.{}.pth".format(bxi))
+            torch.save(optimizer.state_dict(), "spell_check.opt.{}.pth".format(bxi))
+            model = model.train()
+
+    return running_loss.get()
 
 
 if __name__ == "__main__":
@@ -202,6 +204,15 @@ if __name__ == "__main__":
     if DEBUG:
         args.train = "hnc.test"
         args.val = "hnc.test"
+
+    # tokenizer = WordpieceTokenizer(
+    #     lower=True,
+    #     bert_model="nlpaueb/bert-base-greek-uncased-v1",
+    #     prepend_bos=True,
+    #     append_eos=True,
+    #     specials=SPECIAL_TOKENS,
+    # )
+
     tokenizer = CharacterTokenizer(
         constants.CHARACTER_VOCAB,
         prepend_bos=True,
@@ -214,9 +225,12 @@ if __name__ == "__main__":
     eos_idx = tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
 
     vocab_size = len(tokenizer.vocab)
-
-    trainset = SpellCorrectorDataset(args.train, tokenizer=tokenizer)
-    valset = SpellCorrectorDataset(args.val, tokenizer=tokenizer)
+    trainset = SpellCorrectorDataset(
+        args.train, tokenizer=tokenizer, max_length=config["max_length"]
+    )
+    valset = SpellCorrectorDataset(
+        args.val, tokenizer=tokenizer, max_length=config["max_length"]
+    )
 
     train_loader = DataLoader(
         trainset,
@@ -254,8 +268,15 @@ if __name__ == "__main__":
         # teacher_forcing_p=config["teacher_forcing"],
     )
 
-    optimizer = Adam(
-        [p for p in model.parameters() if p.requires_grad], lr=config["lr"]
+    optimizer = transformers.AdamW(
+        [p for p in model.parameters() if p.requires_grad],
+        lr=config["lr"],
+        weight_decay=0.01,
+        # correct_bias=False,
+    )
+
+    scheduler = transformers.get_cosine_schedule_with_warmup(
+        optimizer, config["max_length"] / 10, config["max_length"]
     )
 
     criterion = nn.CrossEntropyLoss(ignore_index=0)
@@ -266,13 +287,15 @@ if __name__ == "__main__":
     model = model.to(config["device"])
     criterion = criterion.to(config["device"])
 
-    train(
+    train_iterations(
         model,
         optimizer,
+        scheduler,
         criterion,
         train_loader,
         val_loader,
-        epochs=config["epochs"],
+        max_steps=config["max_steps"],
+        checkpoint_steps=config["checkpoint_steps"],
         device=config["device"],
         parallel=config["parallel"],
     )

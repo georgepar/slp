@@ -11,7 +11,7 @@ import constants
 from slp.config import SPECIAL_TOKENS
 from slp.data.collators import Sequence2SequenceCollator
 from slp.data.spelling import SpellCorrectorDataset
-from slp.data.transforms import CharacterTokenizer
+from slp.data.transforms import CharacterTokenizer, WordpieceTokenizer
 from slp.modules.convs2s import Seq2Seq
 
 DEBUG = False
@@ -20,27 +20,29 @@ DEBUG = False
 class WrappedModel(nn.Module):
     def __init__(self, module):
         super(WrappedModel, self).__init__()
-        self.module = module  # that I actually define.
+        self.module = module
 
     def forward(self, *args, **kwargs):
         return self.module(*args, **kwargs)
 
-
 config = {
     "device": "cuda",
-    "num_workers": 4,
-    "batch_size": 400,
+    "parallel": True,
+    "num_workers": 2,
+    "batch_size": 128,
     "lr": 1e-3,
-    "epochs": 10,
-    "hidden_size": 256,
+    "max_steps": 200000,
+    "schedule_steps": 1000,
+    "checkpoint_steps": 10000,
+    "hidden_size": 512,
     "embedding_size": 256,
-    "encoder_kernel_size": 5,
-    "decoder_kernel_size": 5,
+    "encoder_kernel_size": 3,
+    "decoder_kernel_size": 3,
     "encoder_layers": 10,
     "decoder_layers": 10,
-    "encoder_dropout": 0.2,
-    "decoder_dropout": 0.2,
-    "max_length": 256,
+    "encoder_dropout": 0.3,
+    "decoder_dropout": 0.3,
+    "max_length": 100,
     "gradient_clip": 0.1,
     # "teacher_forcing": 0.4,
 }
@@ -136,20 +138,29 @@ def eval_epoch(model, criterion, val_loader, device="cpu"):
 if __name__ == "__main__":
     args = parse_args()
 
-    tokenizer = CharacterTokenizer(
-        constants.CHARACTER_VOCAB,
+    # tokenizer = CharacterTokenizer(
+    #     constants.CHARACTER_VOCAB,
+    #     prepend_bos=True,
+    #     append_eos=True,
+    #     specials=SPECIAL_TOKENS,
+    # )
+    tokenizer = WordpieceTokenizer(
+        lower=True,
+        bert_model="nlpaueb/bert-base-greek-uncased-v1",
         prepend_bos=True,
         append_eos=True,
         specials=SPECIAL_TOKENS,
     )
 
-    sos_idx = tokenizer.c2i[SPECIAL_TOKENS.BOS.value]
-    pad_idx = tokenizer.c2i[SPECIAL_TOKENS.PAD.value]
-    eos_idx = tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
+    sos_idx = 1  # tokenizer.c2i[SPECIAL_TOKENS.BOS.value]
+    pad_idx = 0  # tokenizer.c2i[SPECIAL_TOKENS.PAD.value]
+    eos_idx = 2  # tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
 
     vocab_size = len(tokenizer.vocab)
 
-    testset = SpellCorrectorDataset(args.test, tokenizer=tokenizer)
+    testset = SpellCorrectorDataset(
+        args.test, tokenizer=tokenizer, max_length=config["max_length"]
+    )
 
     test_loader = DataLoader(
         testset,
@@ -183,7 +194,7 @@ if __name__ == "__main__":
     model = WrappedModel(model)
     state_dict = torch.load(args.ckpt)
     model.load_state_dict(state_dict)
-    model = model.to(config['device'])
+    model = model.to(config["device"])
     criterion = criterion.to(config["device"])
 
     test_loss, test_acc = eval_epoch(

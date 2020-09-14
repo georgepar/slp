@@ -225,7 +225,7 @@ class Seq2Seq(nn.Module):
         decoder_kernel_size=5,
         encoder_dropout=0.25,
         decoder_dropout=0.25,
-        max_length=256,
+        max_length=140,
         pad_idx=0,
         device="cpu",
     ):
