@@ -1,9 +1,9 @@
 import argparse
 import glob
 import os
-
 from collections import Counter
 from itertools import chain
+
 from joblib import delayed
 from tqdm.auto import tqdm
 
@@ -13,6 +13,7 @@ from slp.util.system import pickle_dump
 
 def get_filenames(corpora_path):
     filenames = glob.glob(os.path.join(corpora_path, "*"))
+
     return filenames
 
 
@@ -30,16 +31,20 @@ def count_parallel(filenames, n_jobs=32):
         delayed(count_file)(fname) for fname in filenames
     )
     merged = {}
+
     for cnt in tqdm(counts):
         merged = merge_counts(merged, cnt)
+
     return Counter(merged)
 
 
 def filter_counts(counts, thres=10):
     filt = {}
+
     for k, v in counts.items():
         if v > thres:
             filt[k] = v
+
     return filt
 
 
@@ -49,6 +54,7 @@ def parse_args():
     parser.add_argument("--njobs", type=int, help="njobs")
     parser.add_argument("--output", type=str, help="Output pickle file")
     args = parser.parse_args()
+
     return args
 
 
@@ -66,4 +72,7 @@ if __name__ == "__main__":
         "top30k": dict(counts.most_common(30_000)),
         "top10k": dict(counts.most_common(10_000)),
     }
+    with open("vocab.freq.txt", "w") as fd:
+        for word, cnt in out[">100"].items():
+            fd.write(f"{word}\t{cnt}\n")
     pickle_dump(out, args.output)

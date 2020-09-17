@@ -182,7 +182,7 @@ def train_iterations(
         scheduler.step()
 
         if bxi % checkpoint_steps == 0:
-            model.eval()
+            model = model.eval()
             val_loss, val_acc = eval_epoch(
                 model, criterion, val_loader, device=device, parallel=parallel
             )

@@ -1,18 +1,29 @@
 import argparse
-import numpy as np
 import random
+from collections import Counter
 
-import constants
-
+import numpy as np
 from joblib import delayed
 
+import constants
 from slp.util.multicore import ParallelRunner
 from slp.util.system import find_substring_occurences
+
+
+def filter_counts(counts, thres=10):
+    filt = {}
+
+    for k, v in counts.items():
+        if v > thres:
+            filt[k] = v
+
+    return filt
 
 
 def ignore_token(w):
     # Ignore word that doesn't contain a greek character
     dont_ignore = any(ch in constants.CHARACTERS for ch in w) and len(w) > 2
+
     return not dont_ignore
 
 
@@ -24,12 +35,13 @@ def insert_error_to_word(word, use_common_errors=False, bigram=False, error_type
     error = None
 
     def random_error(errors):
-        chars = list(word)
         valid_errors = []
+
         for c1, c2 in errors:
             if c1 in word:
                 valid_errors.append((c1, c2))
         error = random.choice(valid_errors) if len(valid_errors) > 0 else None
+
         return error
 
     if error_type == "del":
@@ -39,8 +51,10 @@ def insert_error_to_word(word, use_common_errors=False, bigram=False, error_type
         continue_idx = idx + 1
     elif error_type == "ins":
         bigram = False
+
         if use_common_errors:
             error = random_error(constants.KEYBOARD_NEIGHBORS)
+
         if not use_common_errors or error is None:
             idx = random.randint(0, len(word) - 1)
             to_insert = allowed[np.random.randint(0, len(allowed))]
@@ -50,8 +64,15 @@ def insert_error_to_word(word, use_common_errors=False, bigram=False, error_type
         continue_idx = idx
     elif error_type == "sub":
         if use_common_errors:
-            errors = constants.UNIGRAM_ERRORS if not bigram else constants.BIGRAM_ERRORS
+            # errors = constants.UNIGRAM_ERRORS if not bigram else constants.BIGRAM_ERRORS
+            errors = (
+                constants.UNIGRAM_SPELLING_ERRORS
+
+                if not bigram
+                else constants.BIGRAM_ERRORS
+            )
             error = random_error(errors)
+
         if not use_common_errors or error is None:
             idx = random.randint(0, len(word) - 1)
             to_insert = allowed[np.random.randint(0, len(allowed))]
@@ -70,49 +91,77 @@ def insert_error_to_word(word, use_common_errors=False, bigram=False, error_type
     return word[:idx] + to_insert + word[continue_idx:]
 
 
-def word_noise(word, num_errors=1, only_common_errors=False):
+def word_noise(word, num_errors=1, only_common_errors=False, mistypes=False):
     num_errors = min(num_errors, max(len(word) - 4, 1))
+
+    MISTYPES = ["shuf", "ins", "del"]
+
     for _ in range(num_errors):
-        error_type = np.random.choice(ERROR_TYPES)
+        # error_type = np.random.choice(ERROR_TYPES, p=[0.2, 0.2, 0.2, 0.4])
+
+        if mistypes:
+            error_type = np.random.choice(MISTYPES)
+        else:
+            error_type = "sub"
         bigram = np.random.choice([True, False], p=[0.3, 0.7])
+
         if only_common_errors:
             use_common_errors = True
         else:
             if len(word) <= 4 and bigram:
                 use_common_errors = True
             else:
-                use_common_errors = np.random.choice([True, False])
+                use_common_errors = np.random.choice([True, False], p=[0.8, 0.2])
         word = insert_error_to_word(
             word,
             use_common_errors=use_common_errors,
             bigram=bigram,
             error_type=error_type,
         )
+
     return word
 
 
-def create_word_misspellings(word, iterations=100, only_common_errors=False):
+def create_word_misspellings(
+    word, iterations=100, only_common_errors=False, mistypes=False
+):
     misspellings = []
+
     for _ in range(iterations):
         num_errors = np.random.choice([1, 2], p=[0.8, 0.2])
         noisy_word = word_noise(
-            word, num_errors=num_errors, only_common_errors=only_common_errors
+            word,
+            num_errors=num_errors,
+            only_common_errors=only_common_errors,
+            mistypes=mistypes,
         )
+
         if noisy_word != word:
             misspellings.append((noisy_word, word))
-    return list(set(misspellings))
+
+    counts = Counter(misspellings)
+    # counts = filter_counts(counts, thres=2)
+    misspellings = dict(
+        counts.most_common(min(constants.SAMPLE_MISSPELLINGS_PER_WORD, len(counts)))
+    ).keys()
+    # return list(set(misspellings))
+
+    return list(misspellings)
 
 
-def mkspellcorpus(words, n_jobs=32, only_common_errors=False):
+def mkspellcorpus(words, n_jobs=32, only_common_errors=False, mistypes=False):
     corpus = ParallelRunner(n_jobs=n_jobs, total=len(words))(
         delayed(create_word_misspellings)(
             word,
-            iterations=MAX_MISSPELLINGS_PER_WORD,
+            iterations=constants.GENERATION_DISTRIBUTION_SIZE,
             only_common_errors=only_common_errors,
+            mistypes=mistypes,
         )
+
         for word in words
     )
     corpus = [el for sublist in corpus for el in sublist]
+
     return corpus
 
 
@@ -121,8 +170,14 @@ def parse_args():
     parser.add_argument("--vocab", type=str, help="Vocabulary file")
     parser.add_argument("--njobs", type=int, help="njobs")
     parser.add_argument("--common", action="store_true", help="Use common errors only")
-    parser.add_argument("--output", type=str, help="Output pickle file")
+    parser.add_argument(
+        "--mistypes",
+        action="store_true",
+        help="Generate mistyping errors if true else misspellings",
+    )
+    parser.add_argument("--output", type=str, help="Output file")
     args = parser.parse_args()
+
     return args
 
 
@@ -131,11 +186,12 @@ def main():
     vocab = args.vocab
     corpus_file = args.output
     only_common_errors = args.common
+    mistypes = args.mistypes
     with open(vocab, "r") as fd:
         words = [l.strip() for l in fd]
 
     corpus = mkspellcorpus(
-        words, n_jobs=args.njobs, only_common_errors=only_common_errors
+        words, n_jobs=args.njobs, only_common_errors=only_common_errors, mistypes=mistypes
     )
     with open(corpus_file, "w") as fd:
         for src, tgt in corpus:
