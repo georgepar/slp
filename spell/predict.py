@@ -24,16 +24,18 @@ class WrappedModel(nn.Module):
     def forward(self, *args, **kwargs):
         return self.module(*args, **kwargs)
 
-
 config = {
+    "logfile": "spellchecker.online.fixed.log",
+    "schedule": "linear",
+    "checkpoint_dir": "online_errors.linear",
     "device": "cpu",
-    "parallel": True,
+    "parallel": False,
     "num_workers": 2,
-    "batch_size": 128,
-    "lr": 1e-3,
-    "max_steps": 200000,
-    "schedule_steps": 1000,
-    "checkpoint_steps": 10000,
+    "batch_size": 300,
+    "lr": 4e-4,
+    "max_steps": 100000,
+    "warmup_steps": 8000,
+    "checkpoint_steps": 5000,
     "hidden_size": 512,
     "embedding_size": 256,
     "encoder_kernel_size": 3,
@@ -42,11 +44,10 @@ config = {
     "decoder_layers": 10,
     "encoder_dropout": 0.3,
     "decoder_dropout": 0.3,
-    "max_length": 100,
+    "max_length": 80,
     "gradient_clip": 0.1,
     # "teacher_forcing": 0.4,
 }
-
 
 
 def parse_args():
@@ -73,17 +74,25 @@ def make_corrector(model, tokenizer, max_length=256):
         """
         with torch.no_grad():
             encoder_conved, encoder_combined = model.module.encoder(sentence)
+            # encoder_conved, encoder_combined = model.encoder(sentence)
 
         target_indexes = [sos_idx]
 
         for i in range(max_length):
             target = torch.LongTensor(target_indexes).unsqueeze(0)
             with torch.no_grad():
+
                 decoded, _ = model.module.decoder(
                     target, encoder_conved, encoder_combined
                 )
+
+                # decoded, _ = model.decoder(
+                #     target, encoder_conved, encoder_combined
+                # )
+
             predicted_idx = decoded.argmax(-1)[0, -1].item()
             target_indexes.append(predicted_idx)
+
             if predicted_idx == 2:
                 break
         # Greedy decoding here.
@@ -97,29 +106,28 @@ def make_corrector(model, tokenizer, max_length=256):
 if __name__ == "__main__":
     args = parse_args()
 
-    tokenizer = WordpieceTokenizer(
-        lower=True,
-        bert_model="nlpaueb/bert-base-greek-uncased-v1",
-        prepend_bos=True,
-        append_eos=True,
-        specials=SPECIAL_TOKENS,
-    )
-
-    sos_idx = 1  # tokenizer.c2i[SPECIAL_TOKENS.BOS.value]
-    pad_idx = 0  # tokenizer.c2i[SPECIAL_TOKENS.PAD.value]
-    eos_idx = 2  # tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
-
-
-    # tokenizer = CharacterTokenizer(
-    #     constants.CHARACTER_VOCAB,
+    # tokenizer = WordpieceTokenizer(
+    #     lower=True,
+    #     bert_model="nlpaueb/bert-base-greek-uncased-v1",
     #     prepend_bos=True,
     #     append_eos=True,
     #     specials=SPECIAL_TOKENS,
     # )
 
-    # sos_idx = tokenizer.c2i[SPECIAL_TOKENS.BOS.value]
-    # pad_idx = tokenizer.c2i[SPECIAL_TOKENS.PAD.value]
-    # eos_idx = tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
+    # sos_idx = 1  # tokenizer.c2i[SPECIAL_TOKENS.BOS.value]
+    # pad_idx = 0  # tokenizer.c2i[SPECIAL_TOKENS.PAD.value]
+    # eos_idx = 2  # tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
+
+    tokenizer = CharacterTokenizer(
+        constants.CHARACTER_VOCAB,
+        prepend_bos=True,
+        append_eos=True,
+        specials=SPECIAL_TOKENS,
+    )
+
+    sos_idx = tokenizer.c2i[SPECIAL_TOKENS.BOS.value]
+    pad_idx = tokenizer.c2i[SPECIAL_TOKENS.PAD.value]
+    eos_idx = tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
 
     vocab_size = len(tokenizer.vocab)
     # print(tokenizer.vocab)

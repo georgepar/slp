@@ -7,12 +7,11 @@ import sys
 import time
 import urllib
 import urllib.request
+from typing import Any, Callable, Optional, Tuple, cast
+
 import validators
 
-from typing import cast, Any, Callable, Optional, Tuple
-
-from slp.util import log
-from slp.util import types
+from slp.util import log, types
 
 ERROR_INVALID_NAME: int = 123
 
@@ -32,18 +31,21 @@ def print_separator(
 def is_url(inp: Optional[str]) -> types.ValidationResult:
     if not inp:
         return False
+
     return validators.url(inp)
 
 
 def is_file(inp: Optional[str]) -> types.ValidationResult:
     if not inp:
         return False
+
     return os.path.isfile(inp)
 
 
 def is_subpath(child: str, parent: str) -> bool:
     parent = os.path.abspath(parent)
     child = os.path.abspath(child)
+
     return cast(
         bool, os.path.commonpath([parent]) == os.path.commonpath([parent, child])
     )
@@ -51,11 +53,12 @@ def is_subpath(child: str, parent: str) -> bool:
 
 def safe_mkdirs(path: str) -> None:
     """! Makes recursively all the directory in input path """
+
     if not os.path.exists(path):
         try:
             os.makedirs(path)
         except Exception as e:
-            log.warning(e)
+            print(e)
             raise IOError((f"Failed to create recursive directories: {path}"))
 
 
@@ -73,11 +76,12 @@ def timethis(func: Callable) -> Callable:
         result = func(*args, **kwargs)
         te = time.time()
         elapsed = f"{te - ts}"
-        log.info(
+        print(
             "BENCHMARK: {f}(*{a}, **{kw}) took: {t} sec".format(
                 f=func.__name__, a=args, kw=kwargs, t=elapsed
             )
         )
+
         return result
 
     return cast(Callable, timed)
@@ -88,6 +92,7 @@ def suppress_print(func: Callable) -> Callable:
         with open("/dev/null", "w") as sys.stdout:
             ret = func(*args, **kwargs)
         sys.stdout = sys.__stdout__
+
         return ret
 
     return cast(Callable, func_wrapper)
@@ -103,12 +108,14 @@ def run_cmd(command: str) -> Tuple[int, str]:
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
     stdout = ""
+
     if pipe.stdout is not None:
         stdout = "".join(
             [line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")]
         )
         pipe.stdout.close()
     returncode = pipe.wait()
+
     return returncode, stdout
 
 
@@ -126,6 +133,7 @@ def download_url(url: str, dest_path: str) -> str:
     response = urllib.request.urlopen(url)
     with open(dest, "wb") as fd:
         shutil.copyfileobj(response, fd)
+
     return dest
 
 
@@ -154,12 +162,14 @@ def read_wav(wav_sample: str) -> str:
     """
     with open(wav_sample, "r") as wav_fd:
         clip = wav_fd.read()
+
     return clip
 
 
 def pickle_load(fname: str) -> Any:
     with open(fname, "rb") as fd:
         data = pickle.load(fd)
+
     return data
 
 
@@ -171,6 +181,7 @@ def pickle_dump(data: Any, fname: str) -> None:
 def json_load(fname: str) -> types.GenericDict:
     with open(fname, "r") as fd:
         data = json.load(fd)
+
     return cast(types.GenericDict, data)
 
 
@@ -188,8 +199,10 @@ def find_substring_occurences(string, substring):
     length = len(substring)
     c = 0
     indexes = []
+
     while c < len(string):
         if string[c : c + length] == substring:
             indexes.append(c)
         c = c + 1
+
     return indexes

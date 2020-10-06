@@ -27,7 +27,7 @@ class Encoder(nn.Module):
 
         self.tok_embedding = nn.Embedding(input_dim, emb_dim)
         self.pos_embedding = PositionalEncoding(
-            max_length + 2, embedding_dim=emb_dim, skip=False, device=device
+            max_length + 50, embedding_dim=emb_dim, skip=False, device=device
         )
         self.emb2hid = nn.Linear(emb_dim, hid_dim)
         self.hid2emb = nn.Linear(hid_dim, emb_dim)
@@ -98,7 +98,7 @@ class Decoder(nn.Module):
         self.scale = math.sqrt(0.5)
         self.tok_embedding = nn.Embedding(output_dim, emb_dim)
         self.pos_embedding = PositionalEncoding(
-            max_length + 2, embedding_dim=emb_dim, skip=False, device=device
+            max_length + 4, embedding_dim=emb_dim, skip=False, device=device
         )
 
         self.emb2hid = nn.Linear(emb_dim, hid_dim)

@@ -49,7 +49,8 @@ def filter_counts(counts, thres=10):
 
 def parse_args():
     parser = argparse.ArgumentParser("Corpus frequency counter")
-    parser.add_argument("--corpora", type=str, help="Path to corpora")
+    # parser.add_argument("--corpora", type=str, help="Path to corpora")
+    parser.add_argument("--corpus", type=str, help="Path to corpora")
     parser.add_argument("--njobs", type=int, help="njobs")
     parser.add_argument("--output", type=str, help="Output pickle file")
     args = parser.parse_args()
@@ -58,7 +59,8 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    counts = count_parallel(get_filenames(args.corpora), n_jobs=args.njobs)
+    # counts = count_parallel(get_filenames(args.corpora), n_jobs=args.njobs)
+    counts = count_file(args.corpus)
     print(counts.most_common(50))
     out = {
         "all": dict(counts),

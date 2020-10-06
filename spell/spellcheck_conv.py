@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import torch
 import torch.nn as nn
@@ -10,35 +11,44 @@ from tqdm import tqdm
 import constants
 from slp.config import SPECIAL_TOKENS
 from slp.data.collators import Sequence2SequenceCollator
-from slp.data.spelling import SpellCorrectorDataset
+from slp.data.spelling import \
+    OnlineSpellCorrectorDataset as SpellCorrectorDataset
 from slp.data.transforms import CharacterTokenizer, WordpieceTokenizer
 from slp.modules.convs2s import Seq2Seq
 from slp.util import log
 from slp.util.parallel import DataParallelCriterion, DataParallelModel
+from slp.util.system import safe_mkdirs
 
 DEBUG = False
 
 
 config = {
+    "logfile": "spellchecker.online.fixed.log",
+    "schedule": "linear",
+    "checkpoint_dir": "online_errors.linear",
     "device": "cuda",
-    "parallel": False,
+    "parallel": True,
     "num_workers": 2,
-    "batch_size": 128,
-    "lr": 1e-3,
-    "max_steps": 200000,
-    "checkpoint_steps": 10000,
+    "batch_size": 300,
+    "lr": 4e-4,
+    "max_steps": 100000,
+    "warmup_steps": 8000,
+    "checkpoint_steps": 5000,
     "hidden_size": 512,
     "embedding_size": 256,
     "encoder_kernel_size": 3,
     "decoder_kernel_size": 3,
-    "encoder_layers": 8,
-    "decoder_layers": 6,
+    "encoder_layers": 10,
+    "decoder_layers": 10,
     "encoder_dropout": 0.3,
     "decoder_dropout": 0.3,
-    "max_length": 140,
+    "max_length": 80,
     "gradient_clip": 0.1,
     # "teacher_forcing": 0.4,
 }
+
+
+LOGGER = log.mklogger(filename=config["logfile"])
 
 
 if DEBUG:
@@ -52,6 +62,7 @@ def parse_args():
     parser = argparse.ArgumentParser("Train spell checker")
     parser.add_argument("--train", type=str, help="Train split file")
     parser.add_argument("--val", type=str, help="Validation split file")
+    parser.add_argument("--word-errors", type=str, help="Word error corpus")
     args = parser.parse_args()
 
     return args
@@ -128,7 +139,7 @@ def eval_epoch(model, criterion, val_loader, device="cpu", parallel=True):
             running_loss.push(loss.item())
 
             if bxi % 100 == 0:
-                log.info(
+                LOGGER.info(
                     "Train iteration: {} \t Loss: {} \t Acc: {}".format(
                         bxi, running_loss.get(), running_acc.get()
                     )
@@ -146,11 +157,13 @@ def train_iterations(
     criterion,
     train_loader,
     val_loader,
+    checkpoint_dir="./",
     max_steps=100000,
     checkpoint_steps=5000,
     device="cpu",
     parallel=True,
 ):
+    safe_mkdirs(checkpoint_dir)
     model = model.train()
     clip = config["gradient_clip"]
 
@@ -161,7 +174,11 @@ def train_iterations(
 
     for bxi in tqdm(range(1, max_steps + 1), total=max_steps):
         optimizer.zero_grad()
-        batch = next(train_generator)
+        try:
+            batch = next(train_generator)
+        except StopIteration:
+            train_generator = iter(train_loader)
+            batch = next(train_generator)
 
         source, target, _ = map(lambda x: x.to(device), batch)
         loss, predicted, target = step(
@@ -172,7 +189,7 @@ def train_iterations(
         running_loss.push(loss.item())
 
         if bxi % 100 == 0:
-            log.info(
+            LOGGER.info(
                 f"Train iteration: {bxi} \t Loss: {running_loss.get()} \t Acc: {running_acc.get()} \t LR: {optimizer.param_groups[0]['lr']}"
             )
 
@@ -186,13 +203,15 @@ def train_iterations(
             val_loss, val_acc = eval_epoch(
                 model, criterion, val_loader, device=device, parallel=parallel
             )
-            log.info(
+            LOGGER.info(
                 "Step: {}\tVal loss: {}\tVal accuracy: {}".format(
                     bxi, val_loss, val_acc
                 )
             )
-            torch.save(model.state_dict(), "spell_check.model.{}.pth".format(bxi))
-            torch.save(optimizer.state_dict(), "spell_check.opt.{}.pth".format(bxi))
+            model_path = os.path.join(checkpoint_dir, f"spchk.model.{bxi}.pth")
+            opt_path = os.path.join(checkpoint_dir, f"spchk.opt.{bxi}.pth")
+            torch.save(model.state_dict(), model_path)
+            torch.save(optimizer.state_dict(), opt_path)
             model = model.train()
 
     return running_loss.get()
@@ -225,11 +244,19 @@ if __name__ == "__main__":
     eos_idx = tokenizer.c2i[SPECIAL_TOKENS.EOS.value]
 
     vocab_size = len(tokenizer.vocab)
+
     trainset = SpellCorrectorDataset(
-        args.train, tokenizer=tokenizer, max_length=config["max_length"]
+        args.train,
+        tokenizer=tokenizer,
+        max_length=config["max_length"],
+        word_misspelling_corpus=args.word_errors,
     )
+
     valset = SpellCorrectorDataset(
-        args.val, tokenizer=tokenizer, max_length=config["max_length"]
+        args.val,
+        tokenizer=tokenizer,
+        max_length=config["max_length"],
+        word_misspelling_corpus=args.word_errors,
     )
 
     train_loader = DataLoader(
@@ -241,6 +268,7 @@ if __name__ == "__main__":
         collate_fn=collate_fn,
         drop_last=True,
     )
+
     val_loader = DataLoader(
         valset,
         batch_size=config["batch_size"],
@@ -275,9 +303,14 @@ if __name__ == "__main__":
         # correct_bias=False,
     )
 
-    scheduler = transformers.get_cosine_schedule_with_warmup(
-        optimizer, config["max_length"] / 10, config["max_length"]
-    )
+    if config["schedule"] == "linear":
+        scheduler = transformers.get_linear_schedule_with_warmup(
+            optimizer, config["warmup_steps"], config["max_steps"]
+        )
+    else:
+        scheduler = transformers.get_cosine_schedule_with_warmup(
+            optimizer, config["warmup_steps"], config["max_steps"]
+        )
 
     criterion = nn.CrossEntropyLoss(ignore_index=0)
 
@@ -294,6 +327,7 @@ if __name__ == "__main__":
         criterion,
         train_loader,
         val_loader,
+        checkpoint_dir=config["checkpoint_dir"],
         max_steps=config["max_steps"],
         checkpoint_steps=config["checkpoint_steps"],
         device=config["device"],
