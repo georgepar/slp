@@ -1,0 +1,72 @@
+device: cuda
+data_dir: /home/george/projects/slp/data/mosei_padded.p
+normalize: false
+binary: false
+train: true
+test: true
+overfit_batch: false
+debug: false
+remove_pauses: true
+
+modalities:
+    #    - text
+    - audio
+
+audio:
+    instance_norm: false
+    model:
+        input_size: 384
+        hidden_size: 300
+        layers: 1
+        dropout: !!float 0.25
+        bidirectional: true
+        rnn_type: lstm
+        attention: true
+        return_hidden: false
+        batchnorm: false
+
+text:
+    model:
+        input_size: 300
+        hidden_size: 300
+        layers: 1
+        dropout: !!float 0.25
+        bidirectional: true
+        rnn_type: lstm
+        attention: true
+        return_hidden: false
+
+fuse:
+    method: cat
+    modality_weights: false
+    projection_size: 300
+    use_mask: false
+    prefuse: true
+
+experiment:
+    name: mosei-padded
+    description: MOSEI padded task
+
+embeddings:
+    path: /home/george/projects/slp/cache/glove.840B.300d.txt
+    dim: 300
+    finetune: false
+    dropout: !!float 0
+
+dataloaders:
+    batch_size: 32
+    num_workers: 1
+    pin_memory: false
+
+optimizer:
+    name: Adam
+    learning_rate: !!float 1e-3
+
+trainer:
+    patience: 10
+    max_epochs: 100
+    retain_graph: false
+    clip_grad_norm: !!int -1
+    load_model: mosei-padded_model.best.pth
+    checkpoint_dir: /home/george/projects/slp/checkpoints
+

@@ -1,0 +1,62 @@
+device: cpu
+data_dir: /home/george/projects/slp/data/mosi.new/
+binary: true
+train: true
+test: true
+overfit_batch: false
+debug: false
+remove_pauses: true
+
+modalities:
+    - text
+    - audio
+
+audio:
+    dim: 74
+    instance_norm: false
+    batchnorm: false
+    layers: 1
+    hidden_size: 60
+    attention: true
+
+text:
+    layers: 1
+    hidden_size: 300
+    attention: true
+
+fuse:
+    method: common_space
+    modality_weights: false
+    projection_size: 120
+
+common:
+    dropout: !!float 0.25
+    bidirectional: true
+    rnn_type: lstm
+
+experiment:
+    name: mosi-binary-audio-text
+    description: MOSI binary task
+
+embeddings:
+    path: /home/george/projects/slp/cache/glove.840B.300d.txt
+    dim: 300
+    finetune: false
+    dropout: !!float 0
+
+dataloaders:
+    batch_size: 32
+    num_workers: 1
+    pin_memory: true
+
+optimizer:
+    name: Adam
+    learning_rate: !!float 1e-3
+
+trainer:
+    patience: 5
+    max_epochs: 100
+    retain_graph: true
+    load_model: mosi-binary-audio-text_model.best.pth
+    checkpoint_dir: /home/george/projects/slp/checkpoints
+

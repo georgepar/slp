@@ -1,0 +1,27 @@
+experiment:
+    name: mosi-binary-audio-text
+    description: Long experiment description
+embeddings:
+    path: /home/george/projects/slp/cache/glove.840B.300d.txt
+    dim: 300
+dataloaders:
+    batch_size: 8
+    pin_memory: True
+models:
+    rnn:
+        hidden_size: 256
+        layers: 1
+        bidirectional: True
+        attention: True
+    classifier:
+        in_features: 512
+        num_classes: 3
+optimizer:
+    name: Adam
+    learning_rate: !!float 1e-3
+loss:
+    name: CrossEntropyLoss
+trainer:
+    patience: 5
+    retain_graph: True
+
