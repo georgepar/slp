@@ -5,4 +5,5 @@ from slp.trainer.trainer import (
     Seq2seqTrainer,
     SequentialTrainer,
     TransformerTrainer,
+    MOSITrainer,
 )

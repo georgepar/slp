@@ -22,7 +22,7 @@ from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
 from slp.util import log
 from slp.util.embeddings import EmbeddingsLoader
-
+from slp.util.system import safe_mkdirs
 
 class BCE(nn.Module):
     def __init__(self):
@@ -167,6 +167,19 @@ def get_parser():
         help="Use modality weights during fusion",
     )
 
+    parser.add_argument(
+        "--feedback",
+        dest="feedback",
+        action="store_true",
+        help="Use feedback fusion",
+    )
+
+    parser.add_argument(
+        "--result-dir",
+        dest="results_dir",
+        help="Results directory",
+    )
+
     return parser
 
 
@@ -174,7 +187,7 @@ C = load_config(parser=get_parser())
 C["modalities"] = set(C["modalities"])
 
 collate_fn = MOSICollator(
-    device="cpu", binary=C["binary"], modalities=["text", "audio"], max_length=-1
+    device="cpu", binary=False, modalities=["text", "audio"], max_length=-1
 )
 
 
@@ -185,7 +198,6 @@ if __name__ == "__main__":
         C["data_dir"],
         modalities=C["modalities"],
         remove_pauses=False,  # C['remove_pauses'],
-        remove_neutral=True,  # C['binary'],
         max_length=-1,
         pad_front=True,
         pad_back=False,
@@ -221,11 +233,11 @@ if __name__ == "__main__":
 
     def create_dataloader(data):
         d = (
-            MOSI(data, binary=C["binary"], modalities=C["modalities"])
+            MOSI(data, modalities=C["modalities"])
             # .map(covarep_filter, 'audio', lazy=True)
             # .map(instance_norm, 'visual', lazy=True)
-            .map(to_tensor_float, "visual", lazy=True)
         )
+        d.map(to_tensor_float, "visual", lazy=True)
 
         if "glove" not in C["modalities"]:
             d.map(to_tensor, "text", lazy=True)
@@ -253,6 +265,8 @@ if __name__ == "__main__":
     train_loader, dev_loader, test_loader = map(create_dataloader, [train, dev, test])
     x = next(iter(train_loader))
 
+    print("Running with feedback = {}".format(C["feedback"]))
+
     model = AudioTextClassifier(
         embeddings=embeddings,
         audio_cfg=C["audio"]["model"],
@@ -262,25 +276,14 @@ if __name__ == "__main__":
         modalities=C["modalities"],
         text_mode="glove",
         audio_mode="sequential",
-        feedback=True
+        num_classes=1,
+        feedback=C["feedback"],
     )
-
+    model = model.to(C["device"])
     optimizer = getattr(torch.optim, C["optimizer"]["name"])(
         [p for p in model.parameters() if p.requires_grad],
         lr=C["optimizer"]["learning_rate"],
     )
-
-    if C["binary"]:
-        criterion = BCE()
-    else:
-        criterion = nn.CrossEntropyLoss()
-
-    def thresholded_output_transform(output):
-        y_pred, y = output
-        y_pred = torch.sigmoid(y_pred)
-        y_pred = torch.round(y_pred)
-
-        return y_pred, y
 
     if C["binary"]:
         criterion = BCE()
@@ -315,10 +318,10 @@ if __name__ == "__main__":
             return yp, yt
 
         metrics = {
-            "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
-            "mae": MeanAbsoluteError(),
-            "mult_accuracy": Accuracy(output_transform=mult_acc_transform),
-            "f1": Fbeta(1, output_transform=bin_acc_transform),
+            #"bin_accuracy": Accuracy(output_transform=bin_acc_transform),
+            #"mae": MeanAbsoluteError(),
+            #"mult_accuracy": Accuracy(output_transform=mult_acc_transform),
+            #"f1": Fbeta(1, output_transform=bin_acc_transform),
             "loss": Loss(criterion),
         }
         # score_fn = lambda engine: engine.state.metrics["f1"]
@@ -367,36 +370,21 @@ if __name__ == "__main__":
             loss_fn=criterion,
             device=C["device"],
         )
-        # pprint(trainer.predict(test_loader).metrics)
 
         predictions, targets = trainer.predict(test_loader)
 
-        pred = torch.cat(predictions).squeeze().detach().numpy()
-        y_test = torch.cat(targets).squeeze().detach().numpy()
+        pred = torch.cat(predictions)
+        y_test = torch.cat(targets)
 
-        from sklearn.metrics import (
-            f1_score,
-            confusion_matrix,
-            accuracy_score,
-            classification_report,
-        )
+        from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
 
-        mae = np.mean(np.absolute(pred - y_test))
-        print("mae: ", mae)
-        corr = np.corrcoef(pred, y_test)[0][1]
-        print("corr: ", corr)
-        mult = round(
-            sum(np.round(pred) == np.round(y_test)) / float(len(y_test)), 5
-        )
-        print("mult_acc: ", mult)
-        f_score = round(
-            f1_score(np.round(pred), np.round(y_test), average="weighted"), 5
-        )
-        print("mult f_score: ", f_score)
-        true_label = y_test >= 0
-        predicted_label = pred >= 0
-        print("Confusion Matrix :")
-        print(confusion_matrix(true_label, predicted_label))
-        print("Classification Report :")
-        print(classification_report(true_label, predicted_label, digits=5))
-        print("Accuracy ", accuracy_score(true_label, predicted_label))
+        metrics = eval_mosei_senti(pred, y_test, True)
+        print_metrics(metrics)
+
+        import uuid
+
+        results_dir = C["results_dir"]
+        safe_mkdirs(results_dir)
+        results_file = os.path.join(results_dir, uuid.uuid1().hex)
+
+        save_metrics(metrics, results_file)

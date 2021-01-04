@@ -1,10 +1,8 @@
-import torch
-
 from typing import Optional
 
-from slp.util import system
-from slp.util import log
-from slp.util import types
+import torch
+
+from slp.util import log, system, types
 
 
 def to_device(
@@ -37,10 +35,12 @@ def t_(
             requires_grad containing data
 
     """
+
     if isinstance(device, str):
         device = torch.device(device)
 
     tt = torch.as_tensor(data, dtype=dtype, device=device).requires_grad_(requires_grad)
+
     return tt
 
 
@@ -69,6 +69,7 @@ def t(
 
     """
     tt = torch.tensor(data, dtype=dtype, device=device, requires_grad=requires_grad)
+
     return tt
 
 
@@ -100,6 +101,7 @@ def mktensor(
 
     """
     tensor_factory = t if copy else t_
+
     return tensor_factory(data, dtype=dtype, device=device, requires_grad=requires_grad)
 
 
@@ -116,11 +118,19 @@ def from_checkpoint(
             f"The checkpoint {checkpoint_file} you are trying to load "
             "does not exist. Continuing without loading..."
         )
-        return obj
 
+        return obj
     state_dict = torch.load(checkpoint_file, map_location=map_location)
-    state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
+
+    if isinstance(obj, torch.nn.Module):
+        if "model" in state_dict:
+            state_dict = state_dict["model"]
+        state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
+
+    if isinstance(obj, torch.optim.Optimizer) and "optimizer" in state_dict:
+        state_dict = state_dict["optimizer"]
     obj.load_state_dict(state_dict)
+
     return obj
 
 
@@ -131,4 +141,5 @@ def rotate_tensor(l: torch.Tensor, n: int = 1) -> torch.Tensor:
 def shift_tensor(l: torch.Tensor, n: int = 1) -> torch.Tensor:
     out = rotate_tensor(l, n=n)
     out[-n:] = 0
+
     return out

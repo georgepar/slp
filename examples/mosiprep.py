@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from slp.data.mosi import MOSIMFN
 from slp.data.collators import MOSICollator
-from slp.data.transforms import InstanceNorm, ToTensor
+from slp.data.transforms import ToTensor
 from slp.modules.multimodal import AudioTextClassifier
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -222,7 +222,7 @@ if __name__ == "__main__":
 
     to_tensor = ToTensor(device="cpu")
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
-    instance_norm = InstanceNorm()
+    # instance_norm = InstanceNorm()
 
     d = (
         MOSIMFN(
@@ -231,9 +231,9 @@ if __name__ == "__main__":
         )
         .map(to_tensor_float, 'text', lazy=True)
     )
-    if C["audio"]["instance_norm"]:
-        d = d.map(instance_norm, "audio", lazy=True)
-        d = d.map(instance_norm, 'visual', lazy=True)
+    # if C["audio"]["instance_norm"]:
+        # d = d.map(instance_norm, "audio", lazy=True)
+        # d = d.map(instance_norm, 'visual', lazy=True)
     d = d.map(to_tensor_float, 'audio', lazy=True)
     d = d.map(to_tensor_float, 'visual', lazy=True)
     d.apply_transforms()
@@ -304,7 +304,7 @@ if __name__ == "__main__":
             [p for p in model.parameters() if p.requires_grad],
             lr=C['optimizer']['learning_rate']
         )
-
+        
         trainer = MOSITrainer(
             model,
             optimizer,

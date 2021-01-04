@@ -7,52 +7,6 @@ import torch.nn.functional as F
 from slp.modules.rnn import AttentiveRNN, WordRNN
 
 
-class GatedLinearUnit(nn.Module):
-    def __init__(self, hidden_dim=None, learnable=False):
-        super(GatedLinearUnit, self).__init__()
-        self.learnable = learnable
-        if learnable:
-            if hidden_dim is None:
-                raise ValueError("You must provide hidden dim for learnable GLU")
-            self.hidden_dim = hidden_dim
-            self.proj = nn.Linear(hidden_dim, hidden_dim)
-            self.mask = nn.Linear(hidden_dim, hidden_dim)
-
-    def forward(self, x, y):
-        if self.learnable:
-            x = self.proj(x)
-            y = self.mask(y)
-        mask = torch.sigmoid(y)
-        x = x * mask
-
-        return x
-
-
-class GatedLinearUnit3Way(nn.Module):
-    def __init__(self, hidden_dim=None, learnable=False):
-        super(GatedLinearUnit3Way, self).__init__()
-        self.learnable = learnable
-        if learnable:
-            if hidden_dim is None:
-                raise ValueError("You must provide hidden dim for learnable GLU")
-            self.hidden_dim = hidden_dim
-            self.proj = nn.Linear(hidden_dim, hidden_dim)
-            self.mask1 = nn.Linear(hidden_dim, hidden_dim)
-            self.mask2 = nn.Linear(hidden_dim, hidden_dim)
-
-    def forward(self, x, y, z):
-        if self.learnable:
-            x = self.proj(x)
-            y = self.mask1(y)
-            z = self.mask2(z)
-        mask1 = torch.sigmoid(y)
-        mask2 = torch.sigmoid(z)
-        mask = mask1 + mask2
-        x = x * mask
-
-        return x
-
-
 class SubNet(nn.Module):
     """
     The subnetwork that is used in TFN for video and audio in the pre-fusion stage
@@ -100,21 +54,6 @@ class ModalityProjection(nn.Module):
         return x, y
 
 
-class ModalityProjection3Way(nn.Module):
-    def __init__(self, mod1_sz, mod2_sz, mod3_sz, proj_sz):
-        super(ModalityProjection3Way, self).__init__()
-        self.p1 = nn.Linear(mod1_sz, proj_sz)
-        self.p2 = nn.Linear(mod2_sz, proj_sz)
-        self.p3 = nn.Linear(mod3_sz, proj_sz)
-
-    def forward(self, x, y, z):
-        x = self.p1(x)
-        y = self.p2(y)
-        z = self.p3(z)
-
-        return x, y, z
-
-
 class ModalityWeights(nn.Module):
     def __init__(self, mod1_sz, mod2_sz, proj_sz=None, modality_weights=False):
         super(ModalityWeights, self).__init__()
@@ -138,34 +77,6 @@ class ModalityWeights(nn.Module):
             y = y * w[:, 1, ...]
 
         return x, y
-
-
-class ModalityWeights3Way(nn.Module):
-    def __init__(self, mod1_sz, mod2_sz, mod3_sz, proj_sz=None, modality_weights=False):
-        super(ModalityWeights3Way, self).__init__()
-        self.proj, self.mod_w = None, None
-        self.proj_sz = mod1_sz if proj_sz is None else proj_sz
-
-        if proj_sz is not None:
-            self.proj = ModalityProjection3Way(mod1_sz, mod2_sz, mod3_sz, self.proj_sz)
-
-        if modality_weights:
-            self.mod_w = nn.Linear(self.proj_sz, 1)
-
-    def forward(self, x, y, z):
-        if self.proj:
-            x, y, z = self.proj(x, y, z)
-
-        if self.mod_w:
-            w = self.mod_w(
-                torch.cat([x.unsqueeze(1), y.unsqueeze(1), z.unsqueeze(1)], dim=1)
-            )
-            w = F.softmax(w, dim=1)
-            x = x * w[:, 0, ...]
-            y = y * w[:, 1, ...]
-            z = z * w[:, 2, ...]
-
-        return x, y, z
 
 
 class CommonSpaceFuser(nn.Module):
@@ -249,33 +160,6 @@ class CatFuser(nn.Module):
         return torch.cat([x, y], dim=1)
 
 
-class CatFuser3Way(nn.Module):
-    def __init__(
-        self,
-        mod1_sz,
-        mod2_sz,
-        mod3_sz,
-        proj_sz=None,
-        modality_weights=False,
-        device="cpu",
-        extra_args=None,
-    ):
-        super(CatFuser3Way, self).__init__()
-        self.mw = ModalityWeights3Way(
-            mod1_sz,
-            mod2_sz,
-            mod3_sz,
-            proj_sz=proj_sz,
-            modality_weights=modality_weights,
-        )
-        self.out_size = mod1_sz + mod2_sz + mod3_sz if proj_sz is None else 3 * proj_sz
-
-    def forward(self, x, y, z):
-        x, y, z = self.mw(x, y, z)
-
-        return torch.cat([x, y, z], dim=1)
-
-
 class AddFuser(nn.Module):
     def __init__(
         self,
@@ -296,29 +180,6 @@ class AddFuser(nn.Module):
         x, y = self.mw(x, y)
 
         return x + y
-
-
-class AddFuser3Way(nn.Module):
-    def __init__(
-        self,
-        mod1_sz,
-        mod2_sz,
-        mod3_sz,
-        proj_sz=None,
-        modality_weights=False,
-        device="cpu",
-        extra_args=None,
-    ):
-        super(AddFuser3Way, self).__init__()
-        self.mw = ModalityWeights3Way(
-            mod1_sz, mod2_sz, mod3_sz, proj_sz=proj_sz, modality_weights=False
-        )
-        self.out_size = mod1_sz if proj_sz is None else proj_sz
-
-    def forward(self, x, y, z):
-        x, y, z = self.mw(x, y, z)
-
-        return x + y + z
 
 
 class AudioEncoderAverage(nn.Module):
@@ -477,33 +338,16 @@ class AudioTextEncoder(nn.Module):
         super(AudioTextEncoder, self).__init__()
         # For now model dim == text dim (the largest). In the future this can be done
         # with individual projection layers for each modality
+        assert fuse_cfg["projection_size"] == text_cfg["input_size"]
         assert text_cfg["attention"] and audio_cfg["attention"], "Use attention pls."
 
         self.feedback = feedback
 
-        text_size = fuse_cfg["projection_size"]
         audio_size = fuse_cfg["projection_size"]
+
         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
         audio_cfg["input_size"] = audio_size
-        text_cfg["input_size"] = text_size
-
-        self.audio_projection = nn.Linear(
-            audio_cfg["orig_size"], fuse_cfg["projection_size"]
-        )
-
-        self.text_projection = None
-        if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
-            self.text_projection = nn.Linear(
-                text_cfg["orig_size"], fuse_cfg["projection_size"]
-            )
-
-        self.prefuser = None
-
-        if fuse_cfg["prefuse"]:
-            self.prefuser = nn.Linear(
-                fuse_cfg["projection_size"], fuse_cfg["projection_size"]
-            )
 
         text_cfg["return_hidden"] = True
         audio_cfg["return_hidden"] = True
@@ -513,6 +357,94 @@ class AudioTextEncoder(nn.Module):
         else:
             raise ValueError("Only glove supported for now")
 
+        self.audio = AudioEncoder(audio_cfg, device=device)
+
+        if fuse_cfg["method"] == "cat":
+            fuse_cls = CatFuser
+        elif fuse_cfg["method"] == "add":
+            fuse_cls = AddFuser
+        elif fuse_cfg["method"] == "common_space":
+            fuse_cls = CommonSpaceFuser
+        else:
+            raise ValueError('Supported fuse techniques: ["cat", "add"]')
+
+        self.audio_projection = nn.Linear(
+            audio_cfg["orig_size"], fuse_cfg["projection_size"]
+        )
+
+        self.prefuser = None
+
+        if fuse_cfg["prefuse"]:
+            self.prefuser = nn.Linear(
+                fuse_cfg["projection_size"], fuse_cfg["projection_size"]
+            )
+
+        self.fuser = fuse_cls(
+            self.text.out_size,
+            self.audio.out_size,
+            proj_sz=fuse_cfg["projection_size"],
+            modality_weights=fuse_cfg["modality_weights"],
+            device=device,
+            extra_args=fuse_cfg,
+        )
+        self.out_size = self.fuser.out_size
+
+    def forward(self, txt, au, lengths):
+        au = self.audio_projection(au)
+
+        if self.prefuser is not None:
+            au = self.prefuser(au)
+            txt = self.prefuser(txt)
+
+        txt = self.text(txt, lengths)
+        au = self.audio(au, lengths)
+
+        # Sum weighted attention hidden states
+        txt = txt.sum(1)
+        au = au.sum(1)
+
+        fused = self.fuser(txt, au)
+
+        return fused
+
+
+class FeedbackAudioTextEncoder(nn.Module):
+    def __init__(
+        self,
+        embeddings=None,
+        vocab_size=None,
+        audio_cfg=None,
+        text_cfg=None,
+        fuse_cfg=None,
+        text_mode="glove",
+        device="cpu",
+    ):
+        super(FeedbackAudioTextEncoder, self).__init__()
+        assert fuse_cfg["projection_size"] == text_cfg["input_size"]
+        audio_size = fuse_cfg["projection_size"]
+        text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
+        audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
+        audio_cfg["input_size"] = audio_size
+
+        self.audio_projection = nn.Linear(
+            audio_cfg["orig_size"], fuse_cfg["projection_size"]
+        )
+
+        self.prefuser = None
+
+        if fuse_cfg["prefuse"]:
+            self.prefuser = nn.Linear(
+                fuse_cfg["projection_size"], fuse_cfg["projection_size"]
+            )
+
+        self.bidirectional = text_cfg["bidirectional"]
+
+        if text_mode == "glove":
+            text_cfg["return_hidden"] = True
+            self.text = GloveEncoder(text_cfg, device=device)
+        else:
+            raise ValueError("Only glove input supported")
+        audio_cfg["return_hidden"] = True
         self.audio = AudioEncoder(audio_cfg, device=device)
 
         if fuse_cfg["method"] == "cat":
@@ -536,240 +468,23 @@ class AudioTextEncoder(nn.Module):
 
     def forward(self, txt, au, lengths):
         au = self.audio_projection(au)
-        if self.text_projection is not None:
-            txt = self.text_projection(txt)
-
 
         if self.prefuser is not None:
             au = self.prefuser(au)
             txt = self.prefuser(txt)
 
-        if self.feedback:
-            for _ in range(2):
-                txt = self.text(txt, lengths)
-                au = self.audio(au, lengths)
-                txt = F.glu(torch.cat((txt, au), dim=-1), dim=-1)
-                au = F.glu(torch.cat((au, txt), dim=-1), dim=-1)
-
+        for _ in range(2):
+            txt = self.text(txt, lengths)
+            au = self.audio(au, lengths)
+            txt = F.glu(torch.cat((txt, au), dim=-1), dim=-1)
+            au = F.glu(torch.cat((au, txt), dim=-1), dim=-1)
         txt = self.text(txt, lengths)
         au = self.audio(au, lengths)
-
-        # Sum weighted attention hidden states
         txt = txt.sum(1)
         au = au.sum(1)
-
         fused = self.fuser(txt, au)
 
         return fused
-
-
-class AudioVisualTextEncoder(nn.Module):
-    def __init__(
-        self,
-        embeddings=None,
-        vocab_size=None,
-        audio_cfg=None,
-        text_cfg=None,
-        visual_cfg=None,
-        fuse_cfg=None,
-        feedback=False,
-        text_mode="glove",
-        device="cpu",
-    ):
-        super(AudioVisualTextEncoder, self).__init__()
-        # For now model dim == text dim (the largest). In the future this can be done
-        # with individual projection layers for each modality
-        assert (
-            text_cfg["attention"] and audio_cfg["attention"] and visual_cfg["attention"]
-        ), "Use attention pls."
-
-        self.feedback = feedback
-
-        audio_size = fuse_cfg["projection_size"]
-        text_size = fuse_cfg["projection_size"]
-        visual_size = fuse_cfg["projection_size"]
-        text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
-        audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
-        visual_cfg["orig_size"] = visual_cfg.get("orig_size", visual_cfg["input_size"])
-        audio_cfg["input_size"] = audio_size
-        text_cfg["input_size"] = text_size
-        visual_cfg["input_size"] = visual_size
-
-        self.text_projection = None
-        if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
-            self.text_projection = nn.Linear(
-                text_cfg["orig_size"], fuse_cfg["projection_size"]
-            )
-
-        self.audio_projection = nn.Linear(
-            audio_cfg["orig_size"], fuse_cfg["projection_size"]
-        )
-
-        self.visual_projection = nn.Linear(
-            visual_cfg["orig_size"], fuse_cfg["projection_size"]
-        )
-
-        self.prefuser = None
-
-        if fuse_cfg["prefuse"]:
-            self.prefuser = nn.Linear(
-                fuse_cfg["projection_size"], fuse_cfg["projection_size"]
-            )
-
-        text_cfg["return_hidden"] = True
-        audio_cfg["return_hidden"] = True
-        visual_cfg["return_hidden"] = True
-
-        if text_mode == "glove":
-            self.text = GloveEncoder(text_cfg, device=device)
-        else:
-            raise ValueError("Only glove supported for now")
-
-        self.audio = AudioEncoder(audio_cfg, device=device)
-
-        self.visual = VisualEncoder(visual_cfg, device=device)
-
-        if feedback:
-            self.glu = GatedLinearUnit3Way()
-
-        if fuse_cfg["method"] == "cat":
-            fuse_cls = CatFuser3Way
-        elif fuse_cfg["method"] == "add":
-            fuse_cls = AddFuser3Way
-        elif fuse_cfg["method"] == "common_space":
-            raise NotImplementedError
-        else:
-            raise ValueError('Supported fuse techniques: ["cat", "add"]')
-
-        self.fuser = fuse_cls(
-            self.text.out_size,
-            self.audio.out_size,
-            self.visual.out_size,
-            proj_sz=fuse_cfg["projection_size"],
-            modality_weights=fuse_cfg["modality_weights"],
-            device=device,
-            extra_args=fuse_cfg,
-        )
-        self.out_size = self.fuser.out_size
-
-    def from_pretrained(self, audio_path, visual_path, text_path):
-        text_model = torch.load(text_path)
-        text_encoder = text_model["encoder"]
-        self.text_encoder = text_encoder
-        raise NotImplementedError
-
-
-    def forward(self, txt, au, vi, lengths):
-        au = self.audio_projection(au)
-        vi = self.visual_projection(vi)
-        if self.text_projection is not None:
-            txt = self.text_projection(txt)
-        if self.prefuser is not None:
-            au = self.prefuser(au)
-            vi = self.prefuser(vi)
-            txt = self.prefuser(txt)
-
-        if self.feedback:
-            for _ in range(2):
-                txt = self.text(txt, lengths)
-                au = self.audio(au, lengths)
-                vi = self.visual(vi, lengths)
-                txt = self.glu(txt, au, vi)
-                au = self.glu(au, txt, vi)
-                vi = self.glu(vi, txt, au)
-
-        txt = self.text(txt, lengths)
-        au = self.audio(au, lengths)
-        vi = self.visual(vi, lengths)
-
-        # Sum weighted attention hidden states
-        txt = txt.sum(1)
-        au = au.sum(1)
-        vi = vi.sum(1)
-
-        fused = self.fuser(txt, au, vi)
-
-        return fused
-
-
-# class FeedbackAudioTextEncoder(nn.Module):
-#     def __init__(
-#         self,
-#         embeddings=None,
-#         vocab_size=None,
-#         audio_cfg=None,
-#         text_cfg=None,
-#         fuse_cfg=None,
-#         text_mode="glove",
-#         device="cpu",
-#     ):
-#         super(FeedbackAudioTextEncoder, self).__init__()
-#         assert fuse_cfg["projection_size"] == text_cfg["input_size"]
-
-#         audio_size = fuse_cfg["projection_size"]
-#         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
-#         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
-#         audio_cfg["input_size"] = audio_size
-
-#         self.audio_projection = nn.Linear(
-#             audio_cfg["orig_size"], fuse_cfg["projection_size"]
-#         )
-
-#         self.prefuser = None
-
-#         if fuse_cfg["prefuse"]:
-#             self.prefuser = nn.Linear(
-#                 fuse_cfg["projection_size"], fuse_cfg["projection_size"]
-#             )
-
-#         text_cfg["return_hidden"] = True
-#         audio_cfg["return_hidden"] = True
-
-#         if text_mode == "glove":
-#             self.text = GloveEncoder(text_cfg, device=device)
-#         else:
-#             raise ValueError("Only glove input supported")
-
-#         self.audio = AudioEncoder(audio_cfg, device=device)
-
-#         if fuse_cfg["method"] == "cat":
-#             fuse_cls = CatFuser
-#         elif fuse_cfg["method"] == "add":
-#             fuse_cls = AddFuser
-#         elif fuse_cfg["method"] == "common_space":
-#             fuse_cls = CommonSpaceFuser
-#         else:
-#             raise ValueError('Supported fuse techniques: ["cat", "add"]')
-
-#         self.fuser = fuse_cls(
-#             self.text.out_size,
-#             self.audio.out_size,
-#             proj_sz=fuse_cfg["projection_size"],
-#             modality_weights=fuse_cfg["modality_weights"],
-#             device=device,
-#             extra_args=fuse_cfg,
-#         )
-#         self.out_size = self.fuser.out_size
-
-#     def forward(self, txt, au, lengths):
-#         au = self.audio_projection(au)
-
-#         if self.prefuser is not None:
-#             au = self.prefuser(au)
-#             txt = self.prefuser(txt)
-
-#         for _ in range(2):
-#             txt = self.text(txt, lengths)
-#             au = self.audio(au, lengths)
-#             txt = F.glu(torch.cat((txt, au), dim=-1), dim=-1)
-#             au = F.glu(torch.cat((au, txt), dim=-1), dim=-1)
-#         txt = self.text(txt, lengths)
-#         au = self.audio(au, lengths)
-#         txt = txt.sum(1)
-#         au = au.sum(1)
-#         fused = self.fuser(txt, au)
-
-#         return fused
 
 
 class AudioTextClassifier(nn.Module):
@@ -789,15 +504,14 @@ class AudioTextClassifier(nn.Module):
         super(AudioTextClassifier, self).__init__()
         self.modalities = modalities
 
-        # enc_cls = AudioTextEncoder if not feedback else FeedbackAudioTextEncoder
-        self.encoder = AudioTextEncoder(
+        enc_cls = AudioTextEncoder if not feedback else FeedbackAudioTextEncoder
+        self.encoder = enc_cls(
             embeddings=embeddings,
             vocab_size=vocab_size,
             text_cfg=text_cfg,
             audio_cfg=audio_cfg,
             fuse_cfg=fuse_cfg,
             text_mode=text_mode,
-            feedback=feedback,
             device=device,
         )
 
@@ -809,25 +523,6 @@ class AudioTextClassifier(nn.Module):
         return self.classifier(out)
 
 
-class GloveClassifier(nn.Module):
-    def __init__(self, cfg, num_classes=1, device="cpu"):
-        pass
-
-
-class AudioClassifier(nn.Module):
-    def __init__(self, cfg, num_classes=1, projection_size=300, device="cpu"):
-        pass
-
-
-class VisualClassifier(nn.Module):
-    def __init__(self, cfg, num_classes=1, projection_size=300, device="cpu"):
-        pass
-
-    def forward(self, x, lengths):
-        x = self.project(x)  # 35 -> 300 
-        x = self.encoder(x, lengths)
-        return self.classifier(x)
-
 class AudioVisualTextClassifier(nn.Module):
     def __init__(
         self,
@@ -835,7 +530,6 @@ class AudioVisualTextClassifier(nn.Module):
         vocab_size=None,
         audio_cfg=None,
         text_cfg=None,
-        visual_cfg=None,
         fuse_cfg=None,
         modalities=None,
         text_mode="glove",
@@ -843,30 +537,25 @@ class AudioVisualTextClassifier(nn.Module):
         feedback=False,
         device="cpu",
     ):
-        super(AudioVisualTextClassifier, self).__init__()
+        super(AudioTextClassifier, self).__init__()
         self.modalities = modalities
 
         assert "text" in modalities or "glove" in modalities, "No text"
         assert "audio" in modalities, "No audio"
         assert "visual" in modalities, "No visual"
 
-        self.encoder = AudioVisualTextEncoder(
+        enc_cls = AudioTextEncoder if not feedback else FeedbackAudioTextEncoder
+        self.encoder = enc_cls(
             embeddings=embeddings,
             vocab_size=vocab_size,
             text_cfg=text_cfg,
             audio_cfg=audio_cfg,
-            visual_cfg=visual_cfg,
             fuse_cfg=fuse_cfg,
             text_mode=text_mode,
-            feedback=feedback,
             device=device,
         )
 
         self.classifier = nn.Linear(self.encoder.out_size, num_classes)
 
     def forward(self, inputs):
-        out = self.encoder(
-            inputs["text"], inputs["audio"], inputs["visual"], inputs["lengths"]
-        )
-
-        return self.classifier(out)
+        pass

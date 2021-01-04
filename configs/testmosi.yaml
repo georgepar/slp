@@ -1,7 +1,7 @@
 device: cpu
 data_dir: /home/geopar/projects/mm/data/cmumosi
 binary: false
-train: true
+train: false
 test: true
 overfit_batch: false
 debug: false
@@ -18,8 +18,8 @@ audio:
         input_size: 384
         hidden_size: 300
         layers: 1
-        dropout: !!float 0.5
-        bidirectional: false
+        dropout: !!float 0.2
+        bidirectional: true
         rnn_type: lstm
         attention: true
         return_hidden: false
@@ -30,8 +30,8 @@ text:
         input_size: 300
         hidden_size: 300
         layers: 1
-        dropout: !!float 0.5
-        bidirectional: false
+        dropout: !!float 0.2
+        bidirectional: true
         rnn_type: lstm
         attention: true
         return_hidden: false
@@ -40,12 +40,12 @@ fuse:
     method: cat
     modality_weights: false
     projection_size: 300
-    prefuse: true
+    prefuse: false
     use_mask: false
 
 common:
-    dropout: !!float 0.5
-    bidirectional: false
+    dropout: !!float 0.25
+    bidirectional: true
     rnn_type: lstm
 
 experiment:
@@ -59,7 +59,7 @@ embeddings:
     dropout: !!float 0
 
 dataloaders:
-    batch_size: 16
+    batch_size: 32
     num_workers: 1
     pin_memory: true
 
@@ -71,5 +71,5 @@ trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
-    load_model: mosi-binary-audio-text_checkpoint.best.pth
+    load_model: mosi-binary-audio-text_checkpoint.best.pt
     checkpoint_dir: /home/geopar/projects/mm/checkpoints

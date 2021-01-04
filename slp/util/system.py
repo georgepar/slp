@@ -8,6 +8,8 @@ import time
 import urllib
 import urllib.request
 import validators
+import yaml
+
 
 from typing import cast, Any, Callable, Optional, Tuple
 
@@ -174,3 +176,14 @@ def json_load(fname: str) -> types.GenericDict:
 def json_dump(data: types.GenericDict, fname: str) -> None:
     with open(fname, "w") as fd:
         json.dump(data, fd)
+
+
+def yaml_load(fname: str) -> types.GenericDict:
+    with open(fname, "r") as fd:
+        data = yaml.load(fd)
+    return data
+
+
+def yaml_dump(data: types.GenericDict, fname: str) -> None:
+    with open(fname, "w") as fd:
+        yaml.dump(data, fd)

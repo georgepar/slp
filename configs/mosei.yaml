@@ -1,5 +1,6 @@
-device: cpu
-data_dir: /home/geopar/projects/mm/data/cmumosi
+feedback: false
+device: cuda
+data_dir: /home/geopar/projects/mm/data/cmumosei_final_aligned
 binary: false
 train: true
 test: true
@@ -15,10 +16,10 @@ modalities:
 audio:
     instance_norm: false
     model:
-        input_size: 384
+        input_size: 74
         hidden_size: 300
         layers: 1
-        dropout: !!float 0.5
+        dropout: !!float 0.2
         bidirectional: false
         rnn_type: lstm
         attention: true
@@ -30,7 +31,7 @@ text:
         input_size: 300
         hidden_size: 300
         layers: 1
-        dropout: !!float 0.5
+        dropout: !!float 0.2
         bidirectional: false
         rnn_type: lstm
         attention: true
@@ -44,13 +45,13 @@ fuse:
     use_mask: false
 
 common:
-    dropout: !!float 0.5
+    dropout: !!float 0.2
     bidirectional: false
     rnn_type: lstm
 
 experiment:
-    name: mosi-binary-audio-text
-    description: MOSI binary task
+    name: mosei-binary-audio-text
+    description: MOSEI binary task
 
 embeddings:
     path: /data/embeddings/en/glove.840B.300d.txt
@@ -59,9 +60,9 @@ embeddings:
     dropout: !!float 0
 
 dataloaders:
-    batch_size: 16
+    batch_size: 64
     num_workers: 1
-    pin_memory: true
+    pin_memory: false
 
 optimizer:
     name: Adam
@@ -71,5 +72,5 @@ trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
-    load_model: mosi-binary-audio-text_checkpoint.best.pth
+    load_model: mosei-binary-audio-text_checkpoint.best.pth
     checkpoint_dir: /home/geopar/projects/mm/checkpoints

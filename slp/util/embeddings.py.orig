@@ -3,21 +3,26 @@ import os
 
 import numpy as np
 
-from typing import cast, Any, Dict, Optional, Union, List
+from typing import cast, Any, Dict, Optional
 
 from slp.config import SPECIAL_TOKENS
 from slp.util import log
 from slp.util import system
 from slp.util import types
-from slp.util.types import GenericDict, T
+
 
 class EmbeddingsLoader(object):
+<<<<<<< HEAD
+    def __init__(
+        self, embeddings_file: str, dim: int, extra_tokens: Any = SPECIAL_TOKENS
+=======
     '''
     vocab is a filename with all words you want to keep, one word per line
     '''
     def __init__(
         self, embeddings_file: str, dim: int, extra_tokens: Any = SPECIAL_TOKENS,
-        vocab: Union[Optional[str], GenericDict, List[T]] = None
+        vocab: Optional[str] = None
+>>>>>>> origin/add_vocab
     ) -> None:
         self.embeddings_file = embeddings_file
         self.cache_ = self._get_cache_name()
@@ -25,17 +30,9 @@ class EmbeddingsLoader(object):
         self.extra_tokens = extra_tokens
         self.keep_words = None
         if vocab is not None:
-            if isinstance(vocab, str):
-                with open(vocab, 'r') as fd:
-                    self.keep_words = [w.strip() for w in fd.readlines()]
-                    self.keep_words = set(self.keep_words)
-            elif isinstance(vocab, list):
-                self.keep_words = set(vocab)
-            elif isinstance(vocab, dict):
-                self.keep_words = set(vocab.keys())
-            else:
-                raise ValueError(f"Invalid vocab type {type(vocab)}")
-
+            with open(vocab, 'r') as fd:
+                self.keep_words = [w.strip() for w in fd.readlines()]
+                self.keep_words = set(self.keep_words)
 
     def _get_cache_name(self) -> str:
         head, tail = os.path.split(self.embeddings_file)
@@ -75,6 +72,14 @@ class EmbeddingsLoader(object):
             embeddings (numpy.ndarray): the word embeddings matrix
         """
         # in order to avoid this time consuming operation, cache the results
+<<<<<<< HEAD
+        try:
+            cache = self._load_cache()
+            log.info("Loaded word embeddings from cache.")
+            return cache
+        except OSError:
+            log.warning(f"Didn't find embeddings cache file {self.embeddings_file}")
+=======
         if self.keep_words is None:
             try:
                 cache = self._load_cache()
@@ -85,6 +90,7 @@ class EmbeddingsLoader(object):
                     f"Didn't find embeddings cache file {self.embeddings_file}")
         else:
             log.info("You providaed a vocabulary file. Ignoring cache")
+>>>>>>> origin/add_vocab
 
         # create the necessary dictionaries and the word embeddings matrix
         if not os.path.exists(self.embeddings_file):

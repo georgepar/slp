@@ -23,13 +23,14 @@ class CheckpointHandler(ModelCheckpoint):
     def __call__(self, engine: Engine, to_save: types.GenericDict) -> None:
         super(CheckpointHandler, self).__call__(engine, to_save)
         # Select model with best loss
-        _, paths = self._saved[-1]
-        for src in paths:
-            splitted = src.split("_")
-            fname_prefix = splitted[0]
-            name = splitted[1]
-            dst = f"{fname_prefix}_{name}.best.pth"
-            shutil.copy(src, dst)
+        src = self.last_checkpoint
+        print(src)
+        # for src in paths:
+        splitted = src.split("_")
+        fname_prefix = splitted[0]
+        name = splitted[1]
+        dst = f"{fname_prefix}_{name}.best.pth"
+        shutil.copy(src, dst)
 
 
 class EvaluationHandler(object):

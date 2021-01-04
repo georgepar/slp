@@ -8,7 +8,7 @@ class SPECIAL_TOKENS(Enum):
     BOS = "[BOS]"
     EOS = "[EOS]"
     CLS = "[CLS]"
-
+    PAUSE = "[PAUSE]"
     @classmethod
     def has_token(cls, token):
         return any(token == t.name or token == t.value for t in cls)
