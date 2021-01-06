@@ -15,14 +15,17 @@ from slp.data.collators import MOSICollator
 from slp.data.mosi import MOSEI
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
+
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
 from slp.modules.multimodal import AudioVisualTextTransformerClassifier
+from slp.modules.warmup import GradualWarmupScheduler
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
 from slp.util import log
 from slp.util.system import safe_mkdirs
 
-#torch.autograd.set_detect_anomaly(True)
+# torch.autograd.set_detect_anomaly(True)
+
 
 class BCE(nn.Module):
     def __init__(self):
@@ -182,12 +185,12 @@ if __name__ == "__main__":
     train, dev, test, vocab = mosei(
         C["data_dir"],
         modalities=C["modalities"],
-        remove_pauses=C['remove_pauses'],
+        remove_pauses=C["remove_pauses"],
         max_length=-1,
         pad_front=False,
         pad_back=False,
         aligned=False,
-        cache=os.path.join(C["cache_dir"], "mosei_avt_unpadded.p"),
+        cache=os.path.join(C["cache_dir"], "mosei_avt.p"),
     )
 
     assert "glove" in C["modalities"], "Use glove"
@@ -202,43 +205,41 @@ if __name__ == "__main__":
         for d in test:
             d["text"] = d["glove"]
 
-
-    from tqdm import tqdm
     # normalize
-    all_audio = []
-    for d in tqdm(train):
-        x = d["audio"]
-        all_audio.append(x)
+    from tqdm import tqdm
 
+    all_audio = []
+    all_visual = []
+
+    for d in tqdm(train):
+        all_audio.append(d["audio"])
+        all_visual.append(d["visual"])
     all_audio = np.vstack(all_audio).astype(np.float64)
+    all_visual = np.vstack(all_visual).astype(np.float64)
     from sklearn.preprocessing import StandardScaler
 
-    scaler = StandardScaler().fit(all_audio)
-
-    import pickle
-
-    with open("cache/covarep_scaler.p", "wb") as fd:
-        pickle.dump(scaler, fd)
-
+    scaler_audio = StandardScaler().fit(all_audio)
+    scaler_visual = StandardScaler().fit(all_visual)
     del all_audio
+    del all_visual
 
     for d in tqdm(train):
-        d["audio"] = scaler.transform(d["audio"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(dev):
-        d["audio"] = scaler.transform(d["audio"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(test):
-        d["audio"] = scaler.transform(d["audio"])
-
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
 
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
 
     def create_dataloader(data):
-        d = (
-            MOSEI(data, modalities=C["modalities"], unpad=False, select_label=0)
-        )
+        d = MOSEI(data, modalities=C["modalities"], unpad=False, select_label=0)
         d.map(to_tensor_float, "visual", lazy=True)
         d.map(to_tensor_float, "text", lazy=True)
         d = d.map(to_tensor_float, "audio", lazy=True)
@@ -246,7 +247,7 @@ if __name__ == "__main__":
         dataloader = DataLoader(
             d,
             batch_size=C["dataloaders"]["batch_size"],
-            num_workers=C['dataloaders']['num_workers'],
+            num_workers=C["dataloaders"]["num_workers"],
             pin_memory=C["dataloaders"]["batch_size"],
             shuffle=True,
             collate_fn=collate_fn,
@@ -270,6 +271,22 @@ if __name__ == "__main__":
         [p for p in model.parameters() if p.requires_grad],
         lr=C["optimizer"]["learning_rate"],
     )
+
+    after_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        "min",
+        factor=0.5,
+        patience=2,
+        cooldown=2,
+        min_lr=C["optimizer"]["learning_rate"] / 20.0,
+    )
+
+    lr_scheduler = GradualWarmupScheduler(
+        optimizer, 1, 5, after_scheduler=after_scheduler
+    )
+
+    optimizer.zero_grad()
+    optimizer.step()
 
     if C["binary"]:
         criterion = BCE()
@@ -315,6 +332,7 @@ if __name__ == "__main__":
             retain_graph=C["trainer"]["retain_graph"],
             loss_fn=criterion,
             device=C["device"],
+            lr_scheduler=lr_scheduler,
             # parallel=True
         )
 
@@ -338,6 +356,7 @@ if __name__ == "__main__":
             experiment_name=C["experiment"]["name"],
             checkpoint_dir=C["trainer"]["checkpoint_dir"],
             metrics=metrics,
+            accumulation_steps=4,
             model_checkpoint=C["trainer"]["load_model"],
             non_blocking=C["trainer"]["non_blocking"],
             patience=C["trainer"]["patience"],
@@ -365,7 +384,6 @@ if __name__ == "__main__":
 
         save_metrics(metrics, results_file)
 
-
         metrics = eval_mosei_senti(pred, y_test, False)
 
         results_dir = C["results_dir"] + "_neutral"
@@ -373,5 +391,3 @@ if __name__ == "__main__":
         results_file = os.path.join(results_dir, fname)
 
         save_metrics(metrics, results_file)
-
-

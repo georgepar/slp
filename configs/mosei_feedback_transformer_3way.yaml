@@ -19,10 +19,10 @@ transformer:
     audio_size: 74
     text_size: 300
     visual_size: 35
-    hidden_size: 300
-    inner_size: 600
-    num_layers: 4
-    num_heads: 6
+    hidden_size: 30
+    inner_size: 60
+    num_layers: 5
+    num_heads: 5
     max_length: 400
     dropout: 0.1
 
@@ -47,8 +47,8 @@ optimizer:
     learning_rate: !!float 1e-3
 
 trainer:
-    patience: 10
+    patience: 20
     max_epochs: 100
-    retain_graph: true
+    retain_graph: false
     load_model: mosei-transformer-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints_feedback_transformer
+    checkpoint_dir: /home/geopar/projects/mmtrans/checkpoints-feedback-transformer

@@ -95,15 +95,16 @@ class MOSICollator(object):
 
     def __call__(self, batch):
         data = {}
-        data["lengths"] = torch.tensor(
-            [len(self.extract_sequence(b[self.modalities[0]])) for b in batch], device=self.device
-        )
 
         for m in self.modalities:
             inputs = [self.extract_sequence(b[m]) for b in batch]
             data[m] = pad_sequence(
                 inputs, batch_first=True, padding_value=self.pad_indx
             ).to(self.device)
+
+        data["lengths"] = torch.tensor(
+            [len(s) for s in data[self.modalities[0]]], device=self.device
+        )
 
         targets = [self.extract_label(b["label"]) for b in batch]
         targets = mktensor(targets, device=self.device, dtype=self.target_dtype)

@@ -10,9 +10,12 @@ from slp.modules.util import repeat_layer
 
 
 class Sublayer1(nn.Module):
-    def __init__(self, hidden_size=512, cross_size=1024, num_heads=8, dropout=0.1, prenorm=True):
+    def __init__(
+        self, hidden_size=512, cross_size=1024, num_heads=8, dropout=0.1, prenorm=True
+    ):
         super(Sublayer1, self).__init__()
         self.prenorm = prenorm
+
         if self.prenorm:
             self.lnorm1 = LayerNorm(hidden_size)
             self.lnorm2 = LayerNorm(cross_size)
@@ -27,10 +30,14 @@ class Sublayer1(nn.Module):
 
     def forward(self, x, y, attention_mask=None):
         if self.prenorm:
-            out = x + self.sublayer(self.lnorm1(x), self.lnorm2(y), attention_mask=attention_mask)
+            out = x + self.sublayer(
+                self.lnorm1(x), self.lnorm2(y), attention_mask=attention_mask
+            )
         else:
             out = self.lnorm(x + self.sublayer(x, y, attention_mask=attention_mask))
+
         return out
+
 
 class Sublayer2(nn.Module):
     def __init__(self, hidden_size=512, inner_size=2048, dropout=0.1, prenorm=True):
@@ -44,7 +51,9 @@ class Sublayer2(nn.Module):
             out = x + self.sublayer(self.lnorm(x))
         else:
             out = self.lnorm(x + self.sublayer(x))
+
         return out
+
 
 class EncoderLayer(nn.Module):
     def __init__(
@@ -100,6 +109,7 @@ class Encoder(nn.Module):
     def forward(self, x, y, attention_mask=None):
         for i, layer in enumerate(self.encoder):
             x = layer(x, y, attention_mask=attention_mask)
+
         return x
 
 
@@ -164,7 +174,7 @@ class MMTransformer3Way(nn.Module):
         )
 
         self.audio_embed = nn.Linear(audio_size, hidden_size)
-        #self.text_embed = nn.Linear(text_size, hidden_size)
+        # self.text_embed = nn.Linear(text_size, hidden_size)
         self.visual_embed = nn.Linear(visual_size, hidden_size)
 
         self.audio_encoder = MMEncoder(

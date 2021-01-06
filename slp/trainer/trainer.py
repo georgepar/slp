@@ -23,6 +23,7 @@ class Trainer(object):
         self: TrainerType,
         model: nn.Module,
         optimizer: Optimizer,
+        lr_scheduler=None,
         checkpoint_dir: str = "../../checkpoints",
         experiment_name: str = "experiment",
         score_fn: Optional[Callable] = None,
@@ -59,12 +60,13 @@ class Trainer(object):
         self.model = self.model.type(dtype).to(device)
         self.optimizer = from_checkpoint(optimizer_checkpoint, optimizer)
         self.parallel = parallel
+        self.lr_scheduler = lr_scheduler
 
         if parallel:
             if device == "cpu":
                 raise ValueError("parallel can be used only with cuda device")
             self.model = DataParallelModel(self.model).to(device)
-            #self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
+            self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
 
         if metrics is None:
             metrics = {}
@@ -103,7 +105,10 @@ class Trainer(object):
         self.early_stop = EarlyStopping(patience, self.score_fn, self.trainer)
 
         self.val_handler = EvaluationHandler(
-            pbar=self.pbar, validate_every=1, early_stopping=self.early_stop
+            pbar=self.pbar,
+            validate_every=1,
+            early_stopping=self.early_stop,
+            newbob_scheduler=self.lr_scheduler,
         )
         self.attach()
         log.info(
@@ -174,7 +179,11 @@ class Trainer(object):
         loss = loss / self.accumulation_steps
         loss.backward(retain_graph=self.retain_graph)
 
-        # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1)
+        if self.lr_scheduler is not None:
+            if (engine.state.iteration - 1) % 128 == 0:
+                print("LR = {}".format(self.optimizer.param_groups[0]["lr"]))
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5)
+
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
             self.optimizer.step()  # type: ignore
             self.optimizer.zero_grad()
@@ -193,6 +202,7 @@ class Trainer(object):
 
     def predict(self: TrainerType, dataloader: DataLoader) -> State:
         predictions, targets = [], []
+
         for batch in dataloader:
             self.model.eval()
             with torch.no_grad():
@@ -201,8 +211,6 @@ class Trainer(object):
                 targets.append(targ)
 
         return predictions, targets
-
-        # return self.valid_evaluator.run(dataloader)
 
     def fit(
         self: TrainerType,
@@ -223,6 +231,7 @@ class Trainer(object):
             self.trainer, self.valid_evaluator, val_loader, validation=True
         )
         self.model.zero_grad()
+        self.valid_evaluator.run(val_loader)
         self.trainer.run(train_loader, max_epochs=epochs)
 
     def overfit_single_batch(self: TrainerType, train_loader: DataLoader) -> State:
@@ -370,12 +379,7 @@ class MOSITrainer(Trainer):
     ) -> Tuple[torch.Tensor, ...]:
         inputs, targets = self.parse_batch(batch)
         y_pred = self.model(inputs)
-        if self.parallel:
-            y_pred = nn.parallel.gather(y_pred, 0).squeeze()
-        else:
-            y_pred = y_pred.squeeze()
-        if self.parallel:
-            targets = nn.parallel.gather(targets, 0).squeeze()
-        else:
-            targets = targets.squeeze()
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
         return y_pred, targets
