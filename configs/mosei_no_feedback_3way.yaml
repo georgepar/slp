@@ -1,7 +1,7 @@
 feedback: false
 device: cuda
 data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results/no_feedback_bi_3way
+results_dir: /home/geopar/projects/mm/results/no_feedback_bi_3way_warmup
 binary: false
 train: true
 test: true
@@ -80,12 +80,12 @@ dataloaders:
     pin_memory: false
 
 optimizer:
-    name: Adam
+    name: AdamW
     learning_rate: !!float 1e-3
 
 trainer:
-    patience: 10
+    patience: 20
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints_no_feedback
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-no-feedback-warmup

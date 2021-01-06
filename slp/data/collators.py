@@ -95,6 +95,9 @@ class MOSICollator(object):
 
     def __call__(self, batch):
         data = {}
+        #data["lengths"] = torch.tensor(
+        #    [len(self.extract_sequence(b[self.modalities[0]])) for b in batch], device=self.device
+        #)
 
         for m in self.modalities:
             inputs = [self.extract_sequence(b[m]) for b in batch]

@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from slp.modules.rnn import AttentiveRNN, WordRNN
+from slp.modules.rnn import AttentiveRNN, WordRNN, CoAttentiveRNN
 
 
 class GatedLinearUnit(nn.Module):
@@ -692,6 +692,180 @@ class AudioVisualTextEncoder(nn.Module):
         return fused
 
 
+class AudioVisualTextCoAttentionEncoder(nn.Module):
+    def __init__(
+        self,
+        embeddings=None,
+        vocab_size=None,
+        audio_cfg=None,
+        text_cfg=None,
+        visual_cfg=None,
+        fuse_cfg=None,
+        feedback=False,
+        text_mode="glove",
+        device="cpu",
+    ):
+        super(AudioVisualTextCoAttentionEncoder, self).__init__()
+        # For now model dim == text dim (the largest). In the future this can be done
+        # with individual projection layers for each modality
+        assert (
+            text_cfg["attention"] and audio_cfg["attention"] and visual_cfg["attention"]
+        ), "Use attention pls."
+
+        self.feedback = feedback
+
+        audio_size = fuse_cfg["projection_size"]
+        text_size = fuse_cfg["projection_size"]
+        visual_size = fuse_cfg["projection_size"]
+        text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
+        audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
+        visual_cfg["orig_size"] = visual_cfg.get("orig_size", visual_cfg["input_size"])
+        audio_cfg["input_size"] = audio_size
+        text_cfg["input_size"] = text_size
+        visual_cfg["input_size"] = visual_size
+
+        self.text_projection = None
+        if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
+            self.text_projection = nn.Linear(
+                text_cfg["orig_size"], fuse_cfg["projection_size"]
+            )
+
+        self.audio_projection = nn.Linear(
+            audio_cfg["orig_size"], fuse_cfg["projection_size"]
+        )
+
+        self.visual_projection = nn.Linear(
+            visual_cfg["orig_size"], fuse_cfg["projection_size"]
+        )
+
+        self.prefuser = None
+
+        if fuse_cfg["prefuse"]:
+            self.prefuser = nn.Linear(
+                fuse_cfg["projection_size"], fuse_cfg["projection_size"]
+            )
+
+        assert text_mode == "glove", "Only glove supported for now"
+
+        self.text = CoAttentiveRNN(
+            text_cfg["input_size"],
+            text_cfg["hidden_size"],
+            cross_size=2 * fuse_cfg["projection_size"],
+            num_heads=text_cfg["num_heads"],
+            batch_first=True,
+            layers=text_cfg["layers"],
+            merge_bi="sum",
+            bidirectional=text_cfg["bidirectional"],
+            dropout=text_cfg["dropout"],
+            rnn_type=text_cfg["rnn_type"],
+            packed_sequence=True,
+            attention=text_cfg["attention"],
+            device=device,
+            return_hidden=True,
+        )
+
+        self.audio = CoAttentiveRNN(
+            audio_cfg["input_size"],
+            audio_cfg["hidden_size"],
+            cross_size=2 * fuse_cfg["projection_size"],
+            num_heads=text_cfg["num_heads"],
+            batch_first=True,
+            layers=audio_cfg["layers"],
+            merge_bi="sum",
+            bidirectional=audio_cfg["bidirectional"],
+            dropout=audio_cfg["dropout"],
+            rnn_type=audio_cfg["rnn_type"],
+            packed_sequence=True,
+            attention=audio_cfg["attention"],
+            device=device,
+            return_hidden=True,
+        )
+
+        self.visual = CoAttentiveRNN(
+            visual_cfg["input_size"],
+            visual_cfg["hidden_size"],
+            cross_size=2 * fuse_cfg["projection_size"],
+            num_heads=visual_cfg["num_heads"],
+            batch_first=True,
+            layers=visual_cfg["layers"],
+            merge_bi="sum",
+            bidirectional=visual_cfg["bidirectional"],
+            dropout=visual_cfg["dropout"],
+            rnn_type=visual_cfg["rnn_type"],
+            packed_sequence=True,
+            attention=visual_cfg["attention"],
+            device=device,
+            return_hidden=True,
+        )
+
+        if feedback:
+            self.glu = GatedLinearUnit3Way()
+
+        if fuse_cfg["method"] == "cat":
+            fuse_cls = CatFuser3Way
+        elif fuse_cfg["method"] == "add":
+            fuse_cls = AddFuser3Way
+        elif fuse_cfg["method"] == "common_space":
+            raise NotImplementedError
+        else:
+            raise ValueError('Supported fuse techniques: ["cat", "add"]')
+
+        self.fuser = fuse_cls(
+            self.text.out_size,
+            self.audio.out_size,
+            self.visual.out_size,
+            proj_sz=fuse_cfg["projection_size"],
+            modality_weights=fuse_cfg["modality_weights"],
+            device=device,
+            extra_args=fuse_cfg,
+        )
+        self.out_size = self.fuser.out_size
+
+    def from_pretrained(self, audio_path, visual_path, text_path):
+        text_model = torch.load(text_path)
+        text_encoder = text_model["encoder"]
+        self.text_encoder = text_encoder
+        raise NotImplementedError
+
+
+    def forward(self, txt, au, vi, lengths):
+        au = self.audio_projection(au)
+        vi = self.visual_projection(vi)
+        if self.text_projection is not None:
+            txt = self.text_projection(txt)
+
+        if self.prefuser is not None:
+            au = self.prefuser(au)
+            vi = self.prefuser(vi)
+            txt = self.prefuser(txt)
+
+        if self.feedback:
+            for _ in range(2):
+                txt1 = self.text(txt, torch.cat([au, vi], dim=-1), lengths)
+                au1 = self.audio(au, torch.cat([txt, vi], dim=-1), lengths)
+                vi1 = self.visual(vi, torch.cat([txt, au], dim=-1), lengths)
+                txt = txt1
+                au = au1
+                vi = vi1
+                txt = self.glu(txt, au, vi)
+                au = self.glu(au, txt, vi)
+                vi = self.glu(vi, txt, au)
+
+        txt = self.text(txt, torch.cat([au, vi], dim=-1), lengths)
+        au = self.audio(au, torch.cat([txt, vi], dim=-1), lengths)
+        vi = self.visual(vi, torch.cat([txt, au], dim=-1), lengths)
+
+        # Sum weighted attention hidden states
+        txt = txt.sum(1)
+        au = au.sum(1)
+        vi = vi.sum(1)
+
+        fused = self.fuser(txt, au, vi)
+
+        return fused
+
+
+
 # class FeedbackAudioTextEncoder(nn.Module):
 #     def __init__(
 #         self,
@@ -851,6 +1025,50 @@ class AudioVisualTextClassifier(nn.Module):
         assert "visual" in modalities, "No visual"
 
         self.encoder = AudioVisualTextEncoder(
+            embeddings=embeddings,
+            vocab_size=vocab_size,
+            text_cfg=text_cfg,
+            audio_cfg=audio_cfg,
+            visual_cfg=visual_cfg,
+            fuse_cfg=fuse_cfg,
+            text_mode=text_mode,
+            feedback=feedback,
+            device=device,
+        )
+
+        self.classifier = nn.Linear(self.encoder.out_size, num_classes)
+
+    def forward(self, inputs):
+        out = self.encoder(
+            inputs["text"], inputs["audio"], inputs["visual"], inputs["lengths"]
+        )
+
+        return self.classifier(out)
+
+
+class AudioVisualTextCoAttentionClassifier(nn.Module):
+    def __init__(
+        self,
+        embeddings=None,
+        vocab_size=None,
+        audio_cfg=None,
+        text_cfg=None,
+        visual_cfg=None,
+        fuse_cfg=None,
+        modalities=None,
+        text_mode="glove",
+        num_classes=1,
+        feedback=False,
+        device="cpu",
+    ):
+        super(AudioVisualTextCoAttentionClassifier, self).__init__()
+        self.modalities = modalities
+
+        assert "text" in modalities or "glove" in modalities, "No text"
+        assert "audio" in modalities, "No audio"
+        assert "visual" in modalities, "No visual"
+
+        self.encoder = AudioVisualTextCoAttentionEncoder(
             embeddings=embeddings,
             vocab_size=vocab_size,
             text_cfg=text_cfg,

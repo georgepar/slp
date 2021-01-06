@@ -39,10 +39,13 @@ class EvaluationHandler(object):
         pbar: Optional[ProgressBar] = None,
         validate_every: int = 1,
         early_stopping: Optional[EarlyStopping] = None,
+        newbob_scheduler=None
     ):
         self.validate_every = validate_every
         self.print_fn = pbar.log_message if pbar is not None else print
         self.early_stopping = early_stopping
+        self.newbob_scheduler = newbob_scheduler
+
 
     def __call__(
         self,
@@ -54,6 +57,7 @@ class EvaluationHandler(object):
         if engine.state.epoch % self.validate_every != 0:
             return
         evaluator.run(dataloader)
+
         system.print_separator(n=35, print_fn=self.print_fn)
         metrics = evaluator.state.metrics
         phase = "Validation" if validation else "Training"
@@ -61,6 +65,9 @@ class EvaluationHandler(object):
         system.print_separator(symbol="-", n=35, print_fn=self.print_fn)
         for name, value in metrics.items():
             self.print_fn("{:<15} {:<15}".format(name, value))
+
+        if self.newbob_scheduler is not None:
+            self.newbob_scheduler.step(metrics["loss"], epoch=engine.state.epoch)
 
         if validation and self.early_stopping:
             loss = self.early_stopping.best_score

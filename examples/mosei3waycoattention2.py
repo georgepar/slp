@@ -17,7 +17,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.multimodal import AudioVisualTextClassifier
+from slp.modules.multimodal import AudioVisualTextCoAttentionClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -234,24 +234,31 @@ if __name__ == "__main__":
     from tqdm import tqdm
 
     all_audio = []
+    all_visual = []
 
     for d in tqdm(train):
-        x = d["audio"]
-        all_audio.append(x)
+        all_audio.append(d["audio"])
+        all_visual.append(d["visual"])
     all_audio = np.vstack(all_audio).astype(np.float64)
+    all_visual = np.vstack(all_visual).astype(np.float64)
     from sklearn.preprocessing import StandardScaler
 
-    scaler = StandardScaler().fit(all_audio)
+    scaler_audio = StandardScaler().fit(all_audio)
+    scaler_visual = StandardScaler().fit(all_visual)
     del all_audio
+    del all_visual
 
     for d in tqdm(train):
-        d["audio"] = scaler.transform(d["audio"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(dev):
-        d["audio"] = scaler.transform(d["audio"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(test):
-        d["audio"] = scaler.transform(d["audio"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     to_tensor = ToTensor(device="cpu")
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
@@ -285,7 +292,7 @@ if __name__ == "__main__":
     # x = next(iter(train_loader))
     print("Running with feedback = {}".format(C["feedback"]))
 
-    model = AudioVisualTextClassifier(
+    model = AudioVisualTextCoAttentionClassifier(
         embeddings=embeddings,
         audio_cfg=C["audio"]["model"],
         text_cfg=C["text"]["model"],
@@ -303,14 +310,16 @@ if __name__ == "__main__":
         lr=C["optimizer"]["learning_rate"],
     )
 
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        "min",
-        factor=0.5,
-        patience=2,
-        cooldown=2,
-        min_lr=C["optimizer"]["learning_rate"] / 20.0,
-    )
+    lr_scheduler = None
+
+    # torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer,
+    #     "min",
+    #     factor=0.5,
+    #     patience=2,
+    #     cooldown=2,
+    #     min_lr=C["optimizer"]["learning_rate"] / 20.0,
+    # )
 
     if C["binary"]:
         criterion = BCE()
