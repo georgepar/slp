@@ -64,7 +64,7 @@ class Trainer(object):
             if device == "cpu":
                 raise ValueError("parallel can be used only with cuda device")
             self.model = DataParallelModel(self.model).to(device)
-            self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
+            #self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
 
         if metrics is None:
             metrics = {}
@@ -174,6 +174,7 @@ class Trainer(object):
         loss = loss / self.accumulation_steps
         loss.backward(retain_graph=self.retain_graph)
 
+        # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1)
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
             self.optimizer.step()  # type: ignore
             self.optimizer.zero_grad()
@@ -369,6 +370,12 @@ class MOSITrainer(Trainer):
     ) -> Tuple[torch.Tensor, ...]:
         inputs, targets = self.parse_batch(batch)
         y_pred = self.model(inputs)
-        y_pred = y_pred.squeeze()
-        targets = targets.squeeze()
+        if self.parallel:
+            y_pred = nn.parallel.gather(y_pred, 0).squeeze()
+        else:
+            y_pred = y_pred.squeeze()
+        if self.parallel:
+            targets = nn.parallel.gather(targets, 0).squeeze()
+        else:
+            targets = targets.squeeze()
         return y_pred, targets

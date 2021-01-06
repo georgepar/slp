@@ -56,6 +56,7 @@ class EncoderLayer(nn.Module):
     def forward(self, x, attention_mask=None):
         out = self.l1(x, attention_mask=attention_mask)
         out = self.l2(out)
+
         return out
 
 
@@ -79,6 +80,7 @@ class Encoder(nn.Module):
     def forward(self, x, attention_mask=None):
         for layer in self.encoder:
             x = layer(x, attention_mask=attention_mask)
+
         return x
 
 
@@ -99,6 +101,7 @@ class DecoderLayer(nn.Module):
         out = self.in_layer(x, attention_mask=target_mask)
         out = self.fuse_layer(encoded, out, attention_mask=source_mask)
         out = self.out_layer(out)
+
         return out
 
 
@@ -125,6 +128,7 @@ class Decoder(nn.Module):
             target = l(
                 target, encoded, source_mask=source_mask, target_mask=target_mask
             )
+
         return target
 
 
@@ -153,6 +157,7 @@ class EncoderDecoder(nn.Module):
         decoded = self.decoder(
             target, encoded, source_mask=source_mask, target_mask=target_mask
         )
+
         return decoded
 
 
@@ -202,13 +207,66 @@ class Transformer(nn.Module):
         )
         out = self.drop(out)
         out = self.predict(out)
+
         return out
 
     def _reset_parameters(self):
         """Initiate parameters in the transformer model."""
+
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
+
+
+class TransformerEncoderContinuous(nn.Module):
+    def __init__(
+        self,
+        input_size=512,
+        max_length=256,
+        num_layers=6,
+        hidden_size=512,
+        num_heads=8,
+        inner_size=2048,
+        dropout=0.1,
+        device="cpu",
+    ):
+        super(TransformerEncoderContinuous, self).__init__()
+        self.embed = nn.Linear(
+            input_size,
+            hidden_size,
+        )
+        self.pe = PositionalEncoding(
+            max_length, embedding_dim=hidden_size, device=device
+        )
+        self.transformer_block = Encoder(
+            num_layers=num_layers,
+            hidden_size=hidden_size,
+            num_heads=num_heads,
+            inner_size=inner_size,
+            dropout=dropout,
+        )
+        self.drop = nn.Dropout(dropout)
+        self._reset_parameters()
+
+    def forward(self, source, attention_mask=None):
+        source = self.embed(source)
+        # Adding embeddings + pos embeddings
+        # is done in PositionalEncoding class
+        source = self.pe(source)
+        out = self.transformer_block(
+            source, attention_mask=attention_mask
+        )
+        out = self.drop(out)
+
+        return out
+
+    def _reset_parameters(self):
+        """Initiate parameters in the transformer model."""
+
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
+
 
 
 # IDEA: Instead of flat encoder / decoder create

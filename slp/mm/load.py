@@ -195,6 +195,7 @@ def clean_split_dataset(
         for m in modalities:
             if m != "text":
                 mods[m] = np.nan_to_num(mods[m])
+                mods[m][mods[m] == -np.inf] = 0
 
         if "text" in modalities:
             # Handle speech pause
@@ -218,6 +219,8 @@ def clean_split_dataset(
                                 mods_nosp[m].append(mods[m][i, :])
             else:
                 mods_nosp = mods
+                if not isinstance(mods_nosp["text"], np.ndarray):
+                    mods_nosp["text"] = np.array(mods_nosp["text"])
                 mods_nosp["text"] = mods_nosp["text"].tolist()
 
                 for i in range(len(mods["text"])):

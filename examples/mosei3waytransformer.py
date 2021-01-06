@@ -15,16 +15,14 @@ from slp.data.collators import MOSICollator
 from slp.data.mosi import MOSEI
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
-
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.multimodal import AudioVisualTextClassifier
-from slp.modules.rnn import WordRNN
+from slp.modules.multimodal import AudioVisualTextTransformerClassifier
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
 from slp.util import log
-from slp.util.embeddings import EmbeddingsLoader
 from slp.util.system import safe_mkdirs
 
+#torch.autograd.set_detect_anomaly(True)
 
 class BCE(nn.Module):
     def __init__(self):
@@ -65,61 +63,71 @@ def get_parser():
 
     parser.add_argument(
         "--audio-dim",
-        dest="audio.dim",
+        dest="transformer.audio_size",
         default=None,
         type=int,
         help="Audio features dimension",
     )
 
     parser.add_argument(
-        "--audio-instance-norm",
-        dest="audio.instance_norm",
-        action="store_true",
-        help="Audio instance normalization",
-    )
-
-    parser.add_argument(
-        "--audio-batchnorm",
-        dest="audio.batchnorm",
-        action="store_true",
-        help="Audio batch normalization",
-    )
-
-    parser.add_argument(
-        "--audio-layers",
-        dest="audio.layers",
+        "--text-dim",
+        dest="transformer.text_size",
         default=None,
         type=int,
-        help="Num layers for audio encoder",
+        help="Text features dimension",
     )
 
     parser.add_argument(
-        "--text-layers",
-        dest="text.layers",
+        "--visual-dim",
+        dest="transformer.visual_size",
         default=None,
         type=int,
-        help="Num layers for text encoder",
+        help="Visual features dimension",
     )
 
     parser.add_argument(
-        "--audio-hidden-size",
-        dest="audio.hidden_size",
+        "--hidden-size",
+        dest="transformer.hidden_size",
         default=None,
         type=int,
-        help="Hidden size for RNNs",
+        help="Hidden size",
     )
 
     parser.add_argument(
-        "--text-hidden-size",
-        dest="text.hidden_size",
+        "--layers",
+        dest="transformer.num_layers",
         default=None,
         type=int,
-        help="Hidden size for RNNs",
+        help="Num layers",
+    )
+
+    parser.add_argument(
+        "--num-heads",
+        dest="transformer.num_heads",
+        default=None,
+        type=int,
+        help="Num heads",
+    )
+
+    parser.add_argument(
+        "--max-length",
+        dest="transformer.max_length",
+        default=None,
+        type=int,
+        help="Max length",
+    )
+
+    parser.add_argument(
+        "--inner-size",
+        dest="transformer.inner_size",
+        default=None,
+        type=int,
+        help="Num heads",
     )
 
     parser.add_argument(
         "--dropout",
-        dest="common.dropout",
+        dest="transformer.dropout",
         default=None,
         type=float,
         help="Dropout probabiity",
@@ -131,31 +139,6 @@ def get_parser():
         default=None,
         type=int,
         help="Modality projection size",
-    )
-
-    parser.add_argument(
-        "--bidirectional",
-        dest="common.bidirectional",
-        action="store_true",
-        help="Use BiRNNs",
-    )
-
-    parser.add_argument(
-        "--rnn-type", dest="common.rnn_type", default=None, type=str, help="lstm or gru"
-    )
-
-    parser.add_argument(
-        "--text-attention",
-        dest="text.attention",
-        action="store_true",
-        help="Use RNN with attention",
-    )
-
-    parser.add_argument(
-        "--audio-attention",
-        dest="audio.attention",
-        action="store_true",
-        help="Use RNN with attention",
     )
 
     parser.add_argument(
@@ -199,13 +182,15 @@ if __name__ == "__main__":
     train, dev, test, vocab = mosei(
         C["data_dir"],
         modalities=C["modalities"],
-        remove_pauses=False,  # C['remove_pauses'],
+        remove_pauses=C['remove_pauses'],
         max_length=-1,
-        pad_front=True,
+        pad_front=False,
         pad_back=False,
         aligned=False,
-        cache=os.path.join(C["cache_dir"], "mosei_avt.p"),
+        cache=os.path.join(C["cache_dir"], "mosei_avt_unpadded.p"),
     )
+
+    assert "glove" in C["modalities"], "Use glove"
 
     if "glove" in C["modalities"]:
         for d in train:
@@ -217,69 +202,51 @@ if __name__ == "__main__":
         for d in test:
             d["text"] = d["glove"]
 
-    embeddings = None
-
-    if "glove" not in C["modalities"]:
-        loader = EmbeddingsLoader(
-            C["embeddings"]["path"],
-            C["embeddings"]["dim"],
-            extra_tokens=SPECIAL_TOKENS,
-            vocab=vocab,
-        )
-        word2idx, idx2word, embeddings = loader.load()
-
-        to_token_ids = ToTokenIds(word2idx)
-
 
     from tqdm import tqdm
     # normalize
-    #all_audio = []
-    #for d in tqdm(train):
-    #    x = d["audio"]
-    #    all_audio.append(x)
+    all_audio = []
+    for d in tqdm(train):
+        x = d["audio"]
+        all_audio.append(x)
 
-    #all_audio = np.vstack(all_audio).astype(np.float64)
-    #from sklearn.preprocessing import StandardScaler
+    all_audio = np.vstack(all_audio).astype(np.float64)
+    from sklearn.preprocessing import StandardScaler
 
-    #scaler = StandardScaler().fit(all_audio)
+    scaler = StandardScaler().fit(all_audio)
 
-    #import pickle
+    import pickle
 
-    #with open("cache/covarep_scaler.p", "wb") as fd:
-    #    pickle.dump(scaler, fd)
+    with open("cache/covarep_scaler.p", "wb") as fd:
+        pickle.dump(scaler, fd)
 
-    #del all_audio
+    del all_audio
 
-    #for d in tqdm(train):
-    #    d["audio"] = scaler.transform(d["audio"])
+    for d in tqdm(train):
+        d["audio"] = scaler.transform(d["audio"])
 
-    #for d in tqdm(dev):
-    #    d["audio"] = scaler.transform(d["audio"])
+    for d in tqdm(dev):
+        d["audio"] = scaler.transform(d["audio"])
 
-    #for d in tqdm(test):
-    #    d["audio"] = scaler.transform(d["audio"])
+    for d in tqdm(test):
+        d["audio"] = scaler.transform(d["audio"])
 
 
-    to_tensor = ToTensor(device="cpu")
+
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
 
     def create_dataloader(data):
-        d = MOSEI(data, modalities=C["modalities"], unpad=False, select_label=0)
+        d = (
+            MOSEI(data, modalities=C["modalities"], unpad=False, select_label=0)
+        )
         d.map(to_tensor_float, "visual", lazy=True)
-
-        if "glove" not in C["modalities"]:
-            d.map(to_tensor, "text", lazy=True)
-            d.map(to_token_ids, "text", lazy=True)
-
-        if "glove" in C["modalities"]:
-            d.map(to_tensor_float, "text", lazy=True)
-
+        d.map(to_tensor_float, "text", lazy=True)
         d = d.map(to_tensor_float, "audio", lazy=True)
         d.apply_transforms()
         dataloader = DataLoader(
             d,
             batch_size=C["dataloaders"]["batch_size"],
-            num_workers=C["dataloaders"]["num_workers"],
+            num_workers=C['dataloaders']['num_workers'],
             pin_memory=C["dataloaders"]["batch_size"],
             shuffle=True,
             collate_fn=collate_fn,
@@ -287,20 +254,14 @@ if __name__ == "__main__":
 
         return dataloader
 
-    text_mode = "glove" if "glove" in C["modalities"] else "raw"
     train_loader, dev_loader, test_loader = map(create_dataloader, [train, dev, test])
-    x = next(iter(train_loader))
+    # x = next(iter(train_loader))
     print("Running with feedback = {}".format(C["feedback"]))
 
-    model = AudioVisualTextClassifier(
-        embeddings=embeddings,
-        audio_cfg=C["audio"]["model"],
-        text_cfg=C["text"]["model"],
-        visual_cfg=C["visual"]["model"],
+    model = AudioVisualTextTransformerClassifier(
+        transformer_cfg=C["transformer"],
         fuse_cfg=C["fuse"],
         device=C["device"],
-        modalities=C["modalities"],
-        text_mode="glove",
         num_classes=1,
         feedback=C["feedback"],
     )
@@ -354,6 +315,7 @@ if __name__ == "__main__":
             retain_graph=C["trainer"]["retain_graph"],
             loss_fn=criterion,
             device=C["device"],
+            # parallel=True
         )
 
     if C["debug"]:
@@ -403,6 +365,7 @@ if __name__ == "__main__":
 
         save_metrics(metrics, results_file)
 
+
         metrics = eval_mosei_senti(pred, y_test, False)
 
         results_dir = C["results_dir"] + "_neutral"
@@ -410,3 +373,5 @@ if __name__ == "__main__":
         results_file = os.path.join(results_dir, fname)
 
         save_metrics(metrics, results_file)
+
+

@@ -1,0 +1,54 @@
+feedback: false
+device: cuda
+data_dir: /home/geopar/projects/mm/data/cmumosei
+results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_transformer
+binary: false
+train: true
+test: true
+overfit_batch: false
+debug: false
+remove_pauses: true
+
+modalities:
+    - text
+    - glove
+    - audio
+    - visual
+
+transformer:
+    audio_size: 74
+    text_size: 300
+    visual_size: 35
+    hidden_size: 300
+    inner_size: 600
+    num_layers: 4
+    num_heads: 6
+    max_length: 400
+    dropout: 0.1
+
+fuse:
+    method: cat
+    modality_weights: false
+    projection_size: null
+    prefuse: false
+    use_mask: false
+
+experiment:
+    name: mosei-transformer-binary-audio-text-visual
+    description: MOSEI binary task
+
+dataloaders:
+    batch_size: 16
+    num_workers: 1
+    pin_memory: false
+
+optimizer:
+    name: AdamW
+    learning_rate: !!float 1e-3
+
+trainer:
+    patience: 10
+    max_epochs: 100
+    retain_graph: true
+    load_model: mosei-transformer-binary-audio-text-visual_checkpoint.best.pth
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints_feedback_transformer

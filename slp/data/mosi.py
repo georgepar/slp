@@ -250,8 +250,6 @@ class MOSEI(Dataset):
     def __getitem__(self, idx):
         dat = self.data[idx]
         dat['label'] = self.labels[idx]
-
         if self.select_label is not None:
             dat['label'] = dat['label'][self.select_label]
-
         return dat

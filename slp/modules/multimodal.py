@@ -5,22 +5,24 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from slp.modules.rnn import AttentiveRNN, WordRNN
+from slp.modules.mmtransformer import MMTransformer3Way
+from slp.modules.transformer import TransformerEncoderContinuous
+from slp.modules.util import pad_mask
 
 
 class GatedLinearUnit(nn.Module):
     def __init__(self, hidden_dim=None, learnable=False):
         super(GatedLinearUnit, self).__init__()
         self.learnable = learnable
+
         if learnable:
             if hidden_dim is None:
                 raise ValueError("You must provide hidden dim for learnable GLU")
             self.hidden_dim = hidden_dim
-            self.proj = nn.Linear(hidden_dim, hidden_dim)
             self.mask = nn.Linear(hidden_dim, hidden_dim)
 
     def forward(self, x, y):
         if self.learnable:
-            x = self.proj(x)
             y = self.mask(y)
         mask = torch.sigmoid(y)
         x = x * mask
@@ -32,17 +34,16 @@ class GatedLinearUnit3Way(nn.Module):
     def __init__(self, hidden_dim=None, learnable=False):
         super(GatedLinearUnit3Way, self).__init__()
         self.learnable = learnable
+
         if learnable:
             if hidden_dim is None:
                 raise ValueError("You must provide hidden dim for learnable GLU")
             self.hidden_dim = hidden_dim
-            self.proj = nn.Linear(hidden_dim, hidden_dim)
             self.mask1 = nn.Linear(hidden_dim, hidden_dim)
             self.mask2 = nn.Linear(hidden_dim, hidden_dim)
 
     def forward(self, x, y, z):
         if self.learnable:
-            x = self.proj(x)
             y = self.mask1(y)
             z = self.mask2(z)
         mask1 = torch.sigmoid(y)
@@ -493,6 +494,7 @@ class AudioTextEncoder(nn.Module):
         )
 
         self.text_projection = None
+
         if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
             self.text_projection = nn.Linear(
                 text_cfg["orig_size"], fuse_cfg["projection_size"]
@@ -536,9 +538,9 @@ class AudioTextEncoder(nn.Module):
 
     def forward(self, txt, au, lengths):
         au = self.audio_projection(au)
+
         if self.text_projection is not None:
             txt = self.text_projection(txt)
-
 
         if self.prefuser is not None:
             au = self.prefuser(au)
@@ -596,6 +598,7 @@ class AudioVisualTextEncoder(nn.Module):
         visual_cfg["input_size"] = visual_size
 
         self.text_projection = None
+
         if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
             self.text_projection = nn.Linear(
                 text_cfg["orig_size"], fuse_cfg["projection_size"]
@@ -658,12 +661,13 @@ class AudioVisualTextEncoder(nn.Module):
         self.text_encoder = text_encoder
         raise NotImplementedError
 
-
     def forward(self, txt, au, vi, lengths):
         au = self.audio_projection(au)
         vi = self.visual_projection(vi)
+
         if self.text_projection is not None:
             txt = self.text_projection(txt)
+
         if self.prefuser is not None:
             au = self.prefuser(au)
             vi = self.prefuser(vi)
@@ -692,84 +696,80 @@ class AudioVisualTextEncoder(nn.Module):
         return fused
 
 
-# class FeedbackAudioTextEncoder(nn.Module):
-#     def __init__(
-#         self,
-#         embeddings=None,
-#         vocab_size=None,
-#         audio_cfg=None,
-#         text_cfg=None,
-#         fuse_cfg=None,
-#         text_mode="glove",
-#         device="cpu",
-#     ):
-#         super(FeedbackAudioTextEncoder, self).__init__()
-#         assert fuse_cfg["projection_size"] == text_cfg["input_size"]
+class AudioVisualTextTransformerEncoder(nn.Module):
+    def __init__(
+        self,
+        transformer_cfg=None,
+        fuse_cfg=None,
+        feedback=False,
+        device="cpu",
+    ):
+        super(AudioVisualTextTransformerEncoder, self).__init__()
+        self.feedback = feedback
+        self.max_length = transformer_cfg["max_length"]
+        self.device = device
 
-#         audio_size = fuse_cfg["projection_size"]
-#         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
-#         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
-#         audio_cfg["input_size"] = audio_size
+        self.encoder = MMTransformer3Way(
+            transformer_cfg["text_size"],
+            transformer_cfg["audio_size"],
+            transformer_cfg["visual_size"],
+            hidden_size=transformer_cfg["hidden_size"],
+            max_length=transformer_cfg["max_length"],
+            num_layers=transformer_cfg["num_layers"],
+            num_heads=transformer_cfg["num_heads"],
+            inner_size=transformer_cfg["inner_size"],
+            dropout=transformer_cfg["dropout"],
+            device=device,
+        )
 
-#         self.audio_projection = nn.Linear(
-#             audio_cfg["orig_size"], fuse_cfg["projection_size"]
-#         )
+        if feedback:
+            self.glu = GatedLinearUnit3Way()
 
-#         self.prefuser = None
+        if fuse_cfg["method"] == "cat":
+            fuse_cls = CatFuser3Way
+        elif fuse_cfg["method"] == "add":
+            fuse_cls = AddFuser3Way
+        elif fuse_cfg["method"] == "common_space":
+            raise NotImplementedError
+        else:
+            raise ValueError('Supported fuse techniques: ["cat", "add"]')
 
-#         if fuse_cfg["prefuse"]:
-#             self.prefuser = nn.Linear(
-#                 fuse_cfg["projection_size"], fuse_cfg["projection_size"]
-#             )
+        self.fuser = fuse_cls(
+            transformer_cfg["hidden_size"],
+            transformer_cfg["hidden_size"],
+            transformer_cfg["hidden_size"],
+            proj_sz=fuse_cfg["projection_size"],
+            modality_weights=fuse_cfg["modality_weights"],
+            device=device,
+            extra_args=fuse_cfg,
+        )
+        self.out_size = self.fuser.out_size
 
-#         text_cfg["return_hidden"] = True
-#         audio_cfg["return_hidden"] = True
+    def from_pretrained(self, audio_path, visual_path, text_path):
+        text_model = torch.load(text_path)
+        text_encoder = text_model["encoder"]
+        self.text_encoder = text_encoder
+        raise NotImplementedError
 
-#         if text_mode == "glove":
-#             self.text = GloveEncoder(text_cfg, device=device)
-#         else:
-#             raise ValueError("Only glove input supported")
+    def forward(self, txt, au, vi, lengths):
+        attention_mask = pad_mask(lengths, max(lengths), device=self.device).unsqueeze(1)
+        if self.feedback:
+            for _ in range(2):
+                txt, au, vi = self.encoder(txt, au, vi, attention_mask=attention_mask)
+                txt = self.glu(txt, au, vi)
+                au = self.glu(au, txt, vi)
+                vi = self.glu(vi, txt, au)
 
-#         self.audio = AudioEncoder(audio_cfg, device=device)
+        txt, au, vi = self.encoder(txt, au, vi, attention_mask=attention_mask)
 
-#         if fuse_cfg["method"] == "cat":
-#             fuse_cls = CatFuser
-#         elif fuse_cfg["method"] == "add":
-#             fuse_cls = AddFuser
-#         elif fuse_cfg["method"] == "common_space":
-#             fuse_cls = CommonSpaceFuser
-#         else:
-#             raise ValueError('Supported fuse techniques: ["cat", "add"]')
+        # Sum weighted attention hidden states
+        txt = txt.sum(1)
+        au = au.sum(1)
+        vi = vi.sum(1)
 
-#         self.fuser = fuse_cls(
-#             self.text.out_size,
-#             self.audio.out_size,
-#             proj_sz=fuse_cfg["projection_size"],
-#             modality_weights=fuse_cfg["modality_weights"],
-#             device=device,
-#             extra_args=fuse_cfg,
-#         )
-#         self.out_size = self.fuser.out_size
+        fused = self.fuser(txt, au, vi)
 
-#     def forward(self, txt, au, lengths):
-#         au = self.audio_projection(au)
-
-#         if self.prefuser is not None:
-#             au = self.prefuser(au)
-#             txt = self.prefuser(txt)
-
-#         for _ in range(2):
-#             txt = self.text(txt, lengths)
-#             au = self.audio(au, lengths)
-#             txt = F.glu(torch.cat((txt, au), dim=-1), dim=-1)
-#             au = F.glu(torch.cat((au, txt), dim=-1), dim=-1)
-#         txt = self.text(txt, lengths)
-#         au = self.audio(au, lengths)
-#         txt = txt.sum(1)
-#         au = au.sum(1)
-#         fused = self.fuser(txt, au)
-
-#         return fused
+        return fused
 
 
 class AudioTextClassifier(nn.Module):
@@ -824,9 +824,11 @@ class VisualClassifier(nn.Module):
         pass
 
     def forward(self, x, lengths):
-        x = self.project(x)  # 35 -> 300 
+        x = self.project(x)  # 35 -> 300
         x = self.encoder(x, lengths)
+
         return self.classifier(x)
+
 
 class AudioVisualTextClassifier(nn.Module):
     def __init__(
@@ -870,3 +872,134 @@ class AudioVisualTextClassifier(nn.Module):
         )
 
         return self.classifier(out)
+
+
+class AudioVisualTextTransformerEncoder1(nn.Module):
+    def __init__(
+        self,
+        transformer_cfg=None,
+        fuse_cfg=None,
+        feedback=False,
+        device="cpu",
+    ):
+        super(AudioVisualTextTransformerEncoder1, self).__init__()
+        self.feedback = feedback
+        self.max_length = transformer_cfg["max_length"]
+        self.device = device
+
+        self.text_encoder = TransformerEncoderContinuous(
+            input_size=transformer_cfg["text_size"],
+            hidden_size=transformer_cfg["hidden_size"],
+            max_length=transformer_cfg["max_length"],
+            num_layers=transformer_cfg["num_layers"],
+            num_heads=transformer_cfg["num_heads"],
+            inner_size=transformer_cfg["inner_size"],
+            dropout=transformer_cfg["dropout"],
+            device=device,
+        )
+
+        self.audio_encoder = TransformerEncoderContinuous(
+            input_size=transformer_cfg["audio_size"],
+            hidden_size=transformer_cfg["hidden_size"],
+            max_length=transformer_cfg["max_length"],
+            num_layers=transformer_cfg["num_layers"],
+            num_heads=transformer_cfg["num_heads"],
+            inner_size=transformer_cfg["inner_size"],
+            dropout=transformer_cfg["dropout"],
+            device=device,
+        )
+
+        self.visual_encoder = TransformerEncoderContinuous(
+            input_size=transformer_cfg["visual_size"],
+            hidden_size=transformer_cfg["hidden_size"],
+            max_length=transformer_cfg["max_length"],
+            num_layers=transformer_cfg["num_layers"],
+            num_heads=transformer_cfg["num_heads"],
+            inner_size=transformer_cfg["inner_size"],
+            dropout=transformer_cfg["dropout"],
+            device=device,
+        )
+
+        if feedback:
+            self.glu = GatedLinearUnit3Way()
+
+        if fuse_cfg["method"] == "cat":
+            fuse_cls = CatFuser3Way
+        elif fuse_cfg["method"] == "add":
+            fuse_cls = AddFuser3Way
+        elif fuse_cfg["method"] == "common_space":
+            raise NotImplementedError
+        else:
+            raise ValueError('Supported fuse techniques: ["cat", "add"]')
+
+        self.fuser = fuse_cls(
+            transformer_cfg["hidden_size"],
+            transformer_cfg["hidden_size"],
+            transformer_cfg["hidden_size"],
+            proj_sz=fuse_cfg["projection_size"],
+            modality_weights=fuse_cfg["modality_weights"],
+            device=device,
+            extra_args=fuse_cfg,
+        )
+        self.out_size = self.fuser.out_size
+
+    def forward(self, txt, au, vi, lengths):
+        attention_mask = pad_mask(lengths, max(lengths), device=self.device).unsqueeze(1)
+        if self.feedback:
+            for _ in range(2):
+                txt = self.text_encoder(txt, attention_mask=attention_mask)
+                au = self.audio_encoder(au, attention_mask=attention_mask)
+                vi = self.visual_encoder(vi, attention_mask=attention_mask)
+                txt = self.glu(txt, au, vi)
+                au = self.glu(au, txt, vi)
+                vi = self.glu(vi, txt, au)
+
+        txt = self.text_encoder(txt, attention_mask=attention_mask)
+        au = self.audio_encoder(au, attention_mask=attention_mask)
+        vi = self.visual_encoder(vi, attention_mask=attention_mask)
+
+        if torch.isnan(txt).sum() > 0:
+            import ipdb; ipdb.set_trace()
+
+        if torch.isnan(au).sum() > 0:
+            import ipdb; ipdb.set_trace()
+
+        if torch.isnan(vi).sum() > 0:
+            import ipdb; ipdb.set_trace()
+        # Sum weighted attention hidden states
+        txt = txt.sum(1)
+        au = au.sum(1)
+        vi = vi.sum(1)
+
+        fused = self.fuser(txt, au, vi)
+
+        return fused
+
+
+class AudioVisualTextTransformerClassifier(nn.Module):
+    def __init__(
+        self,
+        transformer_cfg=None,
+        fuse_cfg=None,
+        num_classes=1,
+        feedback=False,
+        device="cpu",
+    ):
+        super(AudioVisualTextTransformerClassifier, self).__init__()
+
+        self.encoder = AudioVisualTextTransformerEncoder(
+            transformer_cfg=transformer_cfg,
+            fuse_cfg=fuse_cfg,
+            feedback=feedback,
+            device=device,
+        )
+
+        self.classifier = nn.Linear(self.encoder.out_size, num_classes)
+
+    def forward(self, inputs):
+        out = self.encoder(
+            inputs["text"], inputs["audio"], inputs["visual"], inputs["lengths"]
+        )
+
+        out = self.classifier(out)
+        return out
