@@ -383,3 +383,19 @@ class MOSITrainer(Trainer):
         targets = targets.squeeze()
 
         return y_pred, targets
+
+
+class MM_AudioTrainer(MOSITrainer):
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        au = inputs["audio"]
+        lengths = inputs["lengths"]
+        # import pdb; pdb.set_trace()
+        y_pred = self.model(au, lengths)
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
+        return y_pred, targets

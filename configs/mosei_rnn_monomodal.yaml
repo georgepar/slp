@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/results/feedback_bi_3way_warmup
+results_dir: /home/egeorgiou/experimental/mm/slp/results/monomodal_3way
 binary: false
 train: true
 test: true
@@ -65,7 +65,7 @@ common:
     rnn_type: lstm
 
 experiment:
-    name: mosei-binary-audio-text-visual
+    name: mosei-monomodal
     description: MOSEI binary task
 
 embeddings:
@@ -80,12 +80,21 @@ dataloaders:
     pin_memory: false
 
 optimizer:
-    name: AdamW
-    learning_rate: !!float 1e-3
+    audio:
+        name: Adam
+        learning_rate: !!float 1e-3
+    text:
+        name: Adam
+        learning_rate: !!float 1e-3
+    visual:
+        name: Adam
+        learning_rate: !!float 1e-3
 
 trainer:
     patience: 20
     max_epochs: 100
     retain_graph: true
-    load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-feedback-warmup
+    load_audio_model: mosei-audio_checkpoint.best.pth
+    load_text_model: mosei-text_checkpoint.best.pth
+    load_visual_model: mosei-visual_checkpoint.best.pth
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-monomodal

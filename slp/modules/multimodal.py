@@ -11,6 +11,7 @@ class GatedLinearUnit(nn.Module):
     def __init__(self, hidden_dim=None, learnable=False):
         super(GatedLinearUnit, self).__init__()
         self.learnable = learnable
+
         if learnable:
             if hidden_dim is None:
                 raise ValueError("You must provide hidden dim for learnable GLU")
@@ -32,6 +33,7 @@ class GatedLinearUnit3Way(nn.Module):
     def __init__(self, hidden_dim=None, learnable=False):
         super(GatedLinearUnit3Way, self).__init__()
         self.learnable = learnable
+
         if learnable:
             if hidden_dim is None:
                 raise ValueError("You must provide hidden dim for learnable GLU")
@@ -362,7 +364,6 @@ class AudioEncoder(nn.Module):
             return_hidden=cfg["return_hidden"],
         )
         self.out_size = self.audio.out_size
-
         self.bn = None
 
         if cfg["batchnorm"]:
@@ -493,6 +494,7 @@ class AudioTextEncoder(nn.Module):
         )
 
         self.text_projection = None
+
         if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
             self.text_projection = nn.Linear(
                 text_cfg["orig_size"], fuse_cfg["projection_size"]
@@ -536,6 +538,7 @@ class AudioTextEncoder(nn.Module):
 
     def forward(self, txt, au, lengths):
         au = self.audio_projection(au)
+
         if self.text_projection is not None:
             txt = self.text_projection(txt)
 
@@ -596,6 +599,7 @@ class AudioVisualTextEncoder(nn.Module):
         visual_cfg["input_size"] = visual_size
 
         self.text_projection = None
+
         if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
             self.text_projection = nn.Linear(
                 text_cfg["orig_size"], fuse_cfg["projection_size"]
@@ -653,17 +657,29 @@ class AudioVisualTextEncoder(nn.Module):
         self.out_size = self.fuser.out_size
 
     def from_pretrained(self, audio_path, visual_path, text_path):
-        text_model = torch.load(text_path)
-        text_encoder = text_model["encoder"]
-        self.text_encoder = text_encoder
-        raise NotImplementedError
-
+        # load pretrained classifiers
+        text_clf = torch.load(text_path)
+        audio_clf = torch.load(audio_path)
+        visual_clf = torch.load(visual_path)
+        # get projections
+        self.text_projection = text_clf["proj"]
+        self.audio_projection = audio_clf["proj"]
+        self.visual_projection = visual_clf["proj"]
+        # encoders
+        self.text = text_clf["encoder"]
+        self.audio = audio_clf["encoder"]
+        self.visual = visual_clf["encoder"]
 
     def forward(self, txt, au, vi, lengths):
-        au = self.audio_projection(au)
-        vi = self.visual_projection(vi)
+        if self.audio_projection is not None:
+            au = self.audio_projection(au)
+
+        if self.visual_projection is not None:
+            vi = self.visual_projection(vi)
+
         if self.text_projection is not None:
             txt = self.text_projection(txt)
+
         if self.prefuser is not None:
             au = self.prefuser(au)
             vi = self.prefuser(vi)
@@ -725,6 +741,7 @@ class AudioVisualTextCoAttentionEncoder(nn.Module):
         visual_cfg["input_size"] = visual_size
 
         self.text_projection = None
+
         if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
             self.text_projection = nn.Linear(
                 text_cfg["orig_size"], fuse_cfg["projection_size"]
@@ -831,6 +848,7 @@ class AudioVisualTextCoAttentionEncoder(nn.Module):
     def forward(self, txt, au, vi, lengths):
         au = self.audio_projection(au)
         vi = self.visual_projection(vi)
+
         if self.text_projection is not None:
             txt = self.text_projection(txt)
 
@@ -984,21 +1002,47 @@ class AudioTextClassifier(nn.Module):
 
 
 class GloveClassifier(nn.Module):
-    def __init__(self, cfg, num_classes=1, device="cpu"):
-        pass
+    def __init__(self, cfg, num_classes=1, projection_size=300, device="cpu"):
+        super(GloveClassifier, self).__init__()
+        self.proj = None
+        if cfg["hidden_size"] != projection_size:
+            self.proj = nn.Linear(cfg["input_size"], projection_size)
+        self.encoder = AudioEncoder(cfg, device=device)
+        self.classifier = nn.Linear(self.encoder.out_size, num_classes)
 
+    def forward(self, x, lengths):
+        if self.proj is not None:
+            x = self.proj(x)
+        x = self.encoder(x, lengths)
+        return self.classifier(x)
 
 class AudioClassifier(nn.Module):
     def __init__(self, cfg, num_classes=1, projection_size=300, device="cpu"):
-        pass
+        super(AudioClassifier, self).__init__()
+        self.proj = None
+        if cfg["hidden_size"] != projection_size:
+            self.proj = nn.Linear(cfg["input_size"], projection_size)
+        self.encoder = AudioEncoder(cfg, device=device)
+        self.classifier = nn.Linear(self.encoder.out_size, num_classes)
 
+    def forward(self, x, lengths):
+        if self.proj is not None:
+            x = self.proj(x)
+        x = self.encoder(x, lengths)
+        return self.classifier(x)
 
 class VisualClassifier(nn.Module):
     def __init__(self, cfg, num_classes=1, projection_size=300, device="cpu"):
-        pass
+        super(VisualClassifier, self).__init__()
+        self.proj = None
+        if cfg["hidden_size"] != projection_size:
+            self.proj = nn.Linear(cfg["input_size"], projection_size)
+        self.encoder = VisualEncoder(cfg, device=device)
+        self.classifier = nn.Linear(self.encoder.out_size, num_classes)
 
     def forward(self, x, lengths):
-        x = self.project(x)  # 35 -> 300 
+        if self.proj is not None:
+            x = self.proj(x)
         x = self.encoder(x, lengths)
         return self.classifier(x)
 
