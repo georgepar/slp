@@ -19,7 +19,7 @@ from slp.mm.load import mosei
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
 from slp.modules.multimodal import AudioClassifier, VisualClassifier, GloveClassifier
 from slp.modules.rnn import WordRNN
-from slp.trainer.trainer import MM_AudioTrainer
+from slp.trainer.trainer import MM_AudioTrainer, MM_TextTrainer, MM_VisualTrainer
 from slp.ui.config import load_config
 from slp.util import log
 from slp.util.embeddings import EmbeddingsLoader
@@ -182,6 +182,11 @@ def get_parser():
         help="Results directory",
     )
 
+    parser.add_argument(
+        "--modal-train",
+        dest="experiment.modal_train",
+        help="Which modality is trained: audio, text, visual, all",
+    )
     return parser
 
 
@@ -191,6 +196,347 @@ C["modalities"] = set(C["modalities"])
 collate_fn = MOSICollator(
     device="cpu", binary=False, modalities=["text", "audio", "visual"], max_length=-1
 )
+
+
+def get_metrics():
+    if C["binary"]:
+        criterion = BCE()
+
+        def thresholded_output_transform(output):
+            y_pred, y = output
+            y_pred = torch.sigmoid(y_pred)
+            y_pred = torch.round(y_pred)
+
+            return y_pred, y
+
+        metrics = {
+            "bin_accuracy": Accuracy(thresholded_output_transform),
+            "loss": Loss(criterion),
+        }
+        # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
+    else:
+        criterion = nn.L1Loss()
+
+        def bin_acc_transform(output):
+            y_pred, y = output
+            yp, yt = (y_pred > 0).long(), (y > 0).long()
+
+            return yp, yt
+
+        metrics = {
+            # "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
+            "loss": Loss(criterion),
+        }
+        # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
+
+    return criterion, metrics
+
+
+def train_audio_model(C, fuse_cfg):
+    a_model = AudioClassifier(
+        cfg=C["audio"]["model"],
+        projection_size=fuse_cfg["projection_size"],
+        device=C["device"],
+        num_classes=1,
+    )
+
+    criterion, metrics = get_metrics()
+
+    # Acoustic Modality
+    a_model = a_model.to(C["device"])
+    print(a_model)
+    optimizer = getattr(torch.optim, C["optimizer"]["audio"]["name"])(
+        [p for p in a_model.parameters() if p.requires_grad],
+        lr=C["optimizer"]["audio"]["learning_rate"],
+    )
+
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        "min",
+        factor=0.5,
+        patience=2,
+        cooldown=2,
+        min_lr=C["optimizer"]["audio"]["learning_rate"] / 20.0,
+    )
+
+    if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
+        trainer = MM_AudioTrainer(
+            a_model,
+            optimizer,
+            # score_fn=score_fn,
+            experiment_name=C["experiment"]["name"],
+            checkpoint_dir=C["trainer"]["checkpoint_dir"],
+            metrics=metrics,
+            non_blocking=C["trainer"]["non_blocking"],
+            patience=C["trainer"]["patience"],
+            validate_every=C["trainer"]["validate_every"],
+            retain_graph=C["trainer"]["retain_graph"],
+            loss_fn=criterion,
+            lr_scheduler=lr_scheduler,
+            device=C["device"],
+        )
+
+    if C["debug"]:
+        if C["overfit_batch"]:
+            trainer.overfit_single_batch(train_loader)
+        trainer.fit_debug(train_loader, dev_loader)
+        sys.exit(0)
+
+    if C["train"]:
+        trainer.fit(train_loader, dev_loader, epochs=C["trainer"]["max_epochs"])
+
+    if C["test"]:
+        try:
+            del trainer
+        except:
+            pass
+        trainer = MM_AudioTrainer(
+            a_model,
+            optimizer,
+            experiment_name=C["experiment"]["name"],
+            checkpoint_dir=C["trainer"]["checkpoint_dir"],
+            metrics=metrics,
+            model_checkpoint=C["trainer"]["load_audio_model"],
+            non_blocking=C["trainer"]["non_blocking"],
+            patience=C["trainer"]["patience"],
+            validate_every=C["trainer"]["validate_every"],
+            retain_graph=C["trainer"]["retain_graph"],
+            loss_fn=criterion,
+            device=C["device"],
+        )
+
+        predictions, targets = trainer.predict(test_loader)
+
+        pred = torch.cat(predictions)
+        y_test = torch.cat(targets)
+
+        from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
+        import uuid
+
+        metrics = eval_mosei_senti(pred, y_test, True)
+        print_metrics(metrics)
+
+        results_dir = C["results_dir"]
+        safe_mkdirs(results_dir)
+        fname = uuid.uuid1().hex
+        results_file = os.path.join(results_dir, fname)
+
+        save_metrics(metrics, results_file)
+
+        metrics = eval_mosei_senti(pred, y_test, False)
+
+        results_dir = C["results_dir"] + "_audio_mono"
+        safe_mkdirs(results_dir)
+        results_file = os.path.join(results_dir, fname)
+
+        save_metrics(metrics, results_file)
+
+        print("Finished training acoustic modality")
+
+
+def train_text_model(C, fuse_cfg):
+    t_model = GloveClassifier(
+        cfg=C["text"]["model"],
+        projection_size=fuse_cfg["projection_size"],
+        device=C["device"],
+        num_classes=1,
+    )
+
+    criterion, metrics = get_metrics()
+
+    # Text Modality
+    t_model = t_model.to(C["device"])
+    print(t_model)
+    optimizer = getattr(torch.optim, C["optimizer"]["text"]["name"])(
+        [p for p in t_model.parameters() if p.requires_grad],
+        lr=C["optimizer"]["text"]["learning_rate"],
+    )
+
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        "min",
+        factor=0.5,
+        patience=2,
+        cooldown=2,
+        min_lr=C["optimizer"]["text"]["learning_rate"] / 20.0,
+    )
+
+    if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
+        trainer = MM_TextTrainer(
+            t_model,
+            optimizer,
+            # score_fn=score_fn,
+            experiment_name=C["experiment"]["name"],
+            checkpoint_dir=C["trainer"]["checkpoint_dir"],
+            metrics=metrics,
+            non_blocking=C["trainer"]["non_blocking"],
+            patience=C["trainer"]["patience"],
+            validate_every=C["trainer"]["validate_every"],
+            retain_graph=C["trainer"]["retain_graph"],
+            loss_fn=criterion,
+            lr_scheduler=lr_scheduler,
+            device=C["device"],
+        )
+
+    if C["debug"]:
+        if C["overfit_batch"]:
+            trainer.overfit_single_batch(train_loader)
+        trainer.fit_debug(train_loader, dev_loader)
+        sys.exit(0)
+
+    if C["train"]:
+        trainer.fit(train_loader, dev_loader, epochs=C["trainer"]["max_epochs"])
+
+    if C["test"]:
+        try:
+            del trainer
+        except:
+            pass
+        trainer = MM_TextTrainer(
+            t_model,
+            optimizer,
+            experiment_name=C["experiment"]["name"],
+            checkpoint_dir=C["trainer"]["checkpoint_dir"],
+            metrics=metrics,
+            model_checkpoint=C["trainer"]["load_audio_model"],
+            non_blocking=C["trainer"]["non_blocking"],
+            patience=C["trainer"]["patience"],
+            validate_every=C["trainer"]["validate_every"],
+            retain_graph=C["trainer"]["retain_graph"],
+            loss_fn=criterion,
+            device=C["device"],
+        )
+
+        predictions, targets = trainer.predict(test_loader)
+
+        pred = torch.cat(predictions)
+        y_test = torch.cat(targets)
+
+        from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
+        import uuid
+
+        metrics = eval_mosei_senti(pred, y_test, True)
+        print_metrics(metrics)
+
+        results_dir = C["results_dir"]
+        safe_mkdirs(results_dir)
+        fname = uuid.uuid1().hex
+        results_file = os.path.join(results_dir, fname)
+
+        save_metrics(metrics, results_file)
+
+        metrics = eval_mosei_senti(pred, y_test, False)
+
+        results_dir = C["results_dir"] + "_text_mono"
+        safe_mkdirs(results_dir)
+        results_file = os.path.join(results_dir, fname)
+
+        save_metrics(metrics, results_file)
+
+        print("Finished training text modality")
+
+
+def train_visual_model(C, fuse_cfg):
+    v_model = VisualClassifier(
+        cfg=C["visual"]["model"],
+        projection_size=fuse_cfg["projection_size"],
+        device=C["device"],
+        num_classes=1,
+    )
+
+    criterion, metrics = get_metrics()
+
+    # Text Modality
+    v_model = v_model.to(C["device"])
+    print(v_model)
+    optimizer = getattr(torch.optim, C["optimizer"]["visual"]["name"])(
+        [p for p in v_model.parameters() if p.requires_grad],
+        lr=C["optimizer"]["visual"]["learning_rate"],
+    )
+
+    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        "min",
+        factor=0.5,
+        patience=2,
+        cooldown=2,
+        min_lr=C["optimizer"]["visual"]["learning_rate"] / 20.0,
+    )
+
+    if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
+        trainer = MM_VisualTrainer(
+            v_model,
+            optimizer,
+            # score_fn=score_fn,
+            experiment_name=C["experiment"]["name"],
+            checkpoint_dir=C["trainer"]["checkpoint_dir"],
+            metrics=metrics,
+            non_blocking=C["trainer"]["non_blocking"],
+            patience=C["trainer"]["patience"],
+            validate_every=C["trainer"]["validate_every"],
+            retain_graph=C["trainer"]["retain_graph"],
+            loss_fn=criterion,
+            lr_scheduler=lr_scheduler,
+            device=C["device"],
+        )
+
+    if C["debug"]:
+        if C["overfit_batch"]:
+            trainer.overfit_single_batch(train_loader)
+        trainer.fit_debug(train_loader, dev_loader)
+        sys.exit(0)
+
+    if C["train"]:
+        trainer.fit(train_loader, dev_loader, epochs=C["trainer"]["max_epochs"])
+
+    if C["test"]:
+        try:
+            del trainer
+        except:
+            pass
+        trainer = MM_VisualTrainer(
+            v_model,
+            optimizer,
+            experiment_name=C["experiment"]["name"],
+            checkpoint_dir=C["trainer"]["checkpoint_dir"],
+            metrics=metrics,
+            model_checkpoint=C["trainer"]["load_audio_model"],
+            non_blocking=C["trainer"]["non_blocking"],
+            patience=C["trainer"]["patience"],
+            validate_every=C["trainer"]["validate_every"],
+            retain_graph=C["trainer"]["retain_graph"],
+            loss_fn=criterion,
+            device=C["device"],
+        )
+
+        predictions, targets = trainer.predict(test_loader)
+
+        pred = torch.cat(predictions)
+        y_test = torch.cat(targets)
+
+        from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
+        import uuid
+
+        metrics = eval_mosei_senti(pred, y_test, True)
+        print_metrics(metrics)
+
+        results_dir = C["results_dir"]
+        safe_mkdirs(results_dir)
+        fname = uuid.uuid1().hex
+        results_file = os.path.join(results_dir, fname)
+
+        save_metrics(metrics, results_file)
+
+        metrics = eval_mosei_senti(pred, y_test, False)
+
+        results_dir = C["results_dir"] + "_visual_mono"
+        safe_mkdirs(results_dir)
+        results_file = os.path.join(results_dir, fname)
+
+        save_metrics(metrics, results_file)
+
+        print("Finished training visual modality")
+
 
 
 if __name__ == "__main__":
@@ -292,162 +638,174 @@ if __name__ == "__main__":
     # x = next(iter(train_loader))
     # import pdb; pdb.set_trace()
     # x = next(iter(train_loader))
-    print("Training monomodal classifiers")
+    modal_train = C["experiment"]["modal_train"]
+    print(f"Training monomodal classifiers for {modal_train} modality.")
     # print("Running with feedback = {}".format(C["feedback"]))
     fuse_cfg=C["fuse"]
 
-    # model = AudioVisualTextClassifier(
-    #     embeddings=embeddings,
-    #     audio_cfg=C["audio"]["model"],
-    #     text_cfg=C["text"]["model"],
-    #     visual_cfg=C["visual"]["model"],
-    #     fuse_cfg=C["fuse"],
-    #     device=C["device"],
-    #     modalities=C["modalities"],
-    #     text_mode="glove",
-    #     num_classes=1,
-    #     feedback=C["feedback"],
-    # )
-
-    # load monomodal classifiers and train them separately
-    a_model = AudioClassifier(
-        cfg=C["audio"]["model"],
-        projection_size=fuse_cfg["projection_size"],
-        device=C["device"],
-        num_classes=1,
-    )
-
-    # visual_clf = VisualClassifier(
-    #     cfg=C["visual"]["model"],
-    #     projection_size=fuse_cfg["projection_size"],
-    #     device=C["device"],
-    #     num_classes=1,
-    # )
-
-    # text_clf = GloveClassifier(
-    #     cfg=C["text"]["model"],
-    #     projection_size=fuse_cfg["projection_size"],
-    #     device=C["device"],
-    #     num_classes=1,
-    # )
-
-    if C["binary"]:
-        criterion = BCE()
-
-        def thresholded_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.sigmoid(y_pred)
-            y_pred = torch.round(y_pred)
-
-            return y_pred, y
-
-        metrics = {
-            "bin_accuracy": Accuracy(thresholded_output_transform),
-            "loss": Loss(criterion),
-        }
-        # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
+    if modal_train == "audio":
+        train_audio_model(C, fuse_cfg)
+    elif modal_train == "text":
+        train_text_model(C, fuse_cfg)
+    elif modal_train == "visual":
+        train_visual_model(C, fuse_cfg)
+    elif modal_train == "all":
+        train_audio_model(C, fuse_cfg)
+        train_text_model(C, fuse_cfg)
+        train_visual_model(C, fuse_cfg)
     else:
-        criterion = nn.L1Loss()
+        raise KeyError("Choose a valid modal to train. Available options are:"
+                       "text, audio, visual, all.")
+    # # model = AudioVisualTextClassifier(
+    # #     embeddings=embeddings,
+    # #     audio_cfg=C["audio"]["model"],
+    # #     text_cfg=C["text"]["model"],
+    # #     visual_cfg=C["visual"]["model"],
+    # #     fuse_cfg=C["fuse"],
+    # #     device=C["device"],
+    # #     modalities=C["modalities"],
+    # #     text_mode="glove",
+    # #     num_classes=1,
+    # #     feedback=C["feedback"],
+    # # )
 
-        def bin_acc_transform(output):
-            y_pred, y = output
-            yp, yt = (y_pred > 0).long(), (y > 0).long()
+    # # load monomodal classifiers and train them separately
+    # a_model = AudioClassifier(
+    #     cfg=C["audio"]["model"],
+    #     projection_size=fuse_cfg["projection_size"],
+    #     device=C["device"],
+    #     num_classes=1,
+    # )
 
-            return yp, yt
+    # # visual_clf = VisualClassifier(
+    # #     cfg=C["visual"]["model"],
+    # #     projection_size=fuse_cfg["projection_size"],
+    # #     device=C["device"],
+    # #     num_classes=1,
+    # # )
 
-        metrics = {
-            # "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
-            "loss": Loss(criterion),
-        }
-        # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
+    # # text_clf = GloveClassifier(
+    # #     cfg=C["text"]["model"],
+    # #     projection_size=fuse_cfg["projection_size"],
+    # #     device=C["device"],
+    # #     num_classes=1,
+    # # )
 
-    # Acoustic Modality
-    a_model = a_model.to(C["device"])
-    print(a_model)
-    optimizer = getattr(torch.optim, C["optimizer"]["name"])(
-        [p for p in a_model.parameters() if p.requires_grad],
-        lr=C["optimizer"]["audio"]["learning_rate"],
-    )
+    # if C["binary"]:
+    #     criterion = BCE()
 
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        "min",
-        factor=0.5,
-        patience=2,
-        cooldown=2,
-        min_lr=C["optimizer"]["audio"]["learning_rate"] / 20.0,
-    )
+    #     def thresholded_output_transform(output):
+    #         y_pred, y = output
+    #         y_pred = torch.sigmoid(y_pred)
+    #         y_pred = torch.round(y_pred)
 
-    import pdb; pdb.set_trace()
+    #         return y_pred, y
 
-    if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
-        trainer = MM_AudioTrainer(
-            a_model,
-            optimizer,
-            # score_fn=score_fn,
-            experiment_name=C["experiment"]["name"],
-            checkpoint_dir=C["trainer"]["checkpoint_dir"],
-            metrics=metrics,
-            non_blocking=C["trainer"]["non_blocking"],
-            patience=C["trainer"]["patience"],
-            validate_every=C["trainer"]["validate_every"],
-            retain_graph=C["trainer"]["retain_graph"],
-            loss_fn=criterion,
-            lr_scheduler=lr_scheduler,
-            device=C["device"],
-        )
+    #     metrics = {
+    #         "bin_accuracy": Accuracy(thresholded_output_transform),
+    #         "loss": Loss(criterion),
+    #     }
+    #     # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
+    # else:
+    #     criterion = nn.L1Loss()
 
-    if C["debug"]:
-        if C["overfit_batch"]:
-            trainer.overfit_single_batch(train_loader)
-        trainer.fit_debug(train_loader, dev_loader)
-        sys.exit(0)
+    #     def bin_acc_transform(output):
+    #         y_pred, y = output
+    #         yp, yt = (y_pred > 0).long(), (y > 0).long()
 
-    if C["train"]:
-        trainer.fit(train_loader, dev_loader, epochs=C["trainer"]["max_epochs"])
+    #         return yp, yt
 
-    if C["test"]:
-        try:
-            del trainer
-        except:
-            pass
-        trainer = MM_AudioTrainer(
-            a_model,
-            optimizer,
-            experiment_name=C["experiment"]["name"],
-            checkpoint_dir=C["trainer"]["checkpoint_dir"],
-            metrics=metrics,
-            model_checkpoint=C["trainer"]["load_audio_model"],
-            non_blocking=C["trainer"]["non_blocking"],
-            patience=C["trainer"]["patience"],
-            validate_every=C["trainer"]["validate_every"],
-            retain_graph=C["trainer"]["retain_graph"],
-            loss_fn=criterion,
-            device=C["device"],
-        )
+    #     metrics = {
+    #         # "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
+    #         "loss": Loss(criterion),
+    #     }
+    #     # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
 
-        predictions, targets = trainer.predict(test_loader)
+    # # Acoustic Modality
+    # a_model = a_model.to(C["device"])
+    # print(a_model)
+    # optimizer = getattr(torch.optim, C["optimizer"]["name"])(
+    #     [p for p in a_model.parameters() if p.requires_grad],
+    #     lr=C["optimizer"]["audio"]["learning_rate"],
+    # )
 
-        pred = torch.cat(predictions)
-        y_test = torch.cat(targets)
+    # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer,
+    #     "min",
+    #     factor=0.5,
+    #     patience=2,
+    #     cooldown=2,
+    #     min_lr=C["optimizer"]["audio"]["learning_rate"] / 20.0,
+    # )
 
-        from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
-        import uuid
+    # if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
+    #     trainer = MM_AudioTrainer(
+    #         a_model,
+    #         optimizer,
+    #         # score_fn=score_fn,
+    #         experiment_name=C["experiment"]["name"],
+    #         checkpoint_dir=C["trainer"]["checkpoint_dir"],
+    #         metrics=metrics,
+    #         non_blocking=C["trainer"]["non_blocking"],
+    #         patience=C["trainer"]["patience"],
+    #         validate_every=C["trainer"]["validate_every"],
+    #         retain_graph=C["trainer"]["retain_graph"],
+    #         loss_fn=criterion,
+    #         lr_scheduler=lr_scheduler,
+    #         device=C["device"],
+    #     )
 
-        metrics = eval_mosei_senti(pred, y_test, True)
-        print_metrics(metrics)
+    # if C["debug"]:
+    #     if C["overfit_batch"]:
+    #         trainer.overfit_single_batch(train_loader)
+    #     trainer.fit_debug(train_loader, dev_loader)
+    #     sys.exit(0)
 
-        results_dir = C["results_dir"]
-        safe_mkdirs(results_dir)
-        fname = uuid.uuid1().hex
-        results_file = os.path.join(results_dir, fname)
+    # if C["train"]:
+    #     trainer.fit(train_loader, dev_loader, epochs=C["trainer"]["max_epochs"])
 
-        save_metrics(metrics, results_file)
+    # if C["test"]:
+    #     try:
+    #         del trainer
+    #     except:
+    #         pass
+    #     trainer = MM_AudioTrainer(
+    #         a_model,
+    #         optimizer,
+    #         experiment_name=C["experiment"]["name"],
+    #         checkpoint_dir=C["trainer"]["checkpoint_dir"],
+    #         metrics=metrics,
+    #         model_checkpoint=C["trainer"]["load_audio_model"],
+    #         non_blocking=C["trainer"]["non_blocking"],
+    #         patience=C["trainer"]["patience"],
+    #         validate_every=C["trainer"]["validate_every"],
+    #         retain_graph=C["trainer"]["retain_graph"],
+    #         loss_fn=criterion,
+    #         device=C["device"],
+    #     )
 
-        metrics = eval_mosei_senti(pred, y_test, False)
+    #     predictions, targets = trainer.predict(test_loader)
 
-        results_dir = C["results_dir"] + "_neutral"
-        safe_mkdirs(results_dir)
-        results_file = os.path.join(results_dir, fname)
+    #     pred = torch.cat(predictions)
+    #     y_test = torch.cat(targets)
 
-        save_metrics(metrics, results_file)
+    #     from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
+    #     import uuid
+
+    #     metrics = eval_mosei_senti(pred, y_test, True)
+    #     print_metrics(metrics)
+
+    #     results_dir = C["results_dir"]
+    #     safe_mkdirs(results_dir)
+    #     fname = uuid.uuid1().hex
+    #     results_file = os.path.join(results_dir, fname)
+
+    #     save_metrics(metrics, results_file)
+
+    #     metrics = eval_mosei_senti(pred, y_test, False)
+
+    #     results_dir = C["results_dir"] + "_neutral"
+    #     safe_mkdirs(results_dir)
+    #     results_file = os.path.join(results_dir, fname)
+
+    #     save_metrics(metrics, results_file)

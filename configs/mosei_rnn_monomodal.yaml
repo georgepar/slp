@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/results/monomodal_3way
+results_dir: /home/egeorgiou/experimental/mm/slp/results/mosei_visual
 binary: false
 train: true
 test: true
@@ -19,7 +19,7 @@ audio:
     instance_norm: false
     model:
         input_size: 74
-        hidden_size: 300
+        hidden_size: 100
         layers: 1
         dropout: !!float 0.2
         bidirectional: true
@@ -32,7 +32,7 @@ visual:
     instance_norm: false
     model:
         input_size: 35
-        hidden_size: 300
+        hidden_size: 100
         layers: 1
         dropout: !!float 0.2
         bidirectional: true
@@ -44,18 +44,19 @@ visual:
 text:
     model:
         input_size: 300
-        hidden_size: 300
+        hidden_size: 100
         layers: 1
         dropout: !!float 0.2
         bidirectional: true
         rnn_type: lstm
         attention: true
         return_hidden: false
+        batchnorm: false
 
 fuse:
     method: cat
     modality_weights: false
-    projection_size: 300
+    projection_size: 100
     prefuse: false
     use_mask: false
 
@@ -65,8 +66,9 @@ common:
     rnn_type: lstm
 
 experiment:
-    name: mosei-monomodal
+    name: mosei-visual
     description: MOSEI binary task
+    modal_train: visual
 
 embeddings:
     path: /data/embeddings/en/glove.840B.300d.txt
@@ -91,10 +93,10 @@ optimizer:
         learning_rate: !!float 1e-3
 
 trainer:
-    patience: 20
+    patience: 10
     max_epochs: 100
     retain_graph: true
     load_audio_model: mosei-audio_checkpoint.best.pth
     load_text_model: mosei-text_checkpoint.best.pth
     load_visual_model: mosei-visual_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-monomodal
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-visual
