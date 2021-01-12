@@ -1,7 +1,7 @@
 feedback: true
-device: cpu
+device: cuda
 data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_warmup
+results_dir: /home/geopar/projects/mm/results_new/feedback
 binary: false
 train: true
 test: true
@@ -10,7 +10,7 @@ debug: false
 remove_pauses: true
 
 normalize_audio: true
-normalize_visual: false
+normalize_visual: true
 
 modalities:
     - text
@@ -56,14 +56,14 @@ text:
         return_hidden: false
 
 fuse:
-    method: attrnn
+    method: cat
     modality_weights: false
     projection_size: 100
     use_mask: false
     model_dim: 100
-    projection_type: conv
+    projection_type: null
     residual: 1
-    mmdrop: !!float 0.5
+    mmdrop: !!float 0
 
 common:
     dropout: !!float 0.2
@@ -90,8 +90,8 @@ optimizer:
     learning_rate: !!float 1e-3
 
 trainer:
-    patience: 20
+    patience: 10
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback-warmup
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback

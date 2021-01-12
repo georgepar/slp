@@ -31,6 +31,48 @@ def eval_mosei_senti(results, truths, exclude_zero=False):
     test_preds = results.view(-1).cpu().detach().numpy()
     test_truth = truths.view(-1).cpu().detach().numpy()
 
+
+    test_preds_a7 = np.clip(test_preds, a_min=-3., a_max=3.)
+    test_truth_a7 = np.clip(test_truth, a_min=-3., a_max=3.)
+    test_preds_a5 = np.clip(test_preds, a_min=-2., a_max=2.)
+    test_truth_a5 = np.clip(test_truth, a_min=-2., a_max=2.)
+
+    mae = np.mean(np.absolute(test_preds - test_truth))   # Average L1 distance between preds and truths
+    corr = np.corrcoef(test_preds, test_truth)[0][1]
+    mult_a7 = multiclass_acc(test_preds_a7, test_truth_a7)
+    mult_a5 = multiclass_acc(test_preds_a5, test_truth_a5)
+
+    f_score = f1_score((test_preds >= 0), (test_truth >= 0), average='weighted')
+    binary_truth = (test_truth >= 0)
+    binary_preds = (test_preds >= 0)
+
+    f_score_neg = f1_score((test_preds > 0), (test_truth > 0), average='weighted')
+    binary_truth_neg = (test_truth > 0)
+    binary_preds_neg = (test_preds > 0)
+
+    non_zeros = np.array([i for i, e in enumerate(test_truth) if e != 0])
+    f_score_non_zero = f1_score((test_preds[non_zeros] > 0), (test_truth[non_zeros] > 0), average='weighted')
+    binary_truth_non_zero = (test_truth[non_zeros] > 0)
+    binary_preds_non_zero = (test_preds[non_zeros] > 0)
+
+
+    return {
+        "mae": mae,
+        "corr": corr,
+        "acc_7": mult_a7,
+        "acc_5": mult_a5,
+        "f1_pos": f_score,  # zeros are positive
+        "bin_acc_pos": accuracy_score(binary_truth, binary_preds), # zeros are positive
+        "f1_neg": f_score_neg,  # zeros are negative
+        "bin_acc_neg": accuracy_score(binary_truth_neg, binary_preds_neg),  # zeros are negative
+        "f1": f_score_non_zero,  # zeros are excluded
+        "bin_acc": accuracy_score(binary_truth_non_zero, binary_preds_non_zero)  # zeros are excluded
+    }
+
+def eval_mosei_senti_old(results, truths, exclude_zero=False):
+    test_preds = results.view(-1).cpu().detach().numpy()
+    test_truth = truths.view(-1).cpu().detach().numpy()
+
     non_zeros = np.array([i for i, e in enumerate(test_truth) if e != 0 or (not exclude_zero)])
 
     test_preds_a7 = np.clip(test_preds, a_min=-3., a_max=3.)
@@ -45,6 +87,10 @@ def eval_mosei_senti(results, truths, exclude_zero=False):
     f_score = f1_score((test_preds[non_zeros] >= 0), (test_truth[non_zeros] >= 0), average='weighted')
     binary_truth = (test_truth[non_zeros] >= 0)
     binary_preds = (test_preds[non_zeros] >= 0)
+    f_score_neg = f1_score((test_preds[non_zeros] > 0), (test_truth[non_zeros] > 0), average='weighted')
+    binary_truth_neg = (test_truth[non_zeros] > 0)
+    binary_preds_neg = (test_preds[non_zeros] > 0)
+
 
     return {
         "mae": mae,
@@ -52,8 +98,10 @@ def eval_mosei_senti(results, truths, exclude_zero=False):
         "acc_7": mult_a7,
         "acc_5": mult_a5,
         "f1": f_score,
-        "bin_acc": accuracy_score(binary_truth, binary_preds)
+        "f1_neg": f_score_neg,
+        "bin_acc_neg": accuracy_score(binary_truth_neg, binary_preds_neg)
     }
+
 
 def print_metrics(metrics):
     for k, v in metrics.items():

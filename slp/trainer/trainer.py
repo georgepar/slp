@@ -24,6 +24,7 @@ class Trainer(object):
         model: nn.Module,
         optimizer: Optimizer,
         lr_scheduler=None,
+        newbob_metric="loss",
         checkpoint_dir: str = "../../checkpoints",
         experiment_name: str = "experiment",
         score_fn: Optional[Callable] = None,
@@ -109,6 +110,7 @@ class Trainer(object):
             validate_every=1,
             early_stopping=self.early_stop,
             newbob_scheduler=self.lr_scheduler,
+            newbob_metric=newbob_metric
         )
         self.attach()
         log.info(
@@ -182,7 +184,7 @@ class Trainer(object):
         if self.lr_scheduler is not None:
             if (engine.state.iteration - 1) % 128 == 0:
                 print("LR = {}".format(self.optimizer.param_groups[0]["lr"]))
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5)
+        # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 5)
 
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
             self.optimizer.step()  # type: ignore

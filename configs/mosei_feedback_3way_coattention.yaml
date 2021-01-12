@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
 data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_coattention
+results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_crossattention
 binary: false
 train: true
 test: true
@@ -19,7 +19,7 @@ audio:
     instance_norm: false
     model:
         input_size: 74
-        hidden_size: 300
+        hidden_size: 50
         num_heads: 1
         layers: 1
         dropout: !!float 0.2
@@ -33,7 +33,7 @@ visual:
     instance_norm: false
     model:
         input_size: 35
-        hidden_size: 300
+        hidden_size: 50
         num_heads: 1
         layers: 1
         dropout: !!float 0.2
@@ -46,7 +46,7 @@ visual:
 text:
     model:
         input_size: 300
-        hidden_size: 300
+        hidden_size: 50
         num_heads: 1
         layers: 1
         dropout: !!float 0.2
@@ -59,7 +59,7 @@ text:
 fuse:
     method: cat
     modality_weights: false
-    projection_size: 300
+    projection_size: 50
     prefuse: false
     use_mask: false
 
@@ -92,4 +92,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback-coattention
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback-crossattention

@@ -1,7 +1,7 @@
 feedback: true
-device: cpu
+device: cuda
 data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_warmup
+results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_norm_visual1
 binary: false
 train: true
 test: true
@@ -9,8 +9,8 @@ overfit_batch: false
 debug: false
 remove_pauses: true
 
-normalize_audio: true
-normalize_visual: false
+normalize_audio: false
+normalize_visual: true
 
 modalities:
     - text
@@ -22,9 +22,9 @@ audio:
     instance_norm: false
     model:
         input_size: 74
-        hidden_size: 100
+        hidden_size: 300
         layers: 1
-        dropout: !!float 0.2
+        dropout: !!float 0.1
         bidirectional: true
         rnn_type: lstm
         attention: true
@@ -35,9 +35,9 @@ visual:
     instance_norm: false
     model:
         input_size: 35
-        hidden_size: 100
+        hidden_size: 300
         layers: 1
-        dropout: !!float 0.2
+        dropout: !!float 0.1
         bidirectional: true
         rnn_type: lstm
         attention: true
@@ -47,26 +47,23 @@ visual:
 text:
     model:
         input_size: 300
-        hidden_size: 100
+        hidden_size: 300
         layers: 1
-        dropout: !!float 0.2
+        dropout: !!float 0.1
         bidirectional: true
         rnn_type: lstm
         attention: true
         return_hidden: false
 
 fuse:
-    method: attrnn
+    method: cat
     modality_weights: false
-    projection_size: 100
+    projection_size: 300
+    prefuse: false
     use_mask: false
-    model_dim: 100
-    projection_type: conv
-    residual: 1
-    mmdrop: !!float 0.5
 
 common:
-    dropout: !!float 0.2
+    dropout: !!float 0.1
     bidirectional: true
     rnn_type: lstm
 
@@ -86,7 +83,7 @@ dataloaders:
     pin_memory: false
 
 optimizer:
-    name: AdamW
+    name: Adam
     learning_rate: !!float 1e-3
 
 trainer:
@@ -94,4 +91,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback-warmup
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback-norm-visual1

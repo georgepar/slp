@@ -400,6 +400,10 @@ def mosei2(
     )
 
 
+def mosei_pickle(fname):
+    data = pickle_load(fname)
+    return data["train"], data["valid"], data["test"], None
+
 
 if __name__ == "__main__":
     import sys

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from slp.modules.attention import Attention, CoAttention
+from slp.modules.attention import Attention, CoAttention, MultiheadCrossAttention
 from slp.modules.embed import Embed
 from slp.modules.helpers import PackSequence, PadPackedSequence
 from slp.modules.util import pad_mask
@@ -280,6 +280,71 @@ class CoAttentiveRNN(nn.Module):
 
         if self.attention is not None:
             out, _ = self.attention(
+                out,
+                y,
+                attention_mask=pad_mask(lengths, device=self.device),
+            )
+
+            if not self.return_hidden:
+                out = out.sum(1)
+        else:
+            out = last_hidden
+
+        return out
+
+
+class CrossAttentiveRNN(nn.Module):
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        batch_first=True,
+        layers=1,
+        num_heads=4,
+        cross_size=None,
+        bidirectional=False,
+        merge_bi="cat",
+        dropout=0.1,
+        rnn_type="lstm",
+        packed_sequence=True,
+        attention=False,
+        return_hidden=False,
+        device="cpu",
+    ):
+        super(CrossAttentiveRNN, self).__init__()
+        self.device = device
+        self.rnn = RNN(
+            input_size,
+            hidden_size,
+            batch_first=batch_first,
+            layers=layers,
+            merge_bi=merge_bi,
+            bidirectional=bidirectional,
+            dropout=dropout,
+            rnn_type=rnn_type,
+            packed_sequence=packed_sequence,
+            device=device,
+        )
+        self.out_size = self.rnn.out_size
+        self.attention = None
+        self.return_hidden = return_hidden
+
+        if attention:
+            if cross_size is None:
+                cross_size = self.out_size
+            self.attention = MultiheadCrossAttention(
+                attention_size=self.out_size,
+                num_heads=5,
+                dropout=dropout,
+                cross_size=cross_size,
+                layernorm=False,
+            )
+
+    def forward(self, x, y, lengths):
+        out, last_hidden, _ = self.rnn(x, lengths)
+
+        if self.attention is not None:
+            out = self.attention(
                 out,
                 y,
                 attention_mask=pad_mask(lengths, device=self.device),

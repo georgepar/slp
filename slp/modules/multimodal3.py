@@ -1,46 +1,11 @@
 import math
-import random
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from slp.modules.rnn import AttentiveRNN, WordRNN, CrossAttentiveRNN
-from slp.modules.attention import SymmetricAttention, Attention
-from slp.util import mktensor
-
-
-class MultimodalDropout(nn.Module):
-    def __init__(self, p=0.5, n_modalities=3, device="cpu"):
-        super(MultimodalDropout, self).__init__()
-        self.p = p
-        self.device = device
-        self.n_modalities = n_modalities
-
-    def forward(self, *mods):
-        mods = list(mods)
-        if self.training:
-            if random.random() < self.p:
-                for i in range(mods[0].size(0)):
-                    m = random.randint(0, self.n_modalities - 1)
-                    mask = torch.ones_like(mods[m])
-                    mask[i] = 0.0
-                    mods[m] = mods[m] * mask
-                    # drop_idxs = mktensor(
-                    #     range(self.dim * m, self.dim * m + self.dim),
-                    #     dtype=torch.long,
-                    #     device=self.device,
-                    #     requires_grad=False,
-                    # )
-                    # mask = torch.ones_like(fused[i])
-                    # mask[..., drop_idxs] = 0.0
-                    # fused[i] = (
-                    #     fused[i]
-                    #     * mask
-                    #     * (1.0 / (1.0 - (1.0 / self.n_modalities) * self.p))
-                    # )
-
-        return mods
+from slp.modules.attention import SymmetricAttention
 
 
 class Conv1dProj3Way(nn.Module):
@@ -120,7 +85,6 @@ class CatFuserNWay(nn.Module):
         modality_weights=False,
         device="cpu",
         proj_type="linear",
-        mmdrop=0,
         extra_args=None,
     ):
         super(CatFuserNWay, self).__init__()
@@ -130,231 +94,12 @@ class CatFuserNWay(nn.Module):
             proj_type=proj_type,
             modality_weights=modality_weights,
         )
-        self.mmdrop = MultimodalDropout(
-            p=mmdrop, n_modalities=len(sizes), device=device
-        )
         self.out_size = sum(sizes) if proj_sz is None else len(sizes) * proj_sz
 
     def forward(self, *inputs):
-        inputs = self.mmdrop(*inputs)
         outputs = self.mw(*inputs)
 
         return torch.cat(outputs, dim=1)
-
-
-class RnnFuserNWay(nn.Module):
-    def __init__(
-        self,
-        sizes,
-        proj_sz=None,
-        modality_weights=False,
-        device="cpu",
-        proj_type="linear",
-        mmdrop=0,
-        extra_args=None,
-    ):
-        super(RnnFuserNWay, self).__init__()
-        input_size = sum(sizes)
-
-        if proj_sz is None:
-            proj_sz = input_size
-        self.rnn = AttentiveRNN(
-            input_size,
-            proj_sz,
-            bidirectional=True,
-            merge_bi="cat",
-            attention=True,
-            device=device,
-        )
-        self.mmdrop = MultimodalDropout(
-            p=mmdrop, n_modalities=len(sizes), device=device
-        )
-        self.out_size = self.rnn.out_size
-
-    def forward(self, *inputs):
-        lengths = inputs[-1]
-        mods = self.mmdrop(*inputs[:-1])
-        inp = torch.cat(mods, dim=-1)
-        out = self.rnn(inp, lengths)
-
-        return out
-
-
-class AttentionFuser3Way(nn.Module):
-    def __init__(
-        self, proj_sz=None, residual=1, return_hidden=True, mmdrop=0, device="cpu"
-    ):
-        super(AttentionFuser3Way, self).__init__()
-        self.return_hidden = return_hidden
-        self.ta = SymmetricAttention(
-            attention_size=proj_sz,
-            dropout=0.1,
-            residual=residual,
-            layernorm=False,
-        )
-
-        self.va = SymmetricAttention(
-            attention_size=proj_sz,
-            dropout=0.1,
-            residual=residual,
-            layernorm=False,
-        )
-
-        self.tv = SymmetricAttention(
-            attention_size=proj_sz,
-            dropout=0.1,
-            residual=residual,
-            layernorm=False,
-        )
-
-        self.tav = Attention(
-            attention_size=proj_sz,
-            dropout=0.1,
-        )
-        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
-
-        self.out_size = 7 * proj_sz
-
-    def forward(self, txt, au, vi):
-        txt, au, vi = self.mmdrop(txt, au, vi)
-        ta, at = self.ta(txt, au)
-        va, av = self.va(vi, au)
-        tv, vt = self.tv(txt, vi)
-
-        av = va + av
-        tv = vt + tv
-        ta = ta + at
-
-        tav, _ = self.tav(txt, queries=av)
-
-        # Sum weighted attention hidden states
-
-        if not self.return_hidden:
-            txt = txt.sum(1)
-            au = au.sum(1)
-            vi = vi.sum(1)
-            ta = ta.sum(1)
-            av = av.sum(1)
-            tv = tv.sum(1)
-            tav = tav.sum(1)
-
-        # txt, au, vi, ta, tv, av, tav = self.mmdrop(txt, au, vi, ta, tv, av, tav)
-
-        fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
-
-        return fused
-
-
-class BilinearFuser3Way(nn.Module):
-    def __init__(
-        self, proj_sz=None, mmdrop=0, device="cpu", return_hidden=False
-    ):
-        super(BilinearFuser3Way, self).__init__()
-        self.return_hidden = return_hidden
-        self.ta = nn.Bilinear(proj_sz, proj_sz, proj_sz)
-        self.at = nn.Bilinear(proj_sz, proj_sz, proj_sz)
-        self.va = nn.Bilinear(proj_sz, proj_sz, proj_sz)
-        self.av = nn.Bilinear(proj_sz, proj_sz, proj_sz)
-        self.tv = nn.Bilinear(proj_sz, proj_sz, proj_sz)
-        self.vt = nn.Bilinear(proj_sz, proj_sz, proj_sz)
-        self.tav = nn.Bilinear(proj_sz, proj_sz, proj_sz)
-        self.drop = nn.Dropout(0.2)
-
-        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
-
-        self.out_size = 7 * proj_sz
-
-    def forward(self, txt, au, vi):
-        txt, au, vi = self.mmdrop(txt, au, vi)
-
-        ta = self.ta(txt, au)
-        at = self.at(au, txt)
-        av = self.av(au, vi)
-        va = self.va(vi, au)
-        vt = self.vt(vi, txt)
-        tv = self.tv(txt, vi)
-
-        av = va + av
-        tv = vt + tv
-        ta = ta + at
-
-        tav = self.tav(txt, av)
-
-        if not self.return_hidden:
-            txt = txt.sum(1)
-            au = au.sum(1)
-            vi = vi.sum(1)
-            ta = ta.sum(1)
-            av = av.sum(1)
-            tv = tv.sum(1)
-            tav = tav.sum(1)
-
-        fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
-
-        return fused
-
-
-class BilinearRnnFuser(nn.Module):
-    def __init__(
-        self,
-        proj_sz=None,
-        mmdrop=0,
-        device="cpu",
-    ):
-        super(BilinearRnnFuser, self).__init__()
-        self.att_fuser = BilinearFuser3Way(
-            proj_sz=proj_sz,
-            return_hidden=True,
-            mmdrop=mmdrop,
-            device=device,
-        )
-        self.rnn = AttentiveRNN(
-            self.att_fuser.out_size,
-            proj_sz,
-            bidirectional=True,
-            merge_bi="cat",
-            attention=True,
-            device=device,
-        )
-        self.out_size = self.rnn.out_size
-
-    def forward(self, txt, au, vi, lengths):
-        att = self.att_fuser(txt, au, vi)
-        out = self.rnn(att, lengths)
-
-        return out
-
-class AttRnnFuser(nn.Module):
-    def __init__(
-        self,
-        proj_sz=None,
-        residual=1,
-        mmdrop=0,
-        device="cpu",
-    ):
-        super(AttRnnFuser, self).__init__()
-        self.att_fuser = AttentionFuser3Way(
-            proj_sz=proj_sz,
-            residual=residual,
-            return_hidden=True,
-            mmdrop=mmdrop,
-            device=device,
-        )
-        self.rnn = AttentiveRNN(
-            self.att_fuser.out_size,
-            proj_sz,
-            bidirectional=True,
-            merge_bi="cat",
-            attention=True,
-            device=device,
-        )
-        self.out_size = self.rnn.out_size
-
-    def forward(self, txt, au, vi, lengths):
-        att = self.att_fuser(txt, au, vi)
-        out = self.rnn(att, lengths)
-
-        return out
 
 
 class GatedLinearUnit(nn.Module):
@@ -389,14 +134,13 @@ class GatedLinearUnit3Way(nn.Module):
             if hidden_dim is None:
                 raise ValueError("You must provide hidden dim for learnable GLU")
             self.hidden_dim = hidden_dim
+            self.proj = nn.Linear(hidden_dim, hidden_dim)
             self.mask1 = nn.Linear(hidden_dim, hidden_dim)
             self.mask2 = nn.Linear(hidden_dim, hidden_dim)
 
-            if use_self:
-                self.mask_self = nn.Linear(hidden_dim, hidden_dim)
-
     def forward(self, x, y, z):
         if self.learnable:
+            x = self.proj(x)
             y = self.mask1(y)
             z = self.mask2(z)
 
@@ -405,67 +149,9 @@ class GatedLinearUnit3Way(nn.Module):
         mask = mask1 + mask2
 
         if self.use_self:
-            if self.learnable:
-                m = torch.sigmoid(self.mask_self(x))
-            else:
-                m = torch.sigmoid(x)
-            mask += m
+            m = torch.sigmoid(x)
+            mask = m + mask
         x = x * mask
-
-        return x
-
-
-class GatedLinearUnitRaw(nn.Module):
-    def __init__(self, hidden_dim, mod1_sz, use_self=False):
-        super(GatedLinearUnitRaw, self).__init__()
-        self.use_self = use_self
-        self.mod1_sz = mod1_sz
-        self.hidden_dim = hidden_dim
-        self.mask = nn.Linear(hidden_dim, mod1_sz)
-
-        if use_self:
-            self.mask_self = nn.Linear(hidden_dim, mod1_sz)
-
-    def forward(self, x, y):
-        mask = torch.sigmoid(self.mask(y)).unsqueeze(1)
-
-        if self.use_self:
-            m = torch.sigmoid(self.mask_self(x))
-            mask = mask + m
-        x = x * mask
-
-        # if self.mod1_sz == 74:
-        # print(mask[0][0])
-
-        return x
-
-
-class GatedLinearUnit3WayRaw(nn.Module):
-    def __init__(self, hidden_dim, mod1_sz, use_self=False):
-        super(GatedLinearUnit3WayRaw, self).__init__()
-        self.use_self = use_self
-        self.mod1_sz = mod1_sz
-        self.hidden_dim = hidden_dim
-        self.mask1 = nn.Linear(hidden_dim, mod1_sz)
-        self.mask2 = nn.Linear(hidden_dim, mod1_sz)
-
-        if use_self:
-            self.mask_self = nn.Linear(hidden_dim, mod1_sz)
-
-    def forward(self, x, y, z):
-        y = self.mask1(y)
-        z = self.mask1(z)
-        mask1 = torch.sigmoid(y)
-        mask2 = torch.sigmoid(z)
-        mask = mask1 + mask2
-
-        if self.use_self:
-            m = torch.sigmoid(self.mask_self(x))
-            mask = mask + m
-        x = x * mask
-
-        # if self.mod1_sz == 74:
-        # print(mask[0][0])
 
         return x
 
@@ -715,8 +401,7 @@ class CatFuser3Way(nn.Module):
         proj_sz=None,
         modality_weights=False,
         device="cpu",
-        mmdrop=0,
-        proj_type="linear",
+        proj_type="conv",
         extra_args=None,
     ):
         super(CatFuser3Way, self).__init__()
@@ -728,11 +413,9 @@ class CatFuser3Way(nn.Module):
             proj_type=proj_type,
             modality_weights=modality_weights,
         )
-        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
         self.out_size = mod1_sz + mod2_sz + mod3_sz if proj_sz is None else 3 * proj_sz
 
     def forward(self, x, y, z):
-        x, y, z = self.mmdrop(x, y, z)
         x, y, z = self.mw(x, y, z)
 
         return torch.cat([x, y, z], dim=1)
@@ -769,8 +452,7 @@ class AddFuser3Way(nn.Module):
         proj_sz=None,
         modality_weights=False,
         device="cpu",
-        proj_type="linear",
-        mmdrop=0,
+        proj_type="conv",
         extra_args=None,
     ):
         super(AddFuser3Way, self).__init__()
@@ -782,11 +464,9 @@ class AddFuser3Way(nn.Module):
             modality_weights=False,
             proj_type=proj_type,
         )
-        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
         self.out_size = mod1_sz if proj_sz is None else proj_sz
 
     def forward(self, x, y, z):
-        x, y, z = self.mmdrop(x, y, z)
         x, y, z = self.mw(x, y, z)
 
         return x + y + z
@@ -1056,35 +736,49 @@ class AudioVisualTextEncoder(nn.Module):
         ), "Use attention pls."
 
         self.feedback = feedback
+
+        audio_size = fuse_cfg["projection_size"]
+        text_size = fuse_cfg["projection_size"]
+        visual_size = fuse_cfg["projection_size"]
         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
         visual_cfg["orig_size"] = visual_cfg.get("orig_size", visual_cfg["input_size"])
+        audio_cfg["input_size"] = audio_size
+        text_cfg["input_size"] = text_size
+        visual_cfg["input_size"] = visual_size
 
-        if fuse_cfg["projection_type"] == "conv":
-            self.proj = Conv1dProj3Way(
-                text_cfg["orig_size"],
-                audio_cfg["orig_size"],
-                visual_cfg["orig_size"],
-                fuse_cfg["model_dim"],
+        # if fuse_cfg["projection_type"] == "conv":
+        #     self.proj = Conv1dProj3Way(
+        #         text_cfg["orig_size"],
+        #         audio_cfg["orig_size"],
+        #         visual_cfg["orig_size"],
+        #         fuse_cfg["projection_size"],
+        #     )
+        # elif fuse_cfg["projection_type"] == "linear":
+        #     self.proj = LinearProj3Way(
+        #         text_cfg["orig_size"],
+        #         audio_cfg["orig_size"],
+        #         visual_cfg["orig_size"],
+        #         fuse_cfg["projection_size"],
+        #     )
+
+        self.proj = LinearProj3Way(
+            text_cfg["orig_size"],
+            audio_cfg["orig_size"],
+            visual_cfg["orig_size"],
+            fuse_cfg["projection_size"],
+        )
+
+        self.prefuser = None
+
+        if fuse_cfg["prefuse"]:
+            self.prefuser = nn.Linear(
+                fuse_cfg["projection_size"], fuse_cfg["projection_size"]
             )
-        elif fuse_cfg["projection_type"] == "linear":
-            self.proj = LinearProj3Way(
-                text_cfg["orig_size"],
-                audio_cfg["orig_size"],
-                visual_cfg["orig_size"],
-                fuse_cfg["model_dim"],
-            )
-        else:
-            self.proj = None
 
-        if self.proj is not None:
-            text_cfg["input_size"] = fuse_cfg["model_dim"]
-            audio_cfg["input_size"] = fuse_cfg["model_dim"]
-            visual_cfg["input_size"] = fuse_cfg["model_dim"]
-
-        text_cfg["return_hidden"] = True
-        audio_cfg["return_hidden"] = True
-        visual_cfg["return_hidden"] = True
+        text_cfg["return_hidden"] = False
+        audio_cfg["return_hidden"] = False
+        visual_cfg["return_hidden"] = False
 
         if text_mode == "glove":
             self.text = GloveEncoder(text_cfg, device=device)
@@ -1095,88 +789,29 @@ class AudioVisualTextEncoder(nn.Module):
 
         self.visual = VisualEncoder(visual_cfg, device=device)
 
+        if feedback:
+            self.glu = GatedLinearUnit3Way()
+
         if fuse_cfg["method"] == "cat":
-            self.fuser = CatFuser3Way(
-                self.text.out_size,
-                self.audio.out_size,
-                self.visual.out_size,
-                proj_sz=fuse_cfg["projection_size"],
-                modality_weights=fuse_cfg["modality_weights"],
-                proj_type="linear",
-                device=device,
-                mmdrop=fuse_cfg["mmdrop"],
-                extra_args=fuse_cfg,
-            )
-
+            fuse_cls = CatFuser3Way
         elif fuse_cfg["method"] == "add":
-            self.fuser = AddFuser3Way(
-                self.text.out_size,
-                self.audio.out_size,
-                self.visual.out_size,
-                proj_sz=fuse_cfg["projection_size"],
-                modality_weights=fuse_cfg["modality_weights"],
-                proj_type="linear",
-                device=device,
-                mmdrop=fuse_cfg["mmdrop"],
-                extra_args=fuse_cfg,
-            )
-
+            fuse_cls = AddFuser3Way
         elif fuse_cfg["method"] == "common_space":
             raise NotImplementedError
-        elif fuse_cfg["method"] == "att":
-            self.fuser = AttentionFuser3Way(
-                proj_sz=fuse_cfg["projection_size"],
-                residual=fuse_cfg["residual"],
-                mmdrop=fuse_cfg["mmdrop"],
-                return_hidden=False,
-                device=device,
-            )
-        elif fuse_cfg["method"] == "rnn":
-            self.fuser = RnnFuserNWay(
-                [self.text.out_size, self.audio.out_size, self.visual.out_size],
-                proj_sz=fuse_cfg["projection_size"],
-                mmdrop=fuse_cfg["mmdrop"],
-                device=device,
-            )
-        elif fuse_cfg["method"] == "attrnn":
-            self.fuser = AttRnnFuser(
-                proj_sz=fuse_cfg["projection_size"],
-                residual=fuse_cfg["residual"],
-                mmdrop=fuse_cfg["mmdrop"],
-                device=device,
-            )
-        elif fuse_cfg["method"] == "bilinear":
-             self.fuser = BilinearFuser3Way(
-                proj_sz=fuse_cfg["projection_size"],
-                mmdrop=fuse_cfg["mmdrop"],
-                return_hidden=False,
-                device=device,
-            )
-        elif fuse_cfg["method"] == "birnn":
-            self.fuser = BilinearRnnFuser(
-                proj_sz=fuse_cfg["projection_size"],
-                mmdrop=fuse_cfg["mmdrop"],
-                device=device,
-            )
         else:
             raise ValueError('Supported fuse techniques: ["cat", "add"]')
 
-        self.fuse_method = fuse_cfg["method"]
-
-        self.mmdrop = None
-
+        self.fuser = fuse_cls(
+            self.text.out_size,
+            self.audio.out_size,
+            self.visual.out_size,
+            proj_sz=fuse_cfg["projection_size"],
+            modality_weights=fuse_cfg["modality_weights"],
+            proj_type="linear",  # fuse_cfg["projection_type"],
+            device=device,
+            extra_args=fuse_cfg,
+        )
         self.out_size = self.fuser.out_size
-
-        if feedback:
-            self.glu1 = GatedLinearUnitRaw(
-                self.out_size, text_cfg["orig_size"]
-            )
-            self.glu2 = GatedLinearUnitRaw(
-                self.out_size, audio_cfg["orig_size"]
-            )
-            self.glu3 = GatedLinearUnitRaw(
-                self.out_size, visual_cfg["orig_size"]
-            )
 
     def from_pretrained(self, audio_path, visual_path, text_path):
         text_model = torch.load(text_path)
@@ -1184,32 +819,28 @@ class AudioVisualTextEncoder(nn.Module):
         self.text_encoder = text_encoder
         raise NotImplementedError
 
-    def _forward(self, txt, au, vi, lengths):
-        if self.proj is not None:
-            txt, au, vi = self.proj(txt, au, vi)
+    def forward(self, txt, au, vi, lengths):
+        txt, au, vi = self.proj(txt, au, vi)
+
+        if self.prefuser is not None:
+            au = self.prefuser(au)
+            vi = self.prefuser(vi)
+            txt = self.prefuser(txt)
+
+        if self.feedback:
+            for _ in range(2):
+                txt1 = self.text(txt, lengths).unsqueeze(1)
+                au1 = self.audio(au, lengths).unsqueeze(1)
+                vi1 = self.visual(vi, lengths).unsqueeze(1)
+                txt = self.glu(txt, au1, vi1)
+                au = self.glu(au, txt1, vi1)
+                vi = self.glu(vi, txt1, au1)
+
         txt = self.text(txt, lengths)
         au = self.audio(au, lengths)
         vi = self.visual(vi, lengths)
 
-        if self.fuse_method in ["cat", "sum"]:
-            # Sum weighted attention hidden states
-            fused = self.fuser(txt.sum(1), au.sum(1), vi.sum(1))
-        elif self.fuse_method in ["att", "bilinear"]:
-            fused = self.fuser(txt, au, vi)
-        else:
-            fused = self.fuser(txt, au, vi, lengths)
-
-        return fused
-
-    def forward(self, txt, au, vi, lengths):
-        if self.feedback:
-            for _ in range(2):
-                fused = self._forward(txt, au, vi, lengths)
-                txt = self.glu1(txt, fused)
-                au = self.glu2(au, fused)
-                vi = self.glu3(vi, fused)
-
-        fused = self._forward(txt, au, vi, lengths)
+        fused = self.fuser(txt, au, vi)
 
         return fused
 
@@ -1389,6 +1020,86 @@ class AudioVisualTextCoAttentionEncoder(nn.Module):
         return fused
 
 
+# class FeedbackAudioTextEncoder(nn.Module):
+#     def __init__(
+#         self,
+#         embeddings=None,
+#         vocab_size=None,
+#         audio_cfg=None,
+#         text_cfg=None,
+#         fuse_cfg=None,
+#         text_mode="glove",
+#         device="cpu",
+#     ):
+#         super(FeedbackAudioTextEncoder, self).__init__()
+#         assert fuse_cfg["projection_size"] == text_cfg["input_size"]
+
+#         audio_size = fuse_cfg["projection_size"]
+#         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
+#         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
+#         audio_cfg["input_size"] = audio_size
+
+#         self.audio_projection = nn.Linear(
+#             audio_cfg["orig_size"], fuse_cfg["projection_size"]
+#         )
+
+#         self.prefuser = None
+
+#         if fuse_cfg["prefuse"]:
+#             self.prefuser = nn.Linear(
+#                 fuse_cfg["projection_size"], fuse_cfg["projection_size"]
+#             )
+
+#         text_cfg["return_hidden"] = True
+#         audio_cfg["return_hidden"] = True
+
+#         if text_mode == "glove":
+#             self.text = GloveEncoder(text_cfg, device=device)
+#         else:
+#             raise ValueError("Only glove input supported")
+
+#         self.audio = AudioEncoder(audio_cfg, device=device)
+
+#         if fuse_cfg["method"] == "cat":
+#             fuse_cls = CatFuser
+#         elif fuse_cfg["method"] == "add":
+#             fuse_cls = AddFuser
+#         elif fuse_cfg["method"] == "common_space":
+#             fuse_cls = CommonSpaceFuser
+#         else:
+#             raise ValueError('Supported fuse techniques: ["cat", "add"]')
+
+#         self.fuser = fuse_cls(
+#             self.text.out_size,
+#             self.audio.out_size,
+#             proj_sz=fuse_cfg["projection_size"],
+#             modality_weights=fuse_cfg["modality_weights"],
+#             device=device,
+#             extra_args=fuse_cfg,
+#         )
+#         self.out_size = self.fuser.out_size
+
+#     def forward(self, txt, au, lengths):
+#         au = self.audio_projection(au)
+
+#         if self.prefuser is not None:
+#             au = self.prefuser(au)
+#             txt = self.prefuser(txt)
+
+#         for _ in range(2):
+#             txt = self.text(txt, lengths)
+#             au = self.audio(au, lengths)
+#             txt = F.glu(torch.cat((txt, au), dim=-1), dim=-1)
+#             au = F.glu(torch.cat((au, txt), dim=-1), dim=-1)
+#         txt = self.text(txt, lengths)
+#         au = self.audio(au, lengths)
+#         txt = txt.sum(1)
+#         au = au.sum(1)
+#         fused = self.fuser(txt, au)
+
+#         return fused
+
+
 class AudioVisualText6WayEncoder(nn.Module):
     def __init__(
         self,
@@ -1462,7 +1173,7 @@ class AudioVisualText6WayEncoder(nn.Module):
         self.visual = VisualEncoder(visual_cfg, device=device)
 
         if feedback:
-            self.glu = GatedLinearUnit3Way(use_self=True)
+            self.glu = GatedLinearUnit3Way(use_self=False)
 
         self.ta = SymmetricAttention(
             attention_size=fuse_cfg["projection_size"],
@@ -1485,23 +1196,18 @@ class AudioVisualText6WayEncoder(nn.Module):
             layernorm=False,
         )
 
-        self.tav = Attention(
-            attention_size=fuse_cfg["projection_size"],
-            dropout=0.1,
-        )
-
         # self.fuser = AttentiveRNN(
         #     6 * fuse_cfg["projection_size"],
         #     6 * fuse_cfg["projection_size"],
         #     bidirectional=False,
         #     merge_bi="cat",
         #     attention=True,
-        #     return_hidden=True,
+        #     return_hidden=False,
         #     device=device,
         # )
 
         self.fuser = CatFuserNWay(
-            [fuse_cfg["projection_size"] for _ in range(7)],
+            [fuse_cfg["projection_size"] for _ in range(6)],
             proj_sz=fuse_cfg["projection_size"],
             modality_weights=fuse_cfg["modality_weights"],
             device=device,
@@ -1526,8 +1232,11 @@ class AudioVisualText6WayEncoder(nn.Module):
         if self.feedback:
             for _ in range(2):
                 txt1 = self.text(txt, lengths)
+                txt1 = txt1.sum(1).unsqueeze(1)
                 au1 = self.audio(au, lengths)
+                au1 = au1.sum(1).unsqueeze(1)
                 vi1 = self.visual(vi, lengths)
+                vi1 = vi1.sum(1).unsqueeze(1)
                 txt = self.glu(txt, au1, vi1)
                 au = self.glu(au, txt1, vi1)
                 vi = self.glu(vi, txt1, au1)
@@ -1544,15 +1253,11 @@ class AudioVisualText6WayEncoder(nn.Module):
         tv = vt + tv
         ta = ta + at
 
-        tav, _ = self.tav(txt, queries=av)
-
-        # fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
-
+        # fused = torch.cat([txt, au, vi, ta, tv, av], dim=-1)
         # if self.feedback:
-        #     f1 = self.fuser(fused, lengths)
+        #     f1 = self.fuser(fused, lengths).unsqueeze(1)
         #     m = F.sigmoid(f1)
         #     fused = fused * m
-
         # fused = self.fuser(fused, lengths)
         # fused = fused.sum(1)
 
@@ -1563,14 +1268,12 @@ class AudioVisualText6WayEncoder(nn.Module):
         ta = ta.sum(1)
         av = av.sum(1)
         tv = tv.sum(1)
-        tav = tav.sum(1)
+
         # va = va.sum(1)
         # vt = vt.sum(1)
         # at = at.sum(1)
 
-        # fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
-        fused = self.fuser(*[txt, au, vi, ta, av, tv, tav])
-
+        fused = self.fuser(*[txt, au, vi, ta, av, tv])
         return fused
 
 
@@ -1633,9 +1336,9 @@ class AudioVisualTextOutRnnEncoder(nn.Module):
                 fuse_cfg["projection_size"], fuse_cfg["projection_size"]
             )
 
-        text_cfg["return_hidden"] = True
-        audio_cfg["return_hidden"] = True
-        visual_cfg["return_hidden"] = True
+        text_cfg["return_hidden"] = False
+        audio_cfg["return_hidden"] = False
+        visual_cfg["return_hidden"] = False
 
         if text_mode == "glove":
             self.text = GloveEncoder(text_cfg, device=device)
@@ -1696,9 +1399,9 @@ class AudioVisualTextOutRnnEncoder(nn.Module):
 
         if self.feedback:
             for _ in range(2):
-                txt1 = self.text(txt, lengths)
-                au1 = self.audio(au, lengths)
-                vi1 = self.visual(vi, lengths)
+                txt1 = self.text(txt, lengths).unsqueeze(1)
+                au1 = self.audio(au, lengths).unsqueeze(1)
+                vi1 = self.visual(vi, lengths).unsqueeze(1)
                 txt = self.glu(txt, au1, vi1)
                 au = self.glu(au, txt1, vi1)
                 vi = self.glu(vi, txt1, au1)

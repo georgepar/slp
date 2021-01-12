@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import glob
 from ignite.metrics import Accuracy, Fbeta, Loss, MeanAbsoluteError
 from torch.utils.data import DataLoader
 
@@ -18,7 +17,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.multimodal import AudioVisualTextClassifier
+from slp.modules.multimodal import AudioVisualText6WayClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -250,25 +249,16 @@ if __name__ == "__main__":
     del all_visual
 
     for d in tqdm(train):
-        if C["normalize_audio"]:
-            d["audio"] = scaler_audio.transform(d["audio"])
-
-        if C["normalize_visual"]:
-            d["visual"] = scaler_visual.transform(d["visual"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(dev):
-        if C["normalize_audio"]:
-            d["audio"] = scaler_audio.transform(d["audio"])
-
-        if C["normalize_visual"]:
-            d["visual"] = scaler_visual.transform(d["visual"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(test):
-        if C["normalize_audio"]:
-            d["audio"] = scaler_audio.transform(d["audio"])
-
-        if C["normalize_visual"]:
-            d["visual"] = scaler_visual.transform(d["visual"])
+        d["audio"] = scaler_audio.transform(d["audio"])
+        d["visual"] = scaler_visual.transform(d["visual"])
 
     to_tensor = ToTensor(device="cpu")
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
@@ -302,7 +292,7 @@ if __name__ == "__main__":
     # x = next(iter(train_loader))
     print("Running with feedback = {}".format(C["feedback"]))
 
-    model = AudioVisualTextClassifier(
+    model = AudioVisualText6WayClassifier(
         embeddings=embeddings,
         audio_cfg=C["audio"]["model"],
         text_cfg=C["text"]["model"],
@@ -323,8 +313,8 @@ if __name__ == "__main__":
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         "min",
-        factor=0.5,
-        patience=2,
+        factor=0.25,
+        patience=4,
         cooldown=2,
         min_lr=C["optimizer"]["learning_rate"] / 20.0,
     )
@@ -354,52 +344,17 @@ if __name__ == "__main__":
 
             return yp, yt
 
-        def acc_transform(output):
-            y_pred, y = output
-            yp, yt = (y_pred >= 0).long(), (y >= 0).long()
-
-            return yp, yt
-
-        def acc7_transform(output):
-            y_pred, y = output
-            yp = torch.clamp(torch.round(y_pred) + 3, 0, 6).view(-1).long()
-            yt = torch.round(y).view(-1).long() + 3
-            yp = F.one_hot(yp, 7)
-
-            return yp, yt
-
-        def acc5_transform(output):
-            y_pred, y = output
-            yp = torch.clamp(torch.round(y_pred) + 2, 0, 4).view(-1).long()
-            yt = torch.round(y).view(-1).long() + 2
-            yp = F.one_hot(yp, 5)
-
-            return yp, yt
-
         metrics = {
-            "acc5": Accuracy(output_transform=acc5_transform),
-            "acc7": Accuracy(output_transform=acc7_transform),
             "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
-            "f1": Fbeta(1, output_transform=bin_acc_transform),
-            "accuracy_zeros": Accuracy(output_transform=acc_transform),
             "loss": Loss(criterion),
         }
-        # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
+        score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
 
     if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
-        import shutil
-        try:
-            shutil.rmtree(C["trainer"]["checkpoint_dir"])
-        except:
-            pass
-        if C["trainer"]["accumulation_steps"] is not None:
-            acc_steps = C["trainer"]["accumulation_steps"] 
-        else:
-            acc_steps = 1
         trainer = MOSITrainer(
             model,
             optimizer,
-            # score_fn=score_fn,
+            score_fn=score_fn,
             experiment_name=C["experiment"]["name"],
             checkpoint_dir=C["trainer"]["checkpoint_dir"],
             metrics=metrics,
@@ -408,7 +363,6 @@ if __name__ == "__main__":
             validate_every=C["trainer"]["validate_every"],
             retain_graph=C["trainer"]["retain_graph"],
             loss_fn=criterion,
-            accumulation_steps=acc_steps,
             lr_scheduler=lr_scheduler,
             device=C["device"],
         )
@@ -460,10 +414,10 @@ if __name__ == "__main__":
 
         save_metrics(metrics, results_file)
 
-        metrics = eval_mosei_senti(pred, y_test, False)
+#         metrics = eval_mosei_senti(pred, y_test, False)
 
-        results_dir = C["results_dir"] + "_neutral"
-        safe_mkdirs(results_dir)
-        results_file = os.path.join(results_dir, fname)
+#         results_dir = C["results_dir"] + "_neutral"
+#         safe_mkdirs(results_dir)
+#         results_file = os.path.join(results_dir, fname)
 
-        save_metrics(metrics, results_file)
+#         save_metrics(metrics, results_file)

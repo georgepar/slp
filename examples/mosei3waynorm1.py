@@ -399,6 +399,7 @@ if __name__ == "__main__":
         trainer = MOSITrainer(
             model,
             optimizer,
+            newbob_metric="bin_accuracy",
             # score_fn=score_fn,
             experiment_name=C["experiment"]["name"],
             checkpoint_dir=C["trainer"]["checkpoint_dir"],

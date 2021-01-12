@@ -1,7 +1,7 @@
 feedback: true
-device: cpu
-data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_warmup
+device: cuda
+data_dir: /home/geopar/projects/mm/data/mosei_senti_data.pkl
+results_dir: /home/geopar/projects/mm/results/feedback_bi_3way_mult
 binary: false
 train: true
 test: true
@@ -9,7 +9,7 @@ overfit_batch: false
 debug: false
 remove_pauses: true
 
-normalize_audio: true
+normalize_audio: false
 normalize_visual: false
 
 modalities:
@@ -22,10 +22,10 @@ audio:
     instance_norm: false
     model:
         input_size: 74
-        hidden_size: 100
+        hidden_size: 50
         layers: 1
         dropout: !!float 0.2
-        bidirectional: true
+        bidirectional: false
         rnn_type: lstm
         attention: true
         return_hidden: false
@@ -35,10 +35,10 @@ visual:
     instance_norm: false
     model:
         input_size: 35
-        hidden_size: 100
+        hidden_size: 50
         layers: 1
         dropout: !!float 0.2
-        bidirectional: true
+        bidirectional: false
         rnn_type: lstm
         attention: true
         return_hidden: false
@@ -47,27 +47,24 @@ visual:
 text:
     model:
         input_size: 300
-        hidden_size: 100
+        hidden_size: 50
         layers: 1
         dropout: !!float 0.2
-        bidirectional: true
+        bidirectional: false
         rnn_type: lstm
         attention: true
         return_hidden: false
 
 fuse:
-    method: attrnn
+    method: cat
     modality_weights: false
-    projection_size: 100
+    projection_size: 50
+    prefuse: false
     use_mask: false
-    model_dim: 100
-    projection_type: conv
-    residual: 1
-    mmdrop: !!float 0.5
 
 common:
     dropout: !!float 0.2
-    bidirectional: true
+    bidirectional: false
     rnn_type: lstm
 
 experiment:
@@ -75,8 +72,8 @@ experiment:
     description: MOSEI binary task
 
 embeddings:
-    path: /data/embeddings/en/glove.840B.300d.txt
-    dim: 300
+    path: /data/embeddings/en/glove.840B.50d.txt
+    dim: 50
     finetune: false
     dropout: !!float 0
 
@@ -94,4 +91,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback-warmup
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-feedback-mult

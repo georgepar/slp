@@ -313,7 +313,7 @@ if __name__ == "__main__":
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         "min",
-        factor=0.5,
+        factor=0.2,
         patience=2,
         cooldown=2,
         min_lr=C["optimizer"]["learning_rate"] / 20.0,

@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import glob
 from ignite.metrics import Accuracy, Fbeta, Loss, MeanAbsoluteError
 from torch.utils.data import DataLoader
 
@@ -18,7 +17,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.multimodal import AudioVisualTextClassifier
+from slp.modules.multimodal_conv import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -252,21 +251,18 @@ if __name__ == "__main__":
     for d in tqdm(train):
         if C["normalize_audio"]:
             d["audio"] = scaler_audio.transform(d["audio"])
-
         if C["normalize_visual"]:
             d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(dev):
         if C["normalize_audio"]:
             d["audio"] = scaler_audio.transform(d["audio"])
-
         if C["normalize_visual"]:
             d["visual"] = scaler_visual.transform(d["visual"])
 
     for d in tqdm(test):
         if C["normalize_audio"]:
             d["audio"] = scaler_audio.transform(d["audio"])
-
         if C["normalize_visual"]:
             d["visual"] = scaler_visual.transform(d["visual"])
 
@@ -349,53 +345,17 @@ if __name__ == "__main__":
 
         def bin_acc_transform(output):
             y_pred, y = output
-            nz = torch.nonzero(y).squeeze()
-            yp, yt = (y_pred[nz] >= 0).long(), (y[nz] >= 0).long()
-
-            return yp, yt
-
-        def acc_transform(output):
-            y_pred, y = output
-            yp, yt = (y_pred >= 0).long(), (y >= 0).long()
-
-            return yp, yt
-
-        def acc7_transform(output):
-            y_pred, y = output
-            yp = torch.clamp(torch.round(y_pred) + 3, 0, 6).view(-1).long()
-            yt = torch.round(y).view(-1).long() + 3
-            yp = F.one_hot(yp, 7)
-
-            return yp, yt
-
-        def acc5_transform(output):
-            y_pred, y = output
-            yp = torch.clamp(torch.round(y_pred) + 2, 0, 4).view(-1).long()
-            yt = torch.round(y).view(-1).long() + 2
-            yp = F.one_hot(yp, 5)
+            yp, yt = (y_pred > 0).long(), (y > 0).long()
 
             return yp, yt
 
         metrics = {
-            "acc5": Accuracy(output_transform=acc5_transform),
-            "acc7": Accuracy(output_transform=acc7_transform),
-            "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
-            "f1": Fbeta(1, output_transform=bin_acc_transform),
-            "accuracy_zeros": Accuracy(output_transform=acc_transform),
+            # "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
             "loss": Loss(criterion),
         }
         # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
 
     if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
-        import shutil
-        try:
-            shutil.rmtree(C["trainer"]["checkpoint_dir"])
-        except:
-            pass
-        if C["trainer"]["accumulation_steps"] is not None:
-            acc_steps = C["trainer"]["accumulation_steps"] 
-        else:
-            acc_steps = 1
         trainer = MOSITrainer(
             model,
             optimizer,
@@ -408,7 +368,6 @@ if __name__ == "__main__":
             validate_every=C["trainer"]["validate_every"],
             retain_graph=C["trainer"]["retain_graph"],
             loss_fn=criterion,
-            accumulation_steps=acc_steps,
             lr_scheduler=lr_scheduler,
             device=C["device"],
         )
