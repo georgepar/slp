@@ -24,7 +24,6 @@ class CheckpointHandler(ModelCheckpoint):
         super(CheckpointHandler, self).__call__(engine, to_save)
         # Select model with best loss
         src = self.last_checkpoint
-        print(src)
         # for src in paths:
         splitted = src.split("_")
         fname_prefix = splitted[0]

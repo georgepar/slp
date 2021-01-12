@@ -17,7 +17,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.multimodal import AudioVisualTextTransformerClassifier
+from slp.modules.multimodal import AudioVisualTextTransformerRnnClassifier
 from slp.modules.warmup import GradualWarmupScheduler
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -259,7 +259,7 @@ if __name__ == "__main__":
     # x = next(iter(train_loader))
     print("Running with feedback = {}".format(C["feedback"]))
 
-    model = AudioVisualTextTransformerClassifier(
+    model = AudioVisualTextTransformerRnnClassifier(
         transformer_cfg=C["transformer"],
         fuse_cfg=C["fuse"],
         device=C["device"],
@@ -272,14 +272,16 @@ if __name__ == "__main__":
         lr=C["optimizer"]["learning_rate"],
     )
 
-    after_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        "min",
-        factor=0.5,
-        patience=2,
-        cooldown=2,
-        min_lr=C["optimizer"]["learning_rate"] / 20.0,
-    )
+    # after_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer,
+    #     "min",
+    #     factor=0.5,
+    #     patience=2,
+    #     cooldown=2,
+    #     min_lr=C["optimizer"]["learning_rate"] / 20.0,
+    # )
+
+    after_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 100)
 
     lr_scheduler = GradualWarmupScheduler(
         optimizer, 1, 5, after_scheduler=after_scheduler
@@ -308,12 +310,41 @@ if __name__ == "__main__":
 
         def bin_acc_transform(output):
             y_pred, y = output
-            yp, yt = (y_pred > 0).long(), (y > 0).long()
+            nz = torch.nonzero(y).squeeze()
+            yp, yt = (y_pred[nz] >= 0).long(), (y[nz] >= 0).long()
 
             return yp, yt
 
+
+        def acc_transform(output):
+            y_pred, y = output
+            yp, yt = (y_pred >= 0).long(), (y >= 0).long()
+
+            return yp, yt
+
+        def acc7_transform(output):
+            y_pred, y = output
+            yp = torch.clamp(torch.round(y_pred) + 3, 0, 6).view(-1).long()
+            yt = torch.round(y).view(-1).long() + 3
+            yp = F.one_hot(yp, 7)
+
+            return yp, yt
+
+        def acc5_transform(output):
+            y_pred, y = output
+            yp = torch.clamp(torch.round(y_pred) + 2, 0, 4).view(-1).long()
+            yt = torch.round(y).view(-1).long() + 2
+            yp = F.one_hot(yp, 5)
+
+            return yp, yt
+
+
         metrics = {
-            # "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
+            "acc5": Accuracy(output_transform=acc5_transform),
+            "acc7": Accuracy(output_transform=acc7_transform),
+            "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
+            "f1": Fbeta(1, output_transform=bin_acc_transform),
+            "accuracy_zeros": Accuracy(output_transform=acc_transform),
             "loss": Loss(criterion),
         }
         # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
@@ -356,7 +387,7 @@ if __name__ == "__main__":
             experiment_name=C["experiment"]["name"],
             checkpoint_dir=C["trainer"]["checkpoint_dir"],
             metrics=metrics,
-            accumulation_steps=4,
+            # accumulation_steps=8,
             model_checkpoint=C["trainer"]["load_model"],
             non_blocking=C["trainer"]["non_blocking"],
             patience=C["trainer"]["patience"],

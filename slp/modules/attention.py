@@ -264,7 +264,7 @@ class MultiheadCoAttention(nn.Module):
         attention_size=512,
         num_heads=8,
         input_size=None,
-        query_size=None,
+        cross_size=None,
         dropout=0.1,
         grad_checkpoint=False,
     ):
@@ -273,8 +273,8 @@ class MultiheadCoAttention(nn.Module):
         if input_size is None:
             input_size = attention_size
 
-        if query_size is None:
-            query_size = attention_size
+        if cross_size is None:
+            cross_size = attention_size
 
         self.dk = input_size
         self.num_heads = num_heads
@@ -282,23 +282,24 @@ class MultiheadCoAttention(nn.Module):
         self.attention_size = attention_size
         self.grad_checkpoint = grad_checkpoint
         self.k = nn.Linear(input_size, attention_size, bias=False)
-        self.q_self = nn.Linear(input_size, attention_size, bias=False)
-        self.q_other = nn.Linear(query_size, attention_size, bias=False)
+        self.q = nn.Linear(cross_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
-        self.output_self = FF(
-            attention_size,
-            attention_size,
-            activation="none",
-            layer_norm=True,
-            dropout=dropout,
-        )
-        self.output_other = FF(
-            attention_size,
-            attention_size,
-            activation="none",
-            layer_norm=True,
-            dropout=dropout,
-        )
+        # self.output_self = FF(
+        #     attention_size,
+        #     attention_size,
+        #     activation="none",
+        #     layer_norm=True,
+        #     dropout=dropout,
+        # )
+        # self.output_other = FF(
+        #     attention_size,
+        #     attention_size,
+        #     activation="none",
+        #     layer_norm=True,
+        #     dropout=dropout,
+        # )
+
+        self.out = nn.Linear(attention_size, attention_size)
 
         self.drop = nn.Dropout(dropout)
         self._reset_parameters()
@@ -325,56 +326,44 @@ class MultiheadCoAttention(nn.Module):
 
         return x.view(batch_size, max_length, -1)
 
-    def forward(self, x, queries, values=None, attention_mask=None):
+    def forward(self, x, y, values=None, attention_mask=None):
         """
         x : (B, L, D)
         queries : (B, L, D)
         values : (B, L, D)
         """
-
         if values is None:
-            values = x
-        k = self._split_heads(self.k(x))  # (B, H, L, A/H)
-        q_self = self._split_heads(self.q_self(x))  # (B, H, L, A/H)
-        q_other = self._split_heads(self.q_other(queries))  # (B, H, L, A/H)
-        v = self._split_heads(self.v(values))  # (B, H, L, A/H)
+            values = y
+        k = self._split_heads(self.k(y))  # (B, H, L, A/H)
+        q = self._split_heads(self.q(x))  # (B, H, L, A/H)
+        v = self._split_heads(self.v(y))  # (B, H, L, A/H)
 
         # scores => (B, H, L, L)
 
         if self.grad_checkpoint:
-            scores_self = checkpoint(calc_scores(self.dk), q_self, k)
-            scores_other = checkpoint(calc_scores(self.dk), q_other, k)
+            scores = checkpoint(calc_scores(self.dk), q, k)
         else:
-            scores_self = torch.matmul(q_self, k.transpose(-1, -2)) / math.sqrt(self.dk)
-            scores_other = torch.matmul(q_other, k.transpose(-1, -2)) / math.sqrt(
-                self.dk
-            )
+            scores = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(self.dk)
 
         if attention_mask is not None:
             attention_mask = attention_mask.unsqueeze(1)
-            scores_self = scores_self + ((1 - attention_mask) * -1e5)
-            scores_other = scores_other + ((1 - attention_mask) * -1e5)
-        scores_self = F.softmax(scores_self, dim=-1)
-        scores_other = F.softmax(scores_other, dim=-1)
-        scores_self = self.drop(scores_self)
-        scores_other = self.drop(scores_other)
+            scores = scores + ((1 - attention_mask) * -1e5)
+        scores = F.softmax(scores, dim=-1)
+        scores = self.drop(scores)
 
         # out => (B, H, L, A/H)
-        out_self = self._merge_heads(torch.matmul(scores_self, v))
-        out_other = self._merge_heads(torch.matmul(scores_other, v))
-        out = self.output_self(out_self) + self.output_other(out_other)
+        out = self._merge_heads(torch.matmul(scores, v))
+
+        out = self.out(out) + x
 
         return out
 
     def _reset_parameters(self):
         nn.init.xavier_uniform_(self.k.weight)
-        nn.init.xavier_uniform_(self.q_self.weight)
-        nn.init.xavier_uniform_(self.q_other.weight)
+        nn.init.xavier_uniform_(self.q.weight)
         nn.init.xavier_uniform_(self.v.weight)
-        nn.init.xavier_uniform_(self.output_self.fc.weight)
-        nn.init.xavier_uniform_(self.output_other.fc.weight)
-        nn.init.constant_(self.output_self.fc.bias, 0.0)
-        nn.init.constant_(self.output_other.fc.bias, 0.0)
+        nn.init.xavier_uniform_(self.out.weight)
+        nn.init.constant_(self.out.bias, 0.0)
 
 
 

@@ -16,7 +16,7 @@ class FF(nn.Module):
     """Some Information about FF"""
 
     def __init__(
-        self, n_in, n_out, activation="relu", layer_norm=True, bias=True, dropout=0.1
+        self, n_in, n_out, activation="relu", layer_norm=False, bias=True, dropout=0.1
     ):
         super(FF, self).__init__()
         self.fc = nn.Linear(n_in, n_out, bias=bias)

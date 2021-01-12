@@ -7,6 +7,7 @@ from slp.modules.embed import PositionalEncoding, Embed
 from slp.modules.feedforward import PositionwiseFF
 from slp.modules.norm import LayerNorm
 from slp.modules.util import repeat_layer
+from slp.modules.rnn import AttentiveRNN
 
 
 class Sublayer1(nn.Module):
@@ -23,8 +24,8 @@ class Sublayer1(nn.Module):
             self.lnorm = LayerNorm(hidden_size)
         self.sublayer = MultiheadCoAttention(
             attention_size=hidden_size,
+            input_size=cross_size,
             num_heads=num_heads,
-            query_size=cross_size,
             dropout=dropout,
         )
 
@@ -165,67 +166,213 @@ class MMTransformer3Way(nn.Module):
         num_heads=8,
         inner_size=2048,
         dropout=0.1,
+        feedback=False,
         device="cpu",
     ):
         super(MMTransformer3Way, self).__init__()
+        self.feedback = feedback
 
-        self.pe = PositionalEncoding(
-            max_length, embedding_dim=hidden_size, device=device
+        self.audio_encoder = nn.ModuleList(
+            repeat_layer(
+                EncoderLayer(
+                    hidden_size=hidden_size,
+                    cross_size=2 * hidden_size,
+                    num_heads=num_heads,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                ),
+                num_layers,
+            )
         )
 
-        self.audio_embed = nn.Linear(audio_size, hidden_size)
-        # self.text_embed = nn.Linear(text_size, hidden_size)
-        self.visual_embed = nn.Linear(visual_size, hidden_size)
-
-        self.audio_encoder = MMEncoder(
-            num_layers=num_layers,
-            hidden_size=hidden_size,
-            cross_size=2 * hidden_size,
-            num_heads=num_heads,
-            inner_size=inner_size,
-            dropout=dropout,
-            device=device,
+        self.text_encoder = nn.ModuleList(
+            repeat_layer(
+                EncoderLayer(
+                    hidden_size=hidden_size,
+                    cross_size=2 * hidden_size,
+                    num_heads=num_heads,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                ),
+                num_layers,
+            )
         )
 
-        self.text_encoder = MMEncoder(
-            num_layers=num_layers,
-            hidden_size=hidden_size,
-            cross_size=2 * hidden_size,
-            num_heads=num_heads,
-            inner_size=inner_size,
-            dropout=dropout,
-            device=device,
-        )
-
-        self.visual_encoder = MMEncoder(
-            num_layers=num_layers,
-            hidden_size=hidden_size,
-            cross_size=2 * hidden_size,
-            num_heads=num_heads,
-            inner_size=inner_size,
-            dropout=dropout,
-            device=device,
+        self.visual_encoder = nn.ModuleList(
+            repeat_layer(
+                EncoderLayer(
+                    hidden_size=hidden_size,
+                    cross_size=2 * hidden_size,
+                    num_heads=num_heads,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                ),
+                num_layers,
+            )
         )
 
     def forward(self, text, audio, visual, attention_mask=None):
-        # text = self.text_embed(text)
-        audio = self.audio_embed(audio)
-        visual = self.visual_embed(visual)
+        for text_layer, audio_layer, visual_layer in zip(
+            self.text_encoder, self.audio_encoder, self.visual_encoder
+        ):
+            if self.feedback:
+                text2 = text_layer(
+                    text, torch.cat([audio, visual], dim=-1), attention_mask=attention_mask
+                )
+                audio2 = audio_layer(
+                    audio, torch.cat([text, visual], dim=-1), attention_mask=attention_mask
+                )
+                visual2 = visual_layer(
+                    visual, torch.cat([text, audio], dim=-1), attention_mask=attention_mask
+                )
 
-        text = self.pe(text)
-        audio = self.pe(audio)
-        visual = self.pe(visual)
+                mt = torch.sigmoid(text2)
+                ma = torch.sigmoid(audio2)
+                mv = torch.sigmoid(visual2)
 
-        text = self.text_encoder(
-            text, torch.cat([audio, visual], dim=-1), attention_mask=attention_mask
-        )
+                text = text * (ma + mv)
+                audio = audio * (mv + mt)
+                visual = visual * (ma + mt)
 
-        audio = self.audio_encoder(
-            audio, torch.cat([text, visual], dim=-1), attention_mask=attention_mask
-        )
+            text1 = text_layer(
+                text, torch.cat([audio, visual], dim=-1), attention_mask=attention_mask
+            )
+            audio1 = audio_layer(
+                audio, torch.cat([text, visual], dim=-1), attention_mask=attention_mask
+            )
+            visual1 = visual_layer(
+                visual, torch.cat([text, audio], dim=-1), attention_mask=attention_mask
+            )
 
-        visual = self.visual_encoder(
-            audio, torch.cat([text, audio], dim=-1), attention_mask=attention_mask
-        )
+            text = text1
+            audio = audio1
+            visual = visual1
 
         return text, audio, visual
+
+    def _reset_parameters(self):
+        """Initiate parameters in the transformer model."""
+
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
+
+
+
+class MMTransformerRnn3Way(nn.Module):
+    def __init__(
+        self,
+        text_size,
+        audio_size,
+        visual_size,
+        hidden_size=512,
+        max_length=256,
+        num_layers=6,
+        num_heads=8,
+        inner_size=2048,
+        dropout=0.1,
+        feedback=False,
+        device="cpu",
+    ):
+        super(MMTransformerRnn3Way, self).__init__()
+        self.feedback = feedback
+        self.device = device
+
+        self.audio_encoder = nn.ModuleList(
+            repeat_layer(
+                EncoderLayer(
+                    hidden_size=hidden_size,
+                    cross_size=2 * hidden_size,
+                    num_heads=num_heads,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                ),
+                num_layers,
+            )
+        )
+
+        self.text_encoder = nn.ModuleList(
+            repeat_layer(
+                EncoderLayer(
+                    hidden_size=hidden_size,
+                    cross_size=2 * hidden_size,
+                    num_heads=num_heads,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                ),
+                num_layers,
+            )
+        )
+
+        self.visual_encoder = nn.ModuleList(
+            repeat_layer(
+                EncoderLayer(
+                    hidden_size=hidden_size,
+                    cross_size=2 * hidden_size,
+                    num_heads=num_heads,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                ),
+                num_layers,
+            )
+        )
+
+        self.output = AttentiveRNN(
+            3 * hidden_size,
+            3 * hidden_size,
+            bidirectional=True,
+            dropout=dropout,
+            attention=True,
+            device=device
+        )
+        self.out_size = self.output.out_size
+
+    def forward(self, text, audio, visual, lengths, attention_mask=None):
+        for text_layer, audio_layer, visual_layer in zip(
+            self.text_encoder, self.audio_encoder, self.visual_encoder
+        ):
+            if self.feedback:
+                text2 = text_layer(
+                    text, torch.cat([audio, visual], dim=-1), attention_mask=attention_mask
+                )
+                audio2 = audio_layer(
+                    audio, torch.cat([text, visual], dim=-1), attention_mask=attention_mask
+                )
+                visual2 = visual_layer(
+                    visual, torch.cat([text, audio], dim=-1), attention_mask=attention_mask
+                )
+
+                mt = torch.sigmoid(text2)
+                ma = torch.sigmoid(audio2)
+                mv = torch.sigmoid(visual2)
+
+                text = text * (ma + mv)
+                audio = audio * (mv + mt)
+                visual = visual * (ma + mt)
+
+            text1 = text_layer(
+                text, torch.cat([audio, visual], dim=-1), attention_mask=attention_mask
+            )
+            audio1 = audio_layer(
+                audio, torch.cat([text, visual], dim=-1), attention_mask=attention_mask
+            )
+            visual1 = visual_layer(
+                visual, torch.cat([text, audio], dim=-1), attention_mask=attention_mask
+            )
+
+            text = text1
+            audio = audio1
+            visual = visual1
+
+        dat = torch.cat([text, audio, visual], dim=-1)
+        out = self.output(dat, lengths)
+        return out
+
+
+
+    def _reset_parameters(self):
+        """Initiate parameters in the transformer model."""
+
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
