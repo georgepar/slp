@@ -215,25 +215,6 @@ class MMTransformer3Way(nn.Module):
         for text_layer, audio_layer, visual_layer in zip(
             self.text_encoder, self.audio_encoder, self.visual_encoder
         ):
-            if self.feedback:
-                text2 = text_layer(
-                    text, torch.cat([audio, visual], dim=-1), attention_mask=attention_mask
-                )
-                audio2 = audio_layer(
-                    audio, torch.cat([text, visual], dim=-1), attention_mask=attention_mask
-                )
-                visual2 = visual_layer(
-                    visual, torch.cat([text, audio], dim=-1), attention_mask=attention_mask
-                )
-
-                mt = torch.sigmoid(text2)
-                ma = torch.sigmoid(audio2)
-                mv = torch.sigmoid(visual2)
-
-                text = text * (ma + mv)
-                audio = audio * (mv + mt)
-                visual = visual * (ma + mt)
-
             text1 = text_layer(
                 text, torch.cat([audio, visual], dim=-1), attention_mask=attention_mask
             )

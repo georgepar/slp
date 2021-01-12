@@ -807,15 +807,30 @@ class AudioVisualTextTransformerEncoder(nn.Module):
             device=device,
         )
 
-        self.audio_embed = nn.Linear(
-            transformer_cfg["audio_size"], transformer_cfg["hidden_size"]
+        self.audio_embed = nn.Conv1d(
+            transformer_cfg["audio_size"],
+            transformer_cfg["hidden_size"],
+            kernel_size=1,
+            padding=0,
+            bias=False
         )
-        self.text_embed = nn.Linear(
-            transformer_cfg["text_size"], transformer_cfg["hidden_size"]
+
+        self.text_embed = nn.Conv1d(
+            transformer_cfg["text_size"],
+            transformer_cfg["hidden_size"],
+            kernel_size=1,
+            padding=0,
+            bias=False
         )
-        self.visual_embed = nn.Linear(
-            transformer_cfg["visual_size"], transformer_cfg["hidden_size"]
+
+        self.visual_embed = nn.Conv1d(
+            transformer_cfg["visual_size"],
+            transformer_cfg["hidden_size"],
+            kernel_size=1,
+            padding=0,
+            bias=False
         )
+
 
         self.encoder = MMTransformer3Way(
             transformer_cfg["text_size"],
@@ -861,9 +876,10 @@ class AudioVisualTextTransformerEncoder(nn.Module):
         raise NotImplementedError
 
     def forward(self, txt, au, vi, lengths):
-        txt = self.text_embed(txt)
-        au = self.audio_embed(au)
-        vi = self.visual_embed(vi)
+        txt = self.text_embed(txt.transpose(1, 2)).transpose(1, 2)
+        au = self.audio_embed(au.transpose(1, 2)).transpose(1, 2)
+        vi = self.visual_embed(vi.transpose(1, 2)).transpose(1, 2)
+
 
         txt = self.pe(txt)
         au = self.pe(au)
