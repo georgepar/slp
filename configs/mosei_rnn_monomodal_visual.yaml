@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/results/mosei_audio
+results_dir: /home/egeorgiou/experimental/mm/slp/results/mosei_visual
 binary: false
 train: true
 test: true
@@ -68,7 +68,7 @@ common:
 experiment:
     name: mosei-visual
     description: MOSEI binary task
-    modal_train: audio
+    modal_train: visual
 
 embeddings:
     path: /data/embeddings/en/glove.840B.300d.txt
@@ -99,4 +99,4 @@ trainer:
     load_audio_model: mosei-audio_checkpoint.best.pth
     load_text_model: mosei-text_checkpoint.best.pth
     load_visual_model: mosei-visual_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-audio
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-visual

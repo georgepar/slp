@@ -1,13 +1,17 @@
 feedback: true
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/results/mosei_audio
+results_dir: /home/egeorgiou/experimental/mm/slp/results/mosei-pretrained-feedback
+audio_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-audio/mosei-audio_checkpoint.best.pth
+text_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-text/mosei-text_checkpoint.best.pth
+visual_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-visual/mosei-visual_checkpoint.best.pth
 binary: false
 train: true
 test: true
 overfit_batch: false
 debug: false
 remove_pauses: true
+from_pretrained: true
 
 modalities:
     - text
@@ -66,9 +70,8 @@ common:
     rnn_type: lstm
 
 experiment:
-    name: mosei-visual
+    name: mosei-pretrained-mono
     description: MOSEI binary task
-    modal_train: audio
 
 embeddings:
     path: /data/embeddings/en/glove.840B.300d.txt
@@ -82,21 +85,12 @@ dataloaders:
     pin_memory: false
 
 optimizer:
-    audio:
-        name: Adam
-        learning_rate: !!float 1e-3
-    text:
-        name: Adam
-        learning_rate: !!float 1e-3
-    visual:
-        name: Adam
-        learning_rate: !!float 1e-3
+    name: Adam
+    learning_rate: !!float 1e-3
 
 trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
-    load_audio_model: mosei-audio_checkpoint.best.pth
-    load_text_model: mosei-text_checkpoint.best.pth
-    load_visual_model: mosei-visual_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-audio
+    load_model: mosei-pretrained-feedback_checkpoint.best.pth
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-mosei-pretrained-feedback

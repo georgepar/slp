@@ -3,7 +3,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from collections import OrderedDict
 from slp.modules.rnn import AttentiveRNN, WordRNN, CoAttentiveRNN
 
 
@@ -30,26 +30,37 @@ class GatedLinearUnit(nn.Module):
 
 
 class GatedLinearUnit3Way(nn.Module):
-    def __init__(self, hidden_dim=None, learnable=False):
+    def __init__(self, hidden_dim=None,
+                 out_dim=None,
+                 learnable=False,
+                 internal_dim=50):
         super(GatedLinearUnit3Way, self).__init__()
         self.learnable = learnable
-
+        self.internal_dim = internal_dim
         if learnable:
             if hidden_dim is None:
                 raise ValueError("You must provide hidden dim for learnable GLU")
+            if out_dim is None:
+                raise ValueError("You must provide out dim for learnable GLU")
             self.hidden_dim = hidden_dim
-            self.proj = nn.Linear(hidden_dim, hidden_dim)
-            self.mask1 = nn.Linear(hidden_dim, hidden_dim)
-            self.mask2 = nn.Linear(hidden_dim, hidden_dim)
+            # self.proj = nn.Linear(hidden_dim, out_dim)
+            self.mask1 = nn.Sequential(
+                nn.Linear(hidden_dim, self.internal_dim),
+                nn.ReLU(),
+                nn.Linear(self.internal_dim, out_dim))
+            self.mask2 = nn.Sequential(
+                nn.Linear(hidden_dim, self.internal_dim),
+                nn.ReLU(),
+                nn.Linear(self.internal_dim, out_dim))
 
     def forward(self, x, y, z):
         if self.learnable:
-            x = self.proj(x)
+            # x = self.proj(x)
             y = self.mask1(y)
             z = self.mask2(z)
-        mask1 = torch.sigmoid(y)
-        mask2 = torch.sigmoid(z)
-        mask = mask1 + mask2
+        # mask1 = torch.sigmoid(y)
+        # mask2 = torch.sigmoid(z)
+        mask = torch.sigmoid(y + z)
         x = x * mask
 
         return x
@@ -586,32 +597,43 @@ class AudioVisualTextEncoder(nn.Module):
             text_cfg["attention"] and audio_cfg["attention"] and visual_cfg["attention"]
         ), "Use attention pls."
 
+        self.audio_cfg = audio_cfg
+        self.text_cfg = text_cfg
+        self.visual_cfg = visual_cfg
+        self.fuse_cfg = fuse_cfg
+        self.device = device
+
         self.feedback = feedback
 
-        audio_size = fuse_cfg["projection_size"]
-        text_size = fuse_cfg["projection_size"]
-        visual_size = fuse_cfg["projection_size"]
-        text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
-        audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
-        visual_cfg["orig_size"] = visual_cfg.get("orig_size", visual_cfg["input_size"])
-        audio_cfg["input_size"] = audio_size
-        text_cfg["input_size"] = text_size
-        visual_cfg["input_size"] = visual_size
+        # audio_size = fuse_cfg["projection_size"]
+        # text_size = fuse_cfg["projection_size"]
+        # visual_size = fuse_cfg["projection_size"]
+        # text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
+        # audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
+        # visual_cfg["orig_size"] = \
+        # visual_cfg.get("orig_size", visual_cfg["input_size"])
+        # audio_cfg["input_size"] = audio_size
+        # text_cfg["input_size"] = text_size
+        # visual_cfg["input_size"] = visual_size
 
         self.text_projection = None
+        self.audio_projection = None
+        self.visual_projection = None
 
-        if text_cfg["orig_size"] != fuse_cfg["projection_size"]:
+        if text_cfg["hidden_size"] != fuse_cfg["projection_size"]:
             self.text_projection = nn.Linear(
-                text_cfg["orig_size"], fuse_cfg["projection_size"]
+                text_cfg["hidden_size"], fuse_cfg["projection_size"]
             )
 
-        self.audio_projection = nn.Linear(
-            audio_cfg["orig_size"], fuse_cfg["projection_size"]
-        )
+        if audio_cfg["hidden_size"] != fuse_cfg["projection_size"]:
+            self.audio_projection = nn.Linear(
+                audio_cfg["hidden_size"], fuse_cfg["projection_size"]
+            )
 
-        self.visual_projection = nn.Linear(
-            visual_cfg["orig_size"], fuse_cfg["projection_size"]
-        )
+        if visual_cfg["hidden_size"] != fuse_cfg["projection_size"]:
+            self.visual_projection = nn.Linear(
+                visual_cfg["hidden_size"], fuse_cfg["projection_size"]
+            )
 
         self.prefuser = None
 
@@ -634,7 +656,18 @@ class AudioVisualTextEncoder(nn.Module):
         self.visual = VisualEncoder(visual_cfg, device=device)
 
         if feedback:
-            self.glu = GatedLinearUnit3Way()
+            self.glu_t = GatedLinearUnit3Way(
+                hidden_dim=self.fuse_cfg["projection_size"],
+                out_dim=self.text_cfg["input_size"],
+                learnable=True)
+            self.glu_a = GatedLinearUnit3Way(
+                hidden_dim=self.fuse_cfg["projection_size"],
+                out_dim=self.audio_cfg["input_size"],
+                learnable=True)
+            self.glu_v = GatedLinearUnit3Way(
+                hidden_dim=self.fuse_cfg["projection_size"],
+                out_dim=self.visual_cfg["input_size"],
+                learnable=True)
 
         if fuse_cfg["method"] == "cat":
             fuse_cls = CatFuser3Way
@@ -656,19 +689,45 @@ class AudioVisualTextEncoder(nn.Module):
         )
         self.out_size = self.fuser.out_size
 
+
     def from_pretrained(self, audio_path, visual_path, text_path):
-        # load pretrained classifiers
-        text_clf = torch.load(text_path)
-        audio_clf = torch.load(audio_path)
-        visual_clf = torch.load(visual_path)
+        a_model = AudioClassifier(
+            cfg=self.audio_cfg,
+            projection_size=self.fuse_cfg["projection_size"],
+            device=self.device,
+            num_classes=1,
+        )
+        a_model.load_state_dict(torch.load(audio_path)["model"])
+        self.audio = a_model.encoder
+        print(self.audio)
+
+        t_model = GloveClassifier(
+            cfg=self.text_cfg,
+            projection_size=self.fuse_cfg["projection_size"],
+            device=self.device,
+            num_classes=1,
+        )
+        t_model.load_state_dict(torch.load(text_path)["model"])
+        self.text = t_model.encoder
+        print(self.text)
+
+        v_model = VisualClassifier(
+            cfg=self.visual_cfg,
+            projection_size=self.fuse_cfg["projection_size"],
+            device=self.device,
+            num_classes=1,
+        )
+        v_model.load_state_dict(torch.load(visual_path)["model"])
+        self.visual = v_model.encoder
+        print(self.visual)
+
         # get projections
-        self.text_projection = text_clf["proj"]
-        self.audio_projection = audio_clf["proj"]
-        self.visual_projection = visual_clf["proj"]
-        # encoders
-        self.text = text_clf["encoder"]
-        self.audio = audio_clf["encoder"]
-        self.visual = visual_clf["encoder"]
+        # if "proj" in text_clf["model"]:
+        #     self.text_projection = text_clf["proj"]
+        # if "proj" in audio_clf["model"]:
+        #     self.audio_projection = audio_clf["proj"]
+        # if "proj" in visual_clf["model"]:
+        #     self.visual_projection = visual_clf["proj"]
 
     def forward(self, txt, au, vi, lengths):
         if self.audio_projection is not None:
@@ -685,19 +744,42 @@ class AudioVisualTextEncoder(nn.Module):
             vi = self.prefuser(vi)
             txt = self.prefuser(txt)
 
+        # print(self.text)
+        # print(txt.shape)
+        # print(au.shape)
+        # print(vi.shape)
+        # txt = self.text(txt, lengths)
+        # print(txt.shape)
+
         if self.feedback:
-            for _ in range(2):
-                txt = self.text(txt, lengths)
-                au = self.audio(au, lengths)
-                vi = self.visual(vi, lengths)
-                txt = self.glu(txt, au, vi)
-                au = self.glu(au, txt, vi)
-                vi = self.glu(vi, txt, au)
+            # print(f"txt shape {txt.shape}")
+            # print(f"visual shape {vi.shape}")
+            # print(f"audio shape {au.shape}")
+            tmp_t = txt
+            tmp_a = au
+            tmp_v = vi
+            for _ in range(1):
+                # each modality through rnn
+                tmp_t = self.text(tmp_t, lengths)
+                tmp_a = self.audio(tmp_a, lengths)
+                tmp_v = self.visual(tmp_v, lengths)
+
+                # mask monomodal representations
+                tmp_txt = self.glu_t(txt, tmp_a, tmp_v)
+                tmp_au = self.glu_a(au, tmp_t, tmp_v)
+                tmp_vi = self.glu_v(vi, tmp_t, tmp_a)
+
+                # store the masked inputs back
+                tmp_t = tmp_txt
+                tmp_v = tmp_vi
+                tmp_a = tmp_au
+            txt = tmp_t
+            au = tmp_a
+            vi = tmp_vi
 
         txt = self.text(txt, lengths)
         au = self.audio(au, lengths)
         vi = self.visual(vi, lengths)
-
         # Sum weighted attention hidden states
         txt = txt.sum(1)
         au = au.sum(1)
@@ -1007,7 +1089,7 @@ class GloveClassifier(nn.Module):
         self.proj = None
         if cfg["hidden_size"] != projection_size:
             self.proj = nn.Linear(cfg["input_size"], projection_size)
-        self.encoder = AudioEncoder(cfg, device=device)
+        self.encoder = GloveEncoder(cfg, device=device)
         self.classifier = nn.Linear(self.encoder.out_size, num_classes)
 
     def forward(self, x, lengths):
@@ -1081,6 +1163,14 @@ class AudioVisualTextClassifier(nn.Module):
         )
 
         self.classifier = nn.Linear(self.encoder.out_size, num_classes)
+
+    def from_pretrained(self, audio_path, visual_path, text_path):
+        # encoder from pretained method
+        self.encoder.from_pretrained(
+            audio_path=audio_path,
+            visual_path=visual_path,
+            text_path=text_path,
+        )
 
     def forward(self, inputs):
         out = self.encoder(
