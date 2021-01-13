@@ -1,0 +1,85 @@
+feedback: true
+device: cuda
+data_dir: /home/geopar/projects/mm/data/cmumosei
+results_dir: /home/geopar/projects/mm/results_feedback/full_feedback_attrnn
+train: true
+test: true
+overfit_batch: false
+debug: false
+remove_pauses: true
+
+normalize_audio: true
+normalize_visual: true
+
+modalities:
+    - text
+    - glove
+    - audio
+    - visual
+
+audio:
+    model:
+        input_size: 74
+        hidden_size: 100
+        layers: 1
+        dropout: !!float 0.2
+        bidirectional: true
+        rnn_type: lstm
+        attention: true
+        return_hidden: false
+        batchnorm: false
+
+visual:
+    model:
+        input_size: 35
+        hidden_size: 100
+        layers: 1
+        dropout: !!float 0.2
+        bidirectional: true
+        rnn_type: lstm
+        attention: true
+        return_hidden: false
+        batchnorm: false
+
+text:
+    model:
+        input_size: 300
+        hidden_size: 100
+        layers: 1
+        dropout: !!float 0.2
+        bidirectional: true
+        rnn_type: lstm
+        attention: true
+        return_hidden: false
+
+fuse:
+    method: attrnn
+    modality_weights: false
+    projection_size: 100
+    use_mask: false
+    model_dim: 100
+    projection_type: conv
+    residual: 1
+    mmdrop: !!float 0.3
+    self_feedback: false
+    feedback_type: sigmoid
+
+experiment:
+    name: mosei-binary-audio-text-visual
+    description: MOSEI binary task
+
+dataloaders:
+    batch_size: 64
+    num_workers: 1
+    pin_memory: false
+
+optimizer:
+    name: Adam
+    learning_rate: !!float 1e-3
+
+trainer:
+    patience: 10
+    max_epochs: 100
+    retain_graph: true
+    load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-full-feedback-attrnn

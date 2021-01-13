@@ -18,7 +18,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.multimodal import AudioVisualTextClassifier
+from slp.modules.mm import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -393,7 +393,7 @@ if __name__ == "__main__":
         except:
             pass
         if C["trainer"]["accumulation_steps"] is not None:
-            acc_steps = C["trainer"]["accumulation_steps"] 
+            acc_steps = C["trainer"]["accumulation_steps"]
         else:
             acc_steps = 1
         trainer = MOSITrainer(
@@ -456,14 +456,6 @@ if __name__ == "__main__":
         results_dir = C["results_dir"]
         safe_mkdirs(results_dir)
         fname = uuid.uuid1().hex
-        results_file = os.path.join(results_dir, fname)
-
-        save_metrics(metrics, results_file)
-
-        metrics = eval_mosei_senti(pred, y_test, False)
-
-        results_dir = C["results_dir"] + "_neutral"
-        safe_mkdirs(results_dir)
         results_file = os.path.join(results_dir, fname)
 
         save_metrics(metrics, results_file)

@@ -19,16 +19,19 @@ class Attention(nn.Module):
     """Some Information about Attention"""
 
     def __init__(
-        self, attention_size=512, input_size=None, dropout=0.1, grad_checkpoint=False
+        self, attention_size=512, input_size=None, query_size=None, dropout=0.1, grad_checkpoint=False
     ):
         super(Attention, self).__init__()
 
         if input_size is None:
             input_size = attention_size
+        if query_size is None:
+            query_size = input_size
+
         self.dk = input_size
         self.grad_checkpoint = grad_checkpoint
         self.k = nn.Linear(input_size, attention_size, bias=False)
-        self.q = nn.Linear(input_size, attention_size, bias=False)
+        self.q = nn.Linear(query_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
         self.drop = nn.Dropout(dropout)
         self._reset_parameters()
@@ -39,7 +42,6 @@ class Attention(nn.Module):
         queries : (B, L, D)
         values : (B, L, D)
         """
-
         if queries is None:
             queries = x
 
