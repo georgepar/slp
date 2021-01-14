@@ -109,4 +109,5 @@ venv.bak/
 *.log
 data/*
 results/*
-results_new/*
+results*/*
+checkpoints*/*

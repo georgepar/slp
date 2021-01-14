@@ -145,6 +145,9 @@ class SymmetricAttention(nn.Module):
             return out_mod1, out_mod2
         elif self.residual == 1:
             # vilbert cross residual
+
+            # v + attention(v->a)
+            # a + attention(a->v)
             out_mod1 += mod2
             out_mod2 += mod1
             return out_mod1, out_mod2

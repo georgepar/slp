@@ -259,6 +259,7 @@ class MOSEI_MULT(Dataset):
         visual = data["vision"].astype(np.float32)
         audio = data["audio"].astype(np.float32)
         audio[audio == -np.inf] = 0
+        audio[audio == np.inf] = 0
         text = data["text"].astype(np.float32)
         self.labels = data["labels"].astype(np.float32).squeeze(-1)
         self.data = []

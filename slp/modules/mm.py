@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from slp.modules.rnn import AttentiveRNN, RNN
-from slp.modules.attention import SymmetricAttention, Attention
+from slp.modules.attention import Attention, SymmetricAttention
+from slp.modules.rnn import RNN, AttentiveRNN
 
 
 class MultimodalDropout(nn.Module):
@@ -45,7 +45,7 @@ class FeedbackUnit(nn.Module):
         self.mod1_sz = mod1_sz
         self.hidden_dim = hidden_dim
 
-        if mask_type == "rnn":
+        if mask_type == "rnn" or mask_type == "sum_rnn":
             self.mask1 = RNN(hidden_dim, mod1_sz, dropout=dropout, device=device)
             self.mask2 = RNN(hidden_dim, mod1_sz, dropout=dropout, device=device)
 
@@ -79,78 +79,94 @@ class FeedbackUnit(nn.Module):
             "sum_softmax": self._sum_softmax_mask,
             "dot": self._dot_mask,
             "rnn": self._rnn_mask,
+            "sum_rnn": self._sum_rnn_mask,
             "attention": self._attention_mask,
         }
 
         self.get_mask = mask_fn[self.mask_type]
 
-    def _attention_mask(self, x, y, z, lengths=None):
+    def _attention_mask(self, x, y, z, x_high=None, lengths=None):
         _, m1 = self.mask1(x, queries=y)
         _, m2 = self.mask2(x, queries=z)
 
         mask = m1 + m2
+
         if self.use_self:
-            _, m3 = self.mask_self(x)
+            _, m3 = self.mask_self(x_high)
             mask = mask + m3
 
         return mask
 
-    def _rnn_mask(self, x, y, z, lengths=None):
+    def _sum_rnn_mask(self, x, y, z, x_high=None, lengths=None):
+        oy, _, _ = self.mask1(y, lengths)
+        oz, _, _ = self.mask2(z, lengths)
+
+        lg = (torch.sigmoid(oy) + torch.sigmoid(oz)) * 0.5
+
+        if self.use_self:
+            ox, _, _ = self.mask_self(x_high, lengths)
+            lg = lg + torch.sigmoid(ox)
+
+        mask = lg
+
+        return mask
+
+    def _rnn_mask(self, x, y, z, x_high=None, lengths=None):
         oy, _, _ = self.mask1(y, lengths)
         oz, _, _ = self.mask2(z, lengths)
 
         lg = oy + oz
 
         if self.use_self:
-            ox = self.mask_self(x, lengths)
+            ox, _, _ = self.mask_self(x_high, lengths)
             lg = lg + ox
 
         mask = torch.sigmoid(lg)
 
         return mask
 
-    def _sigmoid_mask(self, x, y, z, lengths=None):
+    def _sigmoid_mask(self, x, y, z, x_high=None, lengths=None):
         y = self.mask1(y)
         z = self.mask2(z)
 
         lg = y + z
 
         if self.use_self:
-            m = self.mask_self(x)
+            m = self.mask_self(x_high)
             lg = lg + m
 
         mask = torch.sigmoid(lg)
 
         return mask
 
-    def _softmax_mask(self, x, y, z, lengths=None):
+    def _softmax_mask(self, x, y, z, x_high=None, lengths=None):
         y = self.mask1(y)
         z = self.mask2(z)
 
         lg = y + z
 
         if self.use_self:
-            m = self.mask_self(x)
+            m = self.mask_self(x_high)
             lg = lg + m
 
         mask = torch.softmax(lg, dim=-1)
 
         return mask
 
-    def _sum_sigmoid_mask(self, x, y, z, lengths=None):
+    def _sum_sigmoid_mask(self, x, y, z, x_high=None, lengths=None):
         y = self.mask1(y)
         z = self.mask2(z)
         mask1 = torch.sigmoid(y)
         mask2 = torch.sigmoid(z)
-        mask = mask1 + mask2
+        mask = (mask1 + mask2) * 0.5
 
         if self.use_self:
-            m = torch.sigmoid(self.mask_self(x))
+            m = torch.sigmoid(self.mask_self(x_high))
             mask = mask + m
 
         return mask
 
-    def _sum_softmax_mask(self, x, y, z, lengths=None):
+    def _sum_softmax_mask(self, x, y, z, x_high=None, lengths=None):
         y = self.mask1(y)
         z = self.mask2(z)
         mask1 = torch.softmax(y, dim=-1)
@@ -158,12 +174,12 @@ class FeedbackUnit(nn.Module):
         mask = mask1 + mask2
 
         if self.use_self:
-            m = torch.softmax(self.mask_self(x), dim=-1)
+            m = torch.softmax(self.mask_self(x_high), dim=-1)
             mask = mask + m
 
         return mask
 
-    def _dot_mask(self, x, y, z, lengths=None):
+    def _dot_mask(self, x, y, z, x_high=None, lengths=None):
         y = self.mask1(y)
         z = self.mask2(z)
 
@@ -173,8 +189,9 @@ class FeedbackUnit(nn.Module):
 
         return mask
 
-    def forward(self, x, y, z, lengths=None):
-        mask = self.get_mask(x, y, z, lengths=lengths)
+    def forward(self, x, y, z, x_high=None, lengths=None):
+        mask = self.get_mask(x, y, z, x_high=x_high, lengths=lengths)
+
         if self.mask_type == "attention":
             x = torch.bmm(mask, x)
         else:
@@ -225,9 +242,9 @@ class Feedback(nn.Module):
         )
 
     def forward(self, low_x, low_y, low_z, hi_x, hi_y, hi_z, lengths=None):
-        x = self.f1(low_x, hi_y, hi_z, lengths=lengths)
-        y = self.f2(low_y, hi_x, hi_z, lengths=lengths)
-        z = self.f3(low_z, hi_x, hi_y, lengths=lengths)
+        x = self.f1(low_x, hi_y, hi_z, x_high=hi_x, lengths=lengths)
+        y = self.f2(low_y, hi_x, hi_z, x_high=hi_y, lengths=lengths)
+        z = self.f3(low_z, hi_x, hi_y, x_high=hi_z, lengths=lengths)
 
         return x, y, z
 
@@ -406,6 +423,85 @@ class RnnFuser(nn.Module):
         return out
 
 
+class AttentionFuser1(nn.Module):
+    def __init__(
+        self, proj_sz=None, residual=1, return_hidden=True, mmdrop=0, device="cpu"
+    ):
+        super(AttentionFuser1, self).__init__()
+        self.return_hidden = return_hidden
+        self.ta = SymmetricAttention(
+            attention_size=proj_sz,
+            dropout=0.1,
+            residual=residual,
+            layernorm=False,
+        )
+
+        self.va = SymmetricAttention(
+            attention_size=proj_sz,
+            dropout=0.1,
+            residual=residual,
+            layernorm=False,
+        )
+
+        self.tv = SymmetricAttention(
+            attention_size=proj_sz,
+            dropout=0.1,
+            residual=residual,
+            layernorm=False,
+        )
+
+        self.tav = Attention(
+            attention_size=proj_sz,
+            dropout=0.1,
+        )
+
+        self.vat = Attention(
+            attention_size=proj_sz,
+            dropout=0.1,
+        )
+
+        self.atv = Attention(
+            attention_size=proj_sz,
+            dropout=0.1,
+        )
+
+        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
+
+        self.out_size = 9 * proj_sz
+
+    def forward(self, txt, au, vi):
+        txt, au, vi = self.mmdrop(txt, au, vi)
+        ta, at = self.ta(txt, au)
+        va, av = self.va(vi, au)
+        tv, vt = self.tv(txt, vi)
+
+        av = va + av
+        tv = vt + tv
+        ta = ta + at
+
+        tav, _ = self.tav(txt, queries=av)
+        vat, _ = self.vat(vi, queries=ta)
+        atv, _ = self.atv(au, queries=tv)
+
+        # Sum weighted attention hidden states
+
+        if not self.return_hidden:
+            txt = txt.sum(1)
+            au = au.sum(1)
+            vi = vi.sum(1)
+            ta = ta.sum(1)
+            av = av.sum(1)
+            tv = tv.sum(1)
+            tav = tav.sum(1)
+            vat = vat.sum(1)
+            atv = atv.sum(1)
+
+        # B x L x 9*D
+        fused = torch.cat([txt, au, vi, ta, tv, av, tav, vat, atv], dim=-1)
+
+        return fused
+
+
 class AttentionFuser(nn.Module):
     def __init__(
         self, proj_sz=None, residual=1, return_hidden=True, mmdrop=0, device="cpu"
@@ -464,6 +560,7 @@ class AttentionFuser(nn.Module):
             tv = tv.sum(1)
             tav = tav.sum(1)
 
+        # B x L x 7*D
         fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
 
         return fused
@@ -549,14 +646,44 @@ class BilinearRnnFuser(nn.Module):
 
 class AttRnnFuser(nn.Module):
     def __init__(
+        self, proj_sz=None, residual=1, mmdrop=0, device="cpu", return_hidden=False
+    ):
+        super(AttRnnFuser, self).__init__()
+        self.att_fuser = AttentionFuser(
+            proj_sz=proj_sz,
+            residual=residual,
+            return_hidden=True,
+            mmdrop=mmdrop,
+            device=device,
+        )
+        self.rnn = AttentiveRNN(
+            self.att_fuser.out_size,
+            proj_sz,
+            bidirectional=True,
+            merge_bi="cat",
+            attention=True,
+            device=device,
+            return_hidden=return_hidden,
+        )
+        self.out_size = self.rnn.out_size
+
+    def forward(self, txt, au, vi, lengths):
+        att = self.att_fuser(txt, au, vi)  # B x L x 7 * D
+        out = self.rnn(att, lengths)  # B x L x 2 * D
+
+        return out
+
+
+class AttRnnFuser1(nn.Module):
+    def __init__(
         self,
         proj_sz=None,
         residual=1,
         mmdrop=0,
         device="cpu",
     ):
-        super(AttRnnFuser, self).__init__()
-        self.att_fuser = AttentionFuser(
+        super(AttRnnFuser1, self).__init__()
+        self.att_fuser = AttentionFuser1(
             proj_sz=proj_sz,
             residual=residual,
             return_hidden=True,
@@ -574,8 +701,8 @@ class AttRnnFuser(nn.Module):
         self.out_size = self.rnn.out_size
 
     def forward(self, txt, au, vi, lengths):
-        att = self.att_fuser(txt, au, vi)
-        out = self.rnn(att, lengths)
+        att = self.att_fuser(txt, au, vi)  # B x L x 9 * D
+        out = self.rnn(att, lengths)  # B x L x 2 * D
 
         return out
 
@@ -777,6 +904,13 @@ class AudioVisualTextEncoder(nn.Module):
                 mmdrop=fuse_cfg["mmdrop"],
                 device=device,
             )
+        elif fuse_cfg["method"] == "attrnn1":
+            self.fuser = AttRnnFuser1(
+                proj_sz=fuse_cfg["projection_size"],
+                residual=fuse_cfg["residual"],
+                mmdrop=fuse_cfg["mmdrop"],
+                device=device,
+            )
         elif fuse_cfg["method"] == "bilinear":
             self.fuser = BilinearFuser(
                 proj_sz=fuse_cfg["projection_size"],
@@ -795,8 +929,6 @@ class AudioVisualTextEncoder(nn.Module):
 
         self.fuse_method = fuse_cfg["method"]
 
-        self.mmdrop = None
-
         self.out_size = self.fuser.out_size
 
         if feedback:
@@ -808,7 +940,7 @@ class AudioVisualTextEncoder(nn.Module):
                 use_self=fuse_cfg["self_feedback"],
                 mask_type=fuse_cfg["feedback_type"],
                 dropout=0.1,
-                device=device
+                device=device,
             )
 
     def _encode(self, txt, au, vi, lengths):
@@ -835,9 +967,7 @@ class AudioVisualTextEncoder(nn.Module):
         if self.feedback:
             for _ in range(1):
                 txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
-                txt, au, vi = self.fm(
-                    txt, au, vi, txt1, au1, vi1, lengths=lengths
-                )
+                txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
 
         txt, au, vi = self._encode(txt, au, vi, lengths)
         fused = self._fuse(txt, au, vi, lengths)
