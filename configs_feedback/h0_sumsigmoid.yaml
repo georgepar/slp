@@ -1,7 +1,7 @@
-feedback: false
+feedback: true
 device: cuda
 data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results_feedback/no_feedback_attrnn_mmdrop1
+results_dir: /home/geopar/projects/mm/results_feedback/sum_sigmoid_feedback_attrnn_h0
 train: true
 test: true
 overfit_batch: false
@@ -62,7 +62,12 @@ fuse:
     residual: 1
     mmdrop: !!float 0.5
     self_feedback: false
-    feedback_type: sigmoid
+    feedback_type: sum_sigmoid
+    feedback_no_grad: true
+    init_tav: true
+    feedback_mask: true
+    feedback_h0: true
+
 
 experiment:
     name: mosei-binary-audio-text-visual
@@ -82,4 +87,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-no-feedback-attrnn-mmdrop1
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-sum-sigmodi-feedback-attrnn-h0

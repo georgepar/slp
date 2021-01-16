@@ -93,14 +93,18 @@ class RNN(nn.Module):
 
         return self._merge_bi(forward, backward)
 
-    def forward(self, x, lengths):
+    def forward(self, x, lengths, initial_hidden=None):
         self.rnn.flatten_parameters()
 
         if self.packed_sequence:
             lengths = lengths.to("cpu")
             x, lengths = self.pack(x, lengths)
             lengths = lengths.to(self.device)
-        out, hidden = self.rnn(x)
+
+        if initial_hidden is not None:
+            out, hidden = self.rnn(x, initial_hidden)
+        else:
+            out, hidden = self.rnn(x)
 
         if self.packed_sequence:
             out = self.unpack(out, lengths)
@@ -162,9 +166,9 @@ class WordRNN(nn.Module):
         if attention:
             self.attention = Attention(attention_size=self.out_size, dropout=dropout)
 
-    def forward(self, x, lengths):
+    def forward(self, x, lengths, initial_hidden=None):
         x = self.embed(x)
-        out, last_hidden, _ = self.rnn(x, lengths)
+        out, last_hidden, _ = self.rnn(x, lengths, initial_hidden=initial_hidden)
 
         if self.attention is not None:
             out, _ = self.attention(
@@ -212,10 +216,12 @@ class AttentiveRNN(nn.Module):
         self.return_hidden = return_hidden
 
         if attention:
-            self.attention = Attention(attention_size=self.out_size, dropout=dropout)
+            self.attention = Attention(
+                attention_size=self.out_size, dropout=dropout
+            )
 
-    def forward(self, x, lengths):
-        out, last_hidden, _ = self.rnn(x, lengths)
+    def forward(self, x, lengths, initial_hidden=None):
+        out, last_hidden, _ = self.rnn(x, lengths, initial_hidden=initial_hidden)
 
         if self.attention is not None:
             out, _ = self.attention(
@@ -275,8 +281,8 @@ class CoAttentiveRNN(nn.Module):
                 query_size=cross_size,
             )
 
-    def forward(self, x, y, lengths):
-        out, last_hidden, _ = self.rnn(x, lengths)
+    def forward(self, x, y, lengths, initial_hidden=None):
+        out, last_hidden, _ = self.rnn(x, lengths, initial_hidden=initial_hidden)
 
         if self.attention is not None:
             out, _ = self.attention(
@@ -340,8 +346,8 @@ class CrossAttentiveRNN(nn.Module):
                 layernorm=False,
             )
 
-    def forward(self, x, y, lengths):
-        out, last_hidden, _ = self.rnn(x, lengths)
+    def forward(self, x, y, lengths, initial_hidden=None):
+        out, last_hidden, _ = self.rnn(x, lengths, initial_hidden=initial_hidden)
 
         if self.attention is not None:
             out = self.attention(

@@ -18,7 +18,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.mm1 import AudioVisualTextClassifier
+from slp.modules.mm2 import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config

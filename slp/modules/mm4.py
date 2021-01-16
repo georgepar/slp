@@ -332,7 +332,6 @@ class AttentionFuser(nn.Module):
         residual=1,
         return_hidden=True,
         mmdrop=0,
-        mmdrop_text_only=False,
         device="cpu",
         return_cross_attentions=False,
     ):
@@ -364,18 +363,10 @@ class AttentionFuser(nn.Module):
             dropout=0.1,
         )
 
-        self.mmdrop_text_only = mmdrop_text_only
-
-        if mmdrop_text_only:
-            self.n_modalities = 5
-            self.mmdrop = MultimodalDropout(
-                p=mmdrop, n_modalities=self.n_modalities, device=device
-            )
-        else:
-            self.n_modalities = 7
-            self.mmdrop = MultimodalDropout(
-                p=mmdrop, n_modalities=self.n_modalities, device=device
-            )
+        self.n_modalities = 7
+        self.mmdrop = MultimodalDropout(
+            p=mmdrop, n_modalities=self.n_modalities, device=device
+        )
 
         self.return_cross_attentions = return_cross_attentions
         self.out_size = self.n_modalities * proj_sz
@@ -403,10 +394,7 @@ class AttentionFuser(nn.Module):
             tv = tv.sum(1)
             tav = tav.sum(1)
 
-        if self.mmdrop_text_only:
-            txt, ta, tv, tav = self.mmdrop(txt, ta, tv, tav)
-        else:
-            txt, au, vi, ta, tv, av, tav = self.mmdrop(txt, au, vi, ta, tv, av, tav)
+        txt, au, vi, ta, tv, av, tav = self.mmdrop(txt, au, vi, ta, tv, av, tav)
 
         # B x L x 7*D
 
@@ -424,7 +412,6 @@ class AttRnnFuser(nn.Module):
         proj_sz=None,
         residual=1,
         mmdrop=0,
-        mmdrop_text_only=False,
         device="cpu",
         return_hidden=False,
         return_cross_attentions=False,
@@ -436,7 +423,6 @@ class AttRnnFuser(nn.Module):
             residual=residual,
             return_hidden=True,
             mmdrop=mmdrop,
-            mmdrop_text_only=mmdrop_text_only,
             return_cross_attentions=return_cross_attentions,
             device=device,
         )
@@ -451,13 +437,14 @@ class AttRnnFuser(nn.Module):
 
         self.rnn = AttentiveRNN(
             input_dim,
-            proj_sz,
+            input_dim,
             bidirectional=True,
             merge_bi="cat",
             attention=True,
             device=device,
             return_hidden=return_hidden,
         )
+        self.ph0 = nn.Conv1d(proj_sz, input_dim, kernel_size=1, padding=0, bias=False)
         self.return_cross_attentions = return_cross_attentions
         self.out_size = self.rnn.out_size
 
@@ -469,7 +456,8 @@ class AttRnnFuser(nn.Module):
         if self.return_cross_attentions:
             if self.init_tav:
                 h = torch.cat(att[:-1], dim=-1)
-                h0 = make_h0(att[-1])
+                tav = self.ph0(att[-1].transpose(1, 2)).transpose(1, 2)
+                h0 = make_h0(tav)
             else:
                 h = torch.cat(att, dim=-1)
         out = self.rnn(h, lengths, initial_hidden=h0)  # B x L x 2 * D
@@ -587,16 +575,11 @@ class AudioVisualTextEncoder(nn.Module):
         ), "Use attention pls."
 
         self.feedback = feedback
-        self.feedback_h0 = False
-        self.feedback_mask = True
+        self.feedback_no_grad = fuse_cfg["feedback_no_grad"] or False
+        self.feedback_h0 = fuse_cfg["feedback_h0"] or False
+        self.feedback_mask = fuse_cfg["feedback_mask"] or True
 
-        if feedback:
-            self.feedback_no_grad = fuse_cfg.get("feedback_no_grad", False)
-            self.feedback_h0 = fuse_cfg.get("feedback_h0", False)
-            self.feedback_mask = fuse_cfg.get("feedback_mask", True)
-
-        self.return_cross_attentions = True
-        mmdrop_text_only = fuse_cfg.get("mmdrop_text_only", False)
+        self.return_cross_attentions = self.feedback_h0
 
         if self.feedback_h0:
             assert fuse_cfg["method"] in [
@@ -678,7 +661,6 @@ class AudioVisualTextEncoder(nn.Module):
                 proj_sz=fuse_cfg["projection_size"],
                 residual=fuse_cfg["residual"],
                 mmdrop=fuse_cfg["mmdrop"],
-                mmdrop_text_only=mmdrop_text_only,
                 return_hidden=False,
                 device=device,
                 return_cross_attentions=self.return_cross_attentions,
@@ -695,10 +677,9 @@ class AudioVisualTextEncoder(nn.Module):
                 proj_sz=fuse_cfg["projection_size"],
                 residual=fuse_cfg["residual"],
                 mmdrop=fuse_cfg["mmdrop"],
-                mmdrop_text_only=mmdrop_text_only,
                 device=device,
                 return_cross_attentions=self.return_cross_attentions,
-                init_tav=fuse_cfg.get("init_tav", False),
+                init_tav=fuse_cfg["init_tav"],
             )
         else:
             raise ValueError('Supported fuse techniques: ["cat", "add"]')
