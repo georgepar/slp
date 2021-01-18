@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
-data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results_feedback/sum_sigmoid_self_feedback_attrnn
+data_dir: ./data/cmumosei
+results_dir: /home/egeorgiou/experimental/mm/slp/results_feedback/sum_sigmoid_self_feedback_attrnn
 train: true
 test: true
 overfit_batch: false
@@ -82,4 +82,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-sum-sigmoid-self-feedback-attrnn
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-sum-sigmoid-self-feedback-attrnn

@@ -1,14 +1,15 @@
-feedback: true
+feedback: false
+use_rnn_feedback: true
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/results_feedback/dot_feedback_attrnn
+results_dir: /home/egeorgiou/experimental/mm/slp/results_h0_rnn_feedback_grad/h0_rnn_tot_feedback_single_mmdrop_text_early_late_grad
 train: true
 test: true
 overfit_batch: false
 debug: false
 remove_pauses: true
 
-normalize_audio: true
+normalize_audio: false
 normalize_visual: false
 
 modalities:
@@ -60,9 +61,9 @@ fuse:
     model_dim: 100
     projection_type: null
     residual: 1
-    mmdrop: !!float 0.0
+    mmdrop: !!float 0.5
     self_feedback: false
-    feedback_type: dot
+    feedback_type: sigmoid
 
 experiment:
     name: mosei-binary-audio-text-visual
@@ -82,4 +83,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-dot-feedback-attrnn
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/h0_rnn_tot_feedback_single_mmdrop_text_early_late_grad

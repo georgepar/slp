@@ -9,22 +9,30 @@ from slp.modules.rnn import RNN, AttentiveRNN
 
 
 class MultimodalDropout(nn.Module):
-    def __init__(self, p=0.5, n_modalities=3, device="cpu"):
+    def __init__(self, p=[1/3, 1/3, 1/3], n_modalities=3, device="cpu"):
         super(MultimodalDropout, self).__init__()
         self.p = p
         self.device = device
         self.n_modalities = n_modalities
 
     def forward(self, *mods):
+        batch_size = mods[0].size(0)
+        # print(f"batch size is {batch_size}")
         mods = list(mods)
 
         if self.training:
-            if random.random() < self.p:
-                for i in range(mods[0].size(0)):
-                    m = random.randint(0, self.n_modalities - 1)
-                    mask = torch.ones_like(mods[m])
-                    mask[i] = 0.0
-                    mods[m] = mods[m] * mask
+            for i in range(self.n_modalities):
+                mod_probs = torch.ones(batch_size) * (1 - self.p[i])
+                mod_mask = torch.bernoulli(mod_probs).to(mods[i].device)
+                tmp = mods[i].permute(2, 1, 0)
+                tmp = tmp * mod_mask
+                mods[i] = tmp.permute(2, 1, 0)
+                # print(mods[i])
+                # import pdb; pdb.set_trace()
+                # if random.random() < self.p[i]:
+                #     m = random.randint(0, self.n_modalities - 1)
+                #     mask = torch.zeros_like(mods[i])
+                #     mods[i] = mods[i] * mask
 
         return mods
 
@@ -533,12 +541,32 @@ class AttentionFuser(nn.Module):
             attention_size=proj_sz,
             dropout=0.1,
         )
-        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
+
+        self.vat = Attention(
+            attention_size=proj_sz,
+            dropout=0.1,
+        )
+
+        self.atv = Attention(
+            attention_size=proj_sz,
+            dropout=0.1,
+        )
+
+        self.mmdrop_early = \
+            MultimodalDropout(p=[0.3, 0.0, 0.0],
+                              n_modalities=3,
+                              device=device)
+
+        self.mmdrop_late = \
+            MultimodalDropout(p=[0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                              n_modalities=7,
+                              device=device)
 
         self.out_size = 7 * proj_sz
 
-    def forward(self, txt, au, vi):
-        txt, au, vi = self.mmdrop(txt, au, vi)
+    def forward(self, txt, au, vi, no_drop=False):
+        if not no_drop:
+            txt, au, vi = self.mmdrop_early(txt, au, vi)
         ta, at = self.ta(txt, au)
         va, av = self.va(vi, au)
         tv, vt = self.tv(txt, vi)
@@ -548,6 +576,8 @@ class AttentionFuser(nn.Module):
         ta = ta + at
 
         tav, _ = self.tav(txt, queries=av)
+        vat, _ = self.vat(vi, queries=ta)
+        atv, _ = self.atv(au, queries=tv)
 
         # Sum weighted attention hidden states
 
@@ -559,11 +589,19 @@ class AttentionFuser(nn.Module):
             av = av.sum(1)
             tv = tv.sum(1)
             tav = tav.sum(1)
+            vat = vat.sum(1)
+            atv = atv.sum(1)
+
+        tot = tav + vat + atv
 
         # B x L x 7*D
-        fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
+        if not no_drop:
+            txt, au, vi, ta, tv, av, tot = \
+                self.mmdrop_late(txt, au, vi, ta, tv, av, tot)
 
-        return fused
+        fused = torch.cat([txt, au, vi, ta, tv, av, tot], dim=-1)
+
+        return fused, av, tv, ta, tot
 
 
 class BilinearFuser(nn.Module):
@@ -667,11 +705,11 @@ class AttRnnFuser(nn.Module):
         )
         self.out_size = self.rnn.out_size
 
-    def forward(self, txt, au, vi, lengths):
-        att = self.att_fuser(txt, au, vi)  # B x L x 7 * D
+    def forward(self, txt, au, vi, lengths, no_drop=False):
+        att, av, tv, ta, tot = self.att_fuser(txt, au, vi, no_drop=no_drop)  # B x L x 7 * D
         out = self.rnn(att, lengths)  # B x L x 2 * D
 
-        return out
+        return out, av, tv, ta, tot
 
 
 class AttRnnFuser1(nn.Module):
@@ -731,10 +769,13 @@ class AudioEncoder(nn.Module):
         if cfg["batchnorm"]:
             self.bn = nn.BatchNorm1d(cfg["input_size"])
 
-    def forward(self, x, lengths):
+    def forward(self, x, lengths, h_0=None):
         if self.bn is not None:
             x = self.bn(x.view(-1, x.size(2), x.size(1))).view(-1, x.size(1), x.size(2))
-        x = self.audio(x, lengths)
+        if h_0 is None:
+            x = self.audio(x, lengths)
+        else:
+            x = self.audio(x, lengths, h_0)
 
         return x
 
@@ -763,10 +804,13 @@ class VisualEncoder(nn.Module):
         if cfg["batchnorm"]:
             self.bn = nn.BatchNorm1d(cfg["input_size"])
 
-    def forward(self, x, lengths):
+    def forward(self, x, lengths, h_0=None):
         if self.bn is not None:
             x = self.bn(x.view(-1, x.size(2), x.size(1))).view(-1, x.size(1), x.size(2))
-        x = self.visual(x, lengths)
+        if h_0 is None:
+            x = self.visual(x, lengths)
+        else:
+            x = self.visual(x, lengths, h_0)
 
         return x
 
@@ -790,8 +834,11 @@ class GloveEncoder(nn.Module):
         )
         self.out_size = self.text.out_size
 
-    def forward(self, x, lengths):
-        x = self.text(x, lengths)
+    def forward(self, x, lengths, h_0=None):
+        if h_0 is None:
+            x = self.text(x, lengths)
+        else:
+            x = self.text(x, lengths, h_0)
 
         return x
 
@@ -806,6 +853,7 @@ class AudioVisualTextEncoder(nn.Module):
         visual_cfg=None,
         fuse_cfg=None,
         feedback=False,
+        use_rnn_feedback=False,
         text_mode="glove",
         device="cpu",
     ):
@@ -817,6 +865,11 @@ class AudioVisualTextEncoder(nn.Module):
         ), "Use attention pls."
 
         self.feedback = feedback
+        self.use_rnn_feedback = use_rnn_feedback
+        if self.feedback and self.use_rnn_feedback is True:
+            raise ValueError("Use either feedbeck to raw fetures or feedback"
+                             "rnn hidden state. You cannot use both. "
+                             "Change the config in the configs/ folder.")
         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
         visual_cfg["orig_size"] = visual_cfg.get("orig_size", visual_cfg["input_size"])
@@ -943,23 +996,36 @@ class AudioVisualTextEncoder(nn.Module):
                 device=device,
             )
 
-    def _encode(self, txt, au, vi, lengths):
+    def _encode(self, txt, au, vi, lengths,
+                t_h0=None, v_h0=None, a_h0=None):
         if self.proj is not None:
             txt, au, vi = self.proj(txt, au, vi)
-        txt = self.text(txt, lengths)
-        au = self.audio(au, lengths)
-        vi = self.visual(vi, lengths)
+
+        if t_h0 is None:
+            txt = self.text(txt, lengths)
+        else:
+            txt = self.text(txt, lengths, t_h0)
+
+        if a_h0 is None:
+            au = self.audio(au, lengths)
+        else:
+            au = self.audio(au, lengths, a_h0)
+
+        if v_h0 is None:
+            vi = self.visual(vi, lengths)
+        else:
+            vi = self.visual(vi, lengths, v_h0)
 
         return txt, au, vi
 
-    def _fuse(self, txt, au, vi, lengths):
+    def _fuse(self, txt, au, vi, lengths, no_drop=False):
         if self.fuse_method in ["cat", "sum"]:
             # Sum weighted attention hidden states
             fused = self.fuser(txt.sum(1), au.sum(1), vi.sum(1))
         elif self.fuse_method in ["att", "bilinear"]:
             fused = self.fuser(txt, au, vi)
         else:
-            fused = self.fuser(txt, au, vi, lengths)
+            fused = self.fuser(txt, au, vi, lengths, no_drop=no_drop)
 
         return fused
 
@@ -968,9 +1034,23 @@ class AudioVisualTextEncoder(nn.Module):
             for _ in range(1):
                 txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
                 txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
+        elif self.use_rnn_feedback:
+            txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
+            _, av, tv, ta, tot = \
+                self._fuse(txt1, au1, vi1, lengths=lengths, no_drop=False)
+            # t_h0 = av.sum(1)
+            # a_h0 = tv.sum(1)
+            # v_h0 = ta.sum(1)
+            # t_h0 = t_h0.unsqueeze(0).repeat(2, 1, 1)
+            # a_h0 = a_h0.unsqueeze(0).repeat(2, 1, 1)
+            # v_h0 = v_h0.unsqueeze(0).repeat(2, 1, 1)
+            tot = tot.sum(1).unsqueeze(0).repeat(2, 1, 1)
 
-        txt, au, vi = self._encode(txt, au, vi, lengths)
-        fused = self._fuse(txt, au, vi, lengths)
+        # txt, au, vi = self._encode(txt, au, vi, lengths,
+        #                            t_h0=t_h0, a_h0=a_h0, v_h0=v_h0)
+        txt, au, vi = self._encode(txt, au, vi, lengths,
+                                   t_h0=tot, a_h0=tot, v_h0=tot)
+        fused, _, _, _, _ = self._fuse(txt, au, vi, lengths)
 
         return fused
 
@@ -988,6 +1068,7 @@ class AudioVisualTextClassifier(nn.Module):
         text_mode="glove",
         num_classes=1,
         feedback=False,
+        use_rnn_feedback=False,
         device="cpu",
     ):
         super(AudioVisualTextClassifier, self).__init__()
@@ -1006,6 +1087,7 @@ class AudioVisualTextClassifier(nn.Module):
             fuse_cfg=fuse_cfg,
             text_mode=text_mode,
             feedback=feedback,
+            use_rnn_feedback=use_rnn_feedback,
             device=device,
         )
 

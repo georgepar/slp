@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
-data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results_feedback/sum_softmax_feedback_attrnn
+data_dir: ./data/cmumosei
+results_dir: /home/egeorgiou/experimental/mm/slp/results_feedback/sum_softmax_feedback_attrnn
 train: true
 test: true
 overfit_batch: false
@@ -65,7 +65,7 @@ fuse:
     feedback_type: sum_softmax
 
 experiment:
-    name: mosei-binary-audio-text-visual
+    name: mosei-feedback-sum-softmax
     description: MOSEI binary task
 
 dataloaders:
@@ -81,5 +81,5 @@ trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
-    load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-sum-softmax-feedback-attrnn
+    load_model: mosei-feedback-sum-softmax_checkpoint.best.pth
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/results_feedback/checkpoints-sum-softmax-feedback-attrnn

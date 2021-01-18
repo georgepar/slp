@@ -313,6 +313,7 @@ if __name__ == "__main__":
         text_mode="glove",
         num_classes=1,
         feedback=C["feedback"],
+        use_rnn_feedback=C["use_rnn_feedback"]
     )
     model = model.to(C["device"])
     optimizer = getattr(torch.optim, C["optimizer"]["name"])(
