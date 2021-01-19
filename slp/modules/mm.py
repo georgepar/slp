@@ -26,6 +26,10 @@ class MultimodalDropout(nn.Module):
                     mask[i] = 0.0
                     mods[m] = mods[m] * mask
 
+            for m in range(len(mods)):
+                keep_prob = (1 - self.p) * (self.n_modalities - 1) / self.n_modalities
+                mods[m] = mods[m] * (1 / keep_prob)
+
         return mods
 
 
