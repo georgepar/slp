@@ -26,10 +26,9 @@ class MultimodalDropout(nn.Module):
                     mask[i] = 0.0
                     mods[m] = mods[m] * mask
 
-            if self.p > 0:
-                for m in range(len(mods)):
-                    keep_prob = 1 - (self.p / self.n_modalities)  # (1 - self.p) * (self.n_modalities - 1) / self.n_modalities
-                    mods[m] = mods[m] * (1 / keep_prob)
+            for m in range(len(mods)):
+                keep_prob = (1 - self.p) * (self.n_modalities - 1) / self.n_modalities
+                mods[m] = mods[m] * (1 / keep_prob)
 
         return mods
 
@@ -971,7 +970,8 @@ class AudioVisualTextEncoder(nn.Module):
     def forward(self, txt, au, vi, lengths):
         if self.feedback:
             for _ in range(1):
-                txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
+                with torch.no_grad():
+                    txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
                 txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
 
         txt, au, vi = self._encode(txt, au, vi, lengths)
