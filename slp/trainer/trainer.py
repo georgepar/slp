@@ -385,3 +385,27 @@ class MOSITrainer(Trainer):
         targets = targets.squeeze()
 
         return y_pred, targets
+
+
+
+class IEMOCAPTrainer(Trainer):
+    def parse_batch(self, batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs = {
+            k: to_device(v, device=self.device, non_blocking=self.non_blocking)
+
+            for k, v in batch[0].items()
+        }
+        targets = to_device(
+            batch[1], device=self.device, non_blocking=self.non_blocking
+        )
+
+        return inputs, targets
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        y_pred = self.model(inputs)
+        y_pred = y_pred.view(-1, 2)
+        targets = targets.view(-1)
+        return y_pred, targets

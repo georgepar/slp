@@ -27,20 +27,15 @@ class MultimodalDropout(nn.Module):
         self.n_modalities = n_modalities
 
     def forward(self, *mods):
-        mods = list(mods)  # mods = [m1, m2, m3 ] -> m1/m2/m3 => (B, L, D)
+        mods = list(mods)
 
         if self.training:
             if random.random() < self.p:
-                batch_size = mods[0].size(0)
-                for i in range(batch_size):  # for each sample
-                    m = random.randint(0, self.n_modalities - 1)  # select a modality to to drop
-                    mask = torch.ones_like(mods[m])  # create mask for sample / modality
-                    mask[i] = 0.0  # zero out modality at sample i
-                    mods[m] = mods[m] * mask  # multiply with modality batch
-
-            for m in range(len(mods)):
-                keep_prob = (1 - self.p) * (self.n_modalities - 1) / self.n_modalities
-                mods[m] = mods[m] * (1 / keep_prob)
+                for i in range(mods[0].size(0)):
+                    m = random.randint(0, self.n_modalities - 1)
+                    mask = torch.ones_like(mods[m])
+                    mask[i] = 0.0
+                    mods[m] = mods[m] * mask
 
         return mods
 
@@ -371,13 +366,12 @@ class AttentionFuser(nn.Module):
 
         self.mmdrop_text_only = mmdrop_text_only
 
+        self.n_modalities = 7
         if mmdrop_text_only:
-            self.n_modalities = 5
             self.mmdrop = MultimodalDropout(
-                p=mmdrop, n_modalities=self.n_modalities, device=device
+                p=mmdrop, n_modalities=4, device=device
             )
         else:
-            self.n_modalities = 7
             self.mmdrop = MultimodalDropout(
                 p=mmdrop, n_modalities=self.n_modalities, device=device
             )

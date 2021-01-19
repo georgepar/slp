@@ -95,9 +95,53 @@ class MOSICollator(object):
 
     def __call__(self, batch):
         data = {}
-        #data["lengths"] = torch.tensor(
+        # data["lengths"] = torch.tensor(
         #    [len(self.extract_sequence(b[self.modalities[0]])) for b in batch], device=self.device
-        #)
+        # )
+
+        for m in self.modalities:
+            inputs = [self.extract_sequence(b[m]) for b in batch]
+            data[m] = pad_sequence(
+                inputs, batch_first=True, padding_value=self.pad_indx
+            ).to(self.device)
+
+        data["lengths"] = torch.tensor(
+            [len(s) for s in data[self.modalities[0]]], device=self.device
+        )
+
+        targets = [self.extract_label(b["label"]) for b in batch]
+        targets = mktensor(targets, device=self.device, dtype=self.target_dtype)
+
+        return data, targets.to(self.device)
+
+
+class IEMOCAPCollator(object):
+    def __init__(
+        self,
+        modalities=("text", "audio"),
+        binary=True,
+        pad_indx=0,
+        device="cpu",
+        max_length=-1,
+    ):
+        self.pad_indx = pad_indx
+        self.device = device
+        self.modalities = list(modalities)
+        self.binary = binary
+        self.max_length = max_length
+        self.target_dtype = torch.long
+
+    def extract_label(self, l):
+        return l
+
+    def extract_sequence(self, s):
+        return s[self.max_length :] if self.max_length > 0 else s
+
+    def __call__(self, batch):
+        data = {}
+        # data["lengths"] = torch.tensor(
+        #    [len(self.extract_sequence(b[self.modalities[0]])) for b in batch], device=self.device
+        # )
 
         for m in self.modalities:
             inputs = [self.extract_sequence(b[m]) for b in batch]

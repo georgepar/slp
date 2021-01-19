@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
 data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/results_feedback/sum_rnn_feedback_attrnn_mmdrop_no_grad
+results_dir: /home/geopar/projects/mm/results_feedback/sum_rnn_feedback_attrnn_mmdrop_no_grad_fix
 train: true
 test: true
 overfit_batch: false
@@ -60,9 +60,15 @@ fuse:
     model_dim: 100
     projection_type: null
     residual: 1
-    mmdrop: !!float 0.5
+    mmdrop: !!float 0.1
     self_feedback: false
     feedback_type: sum_rnn
+    feedback_no_grad: false
+    init_tav: false
+    feedback_mask: true
+    feedback_h0: false
+    gated_attention: false
+
 
 experiment:
     name: mosei-binary-audio-text-visual
@@ -82,4 +88,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-sum-rnn-feedback-attrnn-mmdrop-no-grad
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-sum-rnn-feedback-attrnn-mmdrop-no-grad-fix

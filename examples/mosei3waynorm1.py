@@ -18,7 +18,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.mm1 import AudioVisualTextClassifier
+from slp.modules.mm import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -200,12 +200,13 @@ if __name__ == "__main__":
     train, dev, test, vocab = mosei(
         C["data_dir"],
         modalities=C["modalities"],
-        remove_pauses=False,  # C['remove_pauses'],
+        remove_pauses=C['remove_pauses'],
         max_length=-1,
-        pad_front=True,
-        pad_back=False,
+        pad_front=False,
+        pad_back=True,
         aligned=False,
-        cache=os.path.join(C["cache_dir"], "mosei_avt_unpadded.p"),
+        deploy=False,
+        cache=os.path.join(C["cache_dir"], "mosei_avt_padded_no_pauses.p"),
     )
 
     if "glove" in C["modalities"]:

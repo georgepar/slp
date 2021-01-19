@@ -1,4 +1,5 @@
 import argparse
+import glob
 import os
 import sys
 from pprint import pprint
@@ -7,34 +8,21 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import glob
 from ignite.metrics import Accuracy, Fbeta, Loss, MeanAbsoluteError
 from torch.utils.data import DataLoader
 
 from slp.config.nlp import SPECIAL_TOKENS
-from slp.data.collators import MOSICollator
-from slp.data.mosi import MOSEI
+from slp.data.collators import IEMOCAPCollator
+from slp.data.mosi import IEMOCAP_MULT
 from slp.data.transforms import ToTensor, ToTokenIds
-from slp.mm.load import mosei
-
+from slp.mm.load import data_pickle
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
 from slp.modules.mm import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
-from slp.trainer import MOSITrainer
+from slp.trainer import IEMOCAPTrainer
 from slp.ui.config import load_config
 from slp.util import log
-from slp.util.embeddings import EmbeddingsLoader
 from slp.util.system import safe_mkdirs
-
-
-class BCE(nn.Module):
-    def __init__(self):
-        super(BCE, self).__init__()
-
-    def forward(self, out, tgt):
-        tgt = tgt.view(-1, 1).float()
-
-        return F.binary_cross_entropy_with_logits(out, tgt)
 
 
 def get_parser():
@@ -189,7 +177,7 @@ def get_parser():
 C = load_config(parser=get_parser())
 C["modalities"] = set(C["modalities"])
 
-collate_fn = MOSICollator(
+collate_fn = IEMOCAPCollator(
     device="cpu", binary=False, modalities=["text", "audio", "visual"], max_length=-1
 )
 
@@ -197,93 +185,18 @@ collate_fn = MOSICollator(
 if __name__ == "__main__":
     log.info("Running with configuration")
     pprint(C)
-    train, dev, test, vocab = mosei(
+    train, dev, test, vocab = data_pickle(
         C["data_dir"],
-        modalities=C["modalities"],
-        remove_pauses=C['remove_pauses'],
-        max_length=-1,
-        pad_front=True,
-        pad_back=False,
-        aligned=True,
-        deploy=False,
-        cache=os.path.join(C["cache_dir"], "mosei_avt_padded_front.p"),
     )
-
-    if "glove" in C["modalities"]:
-        for d in train:
-            d["text"] = d["glove"]
-
-        for d in dev:
-            d["text"] = d["glove"]
-
-        for d in test:
-            d["text"] = d["glove"]
-
-    embeddings = None
-
-    if "glove" not in C["modalities"]:
-        loader = EmbeddingsLoader(
-            C["embeddings"]["path"],
-            C["embeddings"]["dim"],
-            extra_tokens=SPECIAL_TOKENS,
-            vocab=vocab,
-        )
-        word2idx, idx2word, embeddings = loader.load()
-
-        to_token_ids = ToTokenIds(word2idx)
-
-    # normalize
-    from tqdm import tqdm
-
-    all_audio = []
-    all_visual = []
-
-    for d in tqdm(train):
-        all_audio.append(d["audio"])
-        all_visual.append(d["visual"])
-    all_audio = np.vstack(all_audio).astype(np.float64)
-    all_visual = np.vstack(all_visual).astype(np.float64)
-    from sklearn.preprocessing import StandardScaler
-
-    scaler_audio = StandardScaler().fit(all_audio)
-    scaler_visual = StandardScaler().fit(all_visual)
-    del all_audio
-    del all_visual
-
-    for d in tqdm(train):
-        if C["normalize_audio"]:
-            d["audio"] = scaler_audio.transform(d["audio"])
-
-        if C["normalize_visual"]:
-            d["visual"] = scaler_visual.transform(d["visual"])
-
-    for d in tqdm(dev):
-        if C["normalize_audio"]:
-            d["audio"] = scaler_audio.transform(d["audio"])
-
-        if C["normalize_visual"]:
-            d["visual"] = scaler_visual.transform(d["visual"])
-
-    for d in tqdm(test):
-        if C["normalize_audio"]:
-            d["audio"] = scaler_audio.transform(d["audio"])
-
-        if C["normalize_visual"]:
-            d["visual"] = scaler_visual.transform(d["visual"])
 
     to_tensor = ToTensor(device="cpu")
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
 
-    def create_dataloader(data):
-        d = MOSEI(data, modalities=C["modalities"], unpad=False, select_label=0)
+    def create_dataloader(data, shuffle=False):
+        d = IEMOCAP_MULT(data, modalities=C["modalities"])
         d.map(to_tensor_float, "visual", lazy=True)
 
-        if "glove" not in C["modalities"]:
-            d.map(to_tensor, "text", lazy=True)
-            d.map(to_token_ids, "text", lazy=True)
-
-        if "glove" in C["modalities"]:
-            d.map(to_tensor_float, "text", lazy=True)
+        d.map(to_tensor_float, "text", lazy=True)
 
         d = d.map(to_tensor_float, "audio", lazy=True)
         d.apply_transforms()
@@ -292,19 +205,21 @@ if __name__ == "__main__":
             batch_size=C["dataloaders"]["batch_size"],
             num_workers=C["dataloaders"]["num_workers"],
             pin_memory=C["dataloaders"]["batch_size"],
-            shuffle=True,
+            shuffle=shuffle,
             collate_fn=collate_fn,
         )
 
         return dataloader
 
-    text_mode = "glove" if "glove" in C["modalities"] else "raw"
-    train_loader, dev_loader, test_loader = map(create_dataloader, [train, dev, test])
+    train_loader = create_dataloader(train, shuffle=True)
+    dev_loader = create_dataloader(dev, shuffle=False)
+    test_loader = create_dataloader(test, shuffle=False)
+
     # x = next(iter(train_loader))
     print("Running with feedback = {}".format(C["feedback"]))
 
     model = AudioVisualTextClassifier(
-        embeddings=embeddings,
+        embeddings=None,
         audio_cfg=C["audio"]["model"],
         text_cfg=C["text"]["model"],
         visual_cfg=C["visual"]["model"],
@@ -312,7 +227,7 @@ if __name__ == "__main__":
         device=C["device"],
         modalities=C["modalities"],
         text_mode="glove",
-        num_classes=1,
+        num_classes=8,
         feedback=C["feedback"],
     )
     model = model.to(C["device"])
@@ -330,62 +245,12 @@ if __name__ == "__main__":
         min_lr=C["optimizer"]["learning_rate"] / 20.0,
     )
 
-    if C["binary"]:
-        criterion = BCE()
+    criterion = nn.CrossEntropyLoss()
 
-        def thresholded_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.sigmoid(y_pred)
-            y_pred = torch.round(y_pred)
-
-            return y_pred, y
-
-        metrics = {
-            "bin_accuracy": Accuracy(thresholded_output_transform),
-            "loss": Loss(criterion),
-        }
-        # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
-    else:
-        criterion = nn.L1Loss()
-
-        def bin_acc_transform(output):
-            y_pred, y = output
-            nz = torch.nonzero(y).squeeze()
-            yp, yt = (y_pred[nz] >= 0).long(), (y[nz] >= 0).long()
-
-            return yp, yt
-
-        def acc_transform(output):
-            y_pred, y = output
-            yp, yt = (y_pred >= 0).long(), (y >= 0).long()
-
-            return yp, yt
-
-        def acc7_transform(output):
-            y_pred, y = output
-            yp = torch.clamp(torch.round(y_pred) + 3, 0, 6).view(-1).long()
-            yt = torch.round(y).view(-1).long() + 3
-            yp = F.one_hot(yp, 7)
-
-            return yp, yt
-
-        def acc5_transform(output):
-            y_pred, y = output
-            yp = torch.clamp(torch.round(y_pred) + 2, 0, 4).view(-1).long()
-            yt = torch.round(y).view(-1).long() + 2
-            yp = F.one_hot(yp, 5)
-
-            return yp, yt
-
-        metrics = {
-            "acc5": Accuracy(output_transform=acc5_transform),
-            "acc7": Accuracy(output_transform=acc7_transform),
-            "bin_accuracy": Accuracy(output_transform=bin_acc_transform),
-            "f1": Fbeta(1, output_transform=bin_acc_transform),
-            "accuracy_zeros": Accuracy(output_transform=acc_transform),
-            "loss": Loss(criterion),
-        }
-        # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
+    metrics = {
+       "loss": Loss(criterion),
+    }
+    # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
 
     if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
         import shutil
@@ -393,11 +258,12 @@ if __name__ == "__main__":
             shutil.rmtree(C["trainer"]["checkpoint_dir"])
         except:
             pass
+
         if C["trainer"]["accumulation_steps"] is not None:
             acc_steps = C["trainer"]["accumulation_steps"]
         else:
             acc_steps = 1
-        trainer = MOSITrainer(
+        trainer = IEMOCAPTrainer(
             model,
             optimizer,
             # score_fn=score_fn,
@@ -428,7 +294,7 @@ if __name__ == "__main__":
             del trainer
         except:
             pass
-        trainer = MOSITrainer(
+        trainer = IEMOCAPTrainer(
             model,
             optimizer,
             experiment_name=C["experiment"]["name"],
@@ -448,10 +314,10 @@ if __name__ == "__main__":
         pred = torch.cat(predictions)
         y_test = torch.cat(targets)
 
-        from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
+        from slp.util.mosei_metrics import eval_iemocap, print_metrics, save_metrics
         import uuid
 
-        metrics = eval_mosei_senti(pred, y_test, True)
+        metrics = eval_iemocap(pred, y_test)
         print_metrics(metrics)
 
         results_dir = C["results_dir"]

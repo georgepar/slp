@@ -3,6 +3,8 @@ import os
 import sys
 from pprint import pprint
 
+from torch.nn.utils.rnn import pack_padded_sequence, pad_sequence
+from slp.util import mktensor
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,19 +14,19 @@ from ignite.metrics import Accuracy, Fbeta, Loss, MeanAbsoluteError
 from torch.utils.data import DataLoader
 
 from slp.config.nlp import SPECIAL_TOKENS
-from slp.data.collators import MOSICollator
 from slp.data.mosi import MOSEI
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.mm import AudioVisualTextClassifier
+from slp.modules.mm5 import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
 from slp.util import log
 from slp.util.embeddings import EmbeddingsLoader
 from slp.util.system import safe_mkdirs
+
 
 
 class BCE(nn.Module):
@@ -188,6 +190,46 @@ def get_parser():
 
 C = load_config(parser=get_parser())
 C["modalities"] = set(C["modalities"])
+BATCH_SIZE = C["dataloaders"]["batch_size"]
+
+class MOSICollator(object):
+    def __init__(
+        self,
+        modalities=("text", "audio"),
+        binary=True,
+        pad_indx=0,
+        device="cpu",
+        max_length=-1,
+    ):
+        self.pad_indx = pad_indx
+        self.device = device
+        self.modalities = list(modalities)
+        self.binary = binary
+        self.max_length = max_length
+        self.target_dtype = torch.long if binary else torch.float
+
+    def extract_label(self, l):
+        return int(l[0]) if self.binary else l[0]
+
+    def extract_sequence(self, s):
+        return s[self.max_length :] if self.max_length > 0 else s
+
+    def __call__(self, batch):
+        data = {}
+
+        for m in self.modalities:
+            inputs = [self.extract_sequence(b[m]) for b in batch]
+            data[m] = pad_sequence(
+                inputs, batch_first=True, padding_value=self.pad_indx
+            ).to(self.device)
+
+        data["lengths"] = torch.tensor(
+            [len(s) for s in data[self.modalities[0]]], device=self.device
+        )
+
+        targets = [self.extract_label(b["label"]) for b in batch]
+        targets = mktensor(targets, device=self.device, dtype=self.target_dtype)
+        return data, targets.to(self.device)
 
 collate_fn = MOSICollator(
     device="cpu", binary=False, modalities=["text", "audio", "visual"], max_length=-1
@@ -200,13 +242,12 @@ if __name__ == "__main__":
     train, dev, test, vocab = mosei(
         C["data_dir"],
         modalities=C["modalities"],
-        remove_pauses=C['remove_pauses'],
+        remove_pauses=False,  # C['remove_pauses'],
         max_length=-1,
         pad_front=True,
         pad_back=False,
-        aligned=True,
-        deploy=False,
-        cache=os.path.join(C["cache_dir"], "mosei_avt_padded_front.p"),
+        aligned=False,
+        cache=os.path.join(C["cache_dir"], "mosei_avt_unpadded.p"),
     )
 
     if "glove" in C["modalities"]:
@@ -274,7 +315,8 @@ if __name__ == "__main__":
     to_tensor = ToTensor(device="cpu")
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
 
-    def create_dataloader(data):
+    def create_dataloader(data, bsz=None):
+        bsz = C["dataloaders"]["batch_size"] if bsz is None else bsz
         d = MOSEI(data, modalities=C["modalities"], unpad=False, select_label=0)
         d.map(to_tensor_float, "visual", lazy=True)
 
@@ -289,17 +331,17 @@ if __name__ == "__main__":
         d.apply_transforms()
         dataloader = DataLoader(
             d,
-            batch_size=C["dataloaders"]["batch_size"],
+            batch_size=bsz, # C["dataloaders"]["batch_size"],
             num_workers=C["dataloaders"]["num_workers"],
-            pin_memory=C["dataloaders"]["batch_size"],
-            shuffle=True,
+            pin_memory=C["dataloaders"]["pin_memory"],
+            shuffle=False,
             collate_fn=collate_fn,
         )
 
         return dataloader
 
     text_mode = "glove" if "glove" in C["modalities"] else "raw"
-    train_loader, dev_loader, test_loader = map(create_dataloader, [train, dev, test])
+    test_loader = create_dataloader(test, bsz=BATCH_SIZE)
     # x = next(iter(train_loader))
     print("Running with feedback = {}".format(C["feedback"]))
 
@@ -387,47 +429,7 @@ if __name__ == "__main__":
         }
         # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
 
-    if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
-        import shutil
-        try:
-            shutil.rmtree(C["trainer"]["checkpoint_dir"])
-        except:
-            pass
-        if C["trainer"]["accumulation_steps"] is not None:
-            acc_steps = C["trainer"]["accumulation_steps"]
-        else:
-            acc_steps = 1
-        trainer = MOSITrainer(
-            model,
-            optimizer,
-            # score_fn=score_fn,
-            experiment_name=C["experiment"]["name"],
-            checkpoint_dir=C["trainer"]["checkpoint_dir"],
-            metrics=metrics,
-            non_blocking=C["trainer"]["non_blocking"],
-            patience=C["trainer"]["patience"],
-            validate_every=C["trainer"]["validate_every"],
-            retain_graph=C["trainer"]["retain_graph"],
-            loss_fn=criterion,
-            accumulation_steps=acc_steps,
-            lr_scheduler=lr_scheduler,
-            device=C["device"],
-        )
-
-    if C["debug"]:
-        if C["overfit_batch"]:
-            trainer.overfit_single_batch(train_loader)
-        trainer.fit_debug(train_loader, dev_loader)
-        sys.exit(0)
-
-    if C["train"]:
-        trainer.fit(train_loader, dev_loader, epochs=C["trainer"]["max_epochs"])
-
     if C["test"]:
-        try:
-            del trainer
-        except:
-            pass
         trainer = MOSITrainer(
             model,
             optimizer,
@@ -444,19 +446,20 @@ if __name__ == "__main__":
         )
 
         predictions, targets = trainer.predict(test_loader)
-
-        pred = torch.cat(predictions)
-        y_test = torch.cat(targets)
+        if BATCH_SIZE == 1:
+            pred = torch.stack(predictions, dim=0)
+            y_test = torch.stack(targets, dim=0)
+        elif BATCH_SIZE == 2:
+            predictions[-1] = predictions[-1].unsqueeze(0)
+            targets[-1] = targets[-1].unsqueeze(0)
+            pred = torch.cat(predictions)
+            y_test = torch.cat(targets)
+        else:
+            pred = torch.cat(predictions)
+            y_test = torch.cat(targets)
 
         from slp.util.mosei_metrics import eval_mosei_senti, print_metrics, save_metrics
         import uuid
 
         metrics = eval_mosei_senti(pred, y_test, True)
         print_metrics(metrics)
-
-        results_dir = C["results_dir"]
-        safe_mkdirs(results_dir)
-        fname = uuid.uuid1().hex
-        results_file = os.path.join(results_dir, fname)
-
-        save_metrics(metrics, results_file)

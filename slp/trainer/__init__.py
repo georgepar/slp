@@ -6,4 +6,5 @@ from slp.trainer.trainer import (
     SequentialTrainer,
     TransformerTrainer,
     MOSITrainer,
+    IEMOCAPTrainer,
 )

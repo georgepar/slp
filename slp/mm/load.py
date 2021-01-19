@@ -82,7 +82,7 @@ def create_word2idx(all_words):
 
 
 def load_dataset(
-    base_path, dataset="mosi", modalities={"audio", "text"}, collapse=None
+    base_path, dataset="mosi", modalities={"audio", "text"}, collapse=None, deploy=True
 ):
     dataset, modality_map = select_dataset(dataset)
     download_mmdata(base_path, dataset)
@@ -99,12 +99,13 @@ def load_dataset(
     # first we align to words with averaging
     # collapse_function receives a list of functions
 
-    word_align_path = base_path + "_word_aligned"
-    safe_mkdirs(word_align_path)
 
     data.align(modality_map["text"], collapse_functions=collapse)
     data.impute(modality_map["text"])
-    deploy(data, word_align_path)
+    if deploy:
+        word_align_path = base_path + "_word_aligned"
+        safe_mkdirs(word_align_path)
+        deploy(data, word_align_path)
 
     all_words = get_vocabulary(data[modality_map["text"]])
 
@@ -118,9 +119,10 @@ def load_dataset(
     data.add_computational_sequences(label_recipe, destination=None)
     data.align(modality_map["labels"])
     data.hard_unify()
-    align_path = base_path + "_final_aligned"
-    safe_mkdirs(align_path)
-    deploy(data, align_path)
+    if deploy:
+        align_path = base_path + "_final_aligned"
+        safe_mkdirs(align_path)
+        deploy(data, align_path)
 
     return data, word2idx
 
@@ -295,6 +297,7 @@ def load_splits(
     pad_back=False,
     aligned=False,
     cache=None,
+    deploy=True
 ):
     if cache is not None:
         try:
@@ -303,7 +306,8 @@ def load_splits(
             pass
 
     if not aligned:
-        data, word2idx = load_dataset(base_path, dataset=dataset, modalities=modalities)
+        data, word2idx = load_dataset(base_path, dataset=dataset, modalities=modalities,
+                                      deploy=deploy)
     else:
         data, word2idx = load_aligned(base_path, dataset=dataset, modalities=modalities)
 
@@ -334,6 +338,7 @@ def mosi(
     pad_back=False,
     cache=None,
     aligned=False,
+    deploy=True
 ):
     return load_splits(
         base_path,
@@ -346,6 +351,7 @@ def mosi(
         pad_back=pad_back,
         cache=cache,
         aligned=aligned,
+        deploy=deploy
     )
 
 
@@ -358,6 +364,7 @@ def mosei(
     pad_back=False,
     cache=None,
     aligned=False,
+    deploy=True
 ):
     remove_neutral = False
 
@@ -371,6 +378,7 @@ def mosei(
         pad_front=pad_front,
         pad_back=pad_back,
         cache=cache,
+        deploy=deploy,
         aligned=aligned,
     )
 
@@ -400,7 +408,7 @@ def mosei2(
     )
 
 
-def mosei_pickle(fname):
+def data_pickle(fname):
     data = pickle_load(fname)
     return data["train"], data["valid"], data["test"], None
 
