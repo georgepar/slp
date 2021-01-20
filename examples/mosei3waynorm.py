@@ -188,9 +188,10 @@ def get_parser():
 
 C = load_config(parser=get_parser())
 C["modalities"] = set(C["modalities"])
+binary = C["binary"]
 
 collate_fn = MOSICollator(
-    device="cpu", binary=False, modalities=["text", "audio", "visual"], max_length=-1
+    device="cpu", binary=binary, modalities=["text", "audio", "visual"], max_length=-1
 )
 
 

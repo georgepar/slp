@@ -297,6 +297,7 @@ class RnnFuser(nn.Module):
         proj_type="linear",
         mmdrop=0,
         extra_args=None,
+        return_hidden=False
     ):
         super(RnnFuser, self).__init__()
         input_size = sum(sizes)
@@ -310,6 +311,7 @@ class RnnFuser(nn.Module):
             merge_bi="cat",
             attention=True,
             device=device,
+            return_hidden=return_hidden
         )
         self.mmdrop = MultimodalDropout(
             p=mmdrop, n_modalities=len(sizes), device=device
@@ -649,63 +651,147 @@ class AudioVisualTextEncoder(nn.Module):
 
         self.visual = VisualEncoder(visual_cfg, device=device)
 
-        if fuse_cfg["method"] == "cat":
-            self.fuser = CatFuser(
-                self.text.out_size,
-                self.audio.out_size,
-                self.visual.out_size,
-                proj_sz=fuse_cfg["projection_size"],
-                modality_weights=fuse_cfg["modality_weights"],
-                device=device,
-                mmdrop=fuse_cfg["mmdrop"],
-                extra_args=fuse_cfg,
-            )
+        # if fuse_cfg["method"] == "cat":
+        #     self.fuser = CatFuser(
+        #         self.text.out_size,
+        #         self.audio.out_size,
+        #         self.visual.out_size,
+        #         proj_sz=fuse_cfg["projection_size"],
+        #         modality_weights=fuse_cfg["modality_weights"],
+        #         device=device,
+        #         mmdrop=fuse_cfg["mmdrop"],
+        #         extra_args=fuse_cfg,
+        #     )
 
-        elif fuse_cfg["method"] == "add":
-            self.fuser = AddFuser(
-                self.text.out_size,
-                self.audio.out_size,
-                self.visual.out_size,
-                proj_sz=fuse_cfg["projection_size"],
-                modality_weights=fuse_cfg["modality_weights"],
-                device=device,
-                mmdrop=fuse_cfg["mmdrop"],
-                extra_args=fuse_cfg,
-            )
+        # elif fuse_cfg["method"] == "add":
+        #     self.fuser = AddFuser(
+        #         self.text.out_size,
+        #         self.audio.out_size,
+        #         self.visual.out_size,
+        #         proj_sz=fuse_cfg["projection_size"],
+        #         modality_weights=fuse_cfg["modality_weights"],
+        #         device=device,
+        #         mmdrop=fuse_cfg["mmdrop"],
+        #         extra_args=fuse_cfg,
+        #     )
 
-        elif fuse_cfg["method"] == "att":
-            self.fuser = AttentionFuser(
-                proj_sz=fuse_cfg["projection_size"],
-                residual=fuse_cfg["residual"],
-                mmdrop=fuse_cfg["mmdrop"],
-                mmdrop_text_only=mmdrop_text_only,
-                return_hidden=False,
-                device=device,
-                return_cross_attentions=self.return_cross_attentions,
-            )
-        elif fuse_cfg["method"] == "rnn":
-            self.fuser = RnnFuser(
+        # elif fuse_cfg["method"] == "att":
+        #     self.fuser = AttentionFuser(
+        #         proj_sz=fuse_cfg["projection_size"],
+        #         residual=fuse_cfg["residual"],
+        #         mmdrop=fuse_cfg["mmdrop"],
+        #         mmdrop_text_only=mmdrop_text_only,
+        #         return_hidden=False,
+        #         device=device,
+        #         return_cross_attentions=self.return_cross_attentions,
+        #     )
+        # elif fuse_cfg["method"] == "rnn":
+        #     self.fuser = RnnFuser(
+        #         [self.text.out_size, self.audio.out_size, self.visual.out_size],
+        #         proj_sz=fuse_cfg["projection_size"],
+        #         mmdrop=fuse_cfg["mmdrop"],
+        #         device=device,
+        #     )
+        # elif fuse_cfg["method"] == "attrnn":
+        #     self.fuser = AttRnnFuser(
+        #         proj_sz=fuse_cfg["projection_size"],
+        #         residual=fuse_cfg["residual"],
+        #         mmdrop=fuse_cfg["mmdrop"],
+        #         mmdrop_text_only=mmdrop_text_only,
+        #         device=device,
+        #         return_cross_attentions=self.return_cross_attentions,
+        #         init_tav=fuse_cfg.get("init_tav", False),
+        #     )
+        # else:
+        #     raise ValueError('Supported fuse techniques: ["cat", "add"]')
+
+        self.fuse_method = fuse_cfg["method"]
+
+        # fuses t, a, v sequences after first rnn
+        self.early_fuser = RnnFuser(
                 [self.text.out_size, self.audio.out_size, self.visual.out_size],
                 proj_sz=fuse_cfg["projection_size"],
                 mmdrop=fuse_cfg["mmdrop"],
                 device=device,
+                return_hidden=True
             )
-        elif fuse_cfg["method"] == "attrnn":
-            self.fuser = AttRnnFuser(
+        # t||a||v||tav(i)
+        # self.early_proj = nn.Sequential(
+        #     nn.Linear(5*fuse_cfg["projection_size"],
+        #               fuse_cfg["projection_size"]),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.5),
+        #     nn.Linear(fuse_cfg["projection_size"],
+        #               fuse_cfg["projection_size"]),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.5)
+        # )
+        # self.early_proj = FC_Net(input_size=5*fuse_cfg["projection_size"],
+        #                          layer_list=[fuse_cfg["projection_size"],
+        #                                      fuse_cfg["projection_size"]])
+        # # fuses aggregated t, a, v
+        # self.mid_fuser = 
+        # self.mid_proj = FC_Net(input_size=3*fuse_cfg["projection_size"],
+        #                        layer_list=[fuse_cfg["projection_size"],
+        #                                    fuse_cfg["projection_size"],
+        #                                    fuse_cfg["projection_size"]])
+
+        # fuses bimodal sequences
+        self.tv_fuser = RnnFuser(
+                [self.text.out_size, self.visual.out_size],
                 proj_sz=fuse_cfg["projection_size"],
-                residual=fuse_cfg["residual"],
                 mmdrop=fuse_cfg["mmdrop"],
-                mmdrop_text_only=mmdrop_text_only,
                 device=device,
-                return_cross_attentions=self.return_cross_attentions,
-                init_tav=fuse_cfg.get("init_tav", False),
+                return_hidden=True
             )
-        else:
-            raise ValueError('Supported fuse techniques: ["cat", "add"]')
+        self.ta_fuser = RnnFuser(
+                [self.text.out_size, self.audio.out_size],
+                proj_sz=fuse_cfg["projection_size"],
+                mmdrop=fuse_cfg["mmdrop"],
+                device=device,
+                return_hidden=True
+            ) 
+        self.av_fuser = RnnFuser(
+                [self.audio.out_size, self.visual.out_size],
+                proj_sz=fuse_cfg["projection_size"],
+                mmdrop=fuse_cfg["mmdrop"],
+                device=device,
+                return_hidden=True
+            )
+        tav_in = 2*fuse_cfg["projection_size"]
+        self.tav_fuser = RnnFuser(
+                [tav_in, tav_in, tav_in],
+                proj_sz=fuse_cfg["projection_size"],
+                mmdrop=fuse_cfg["mmdrop"],
+                device=device,
+                return_hidden=True
+            )
+        # fuse at,tv,va,tav(ii)
+        # self.bi_proj = FC_Net(input_size=8*fuse_cfg["projection_size"],
+        #                       layer_list=[fuse_cfg["projection_size"],
+        #                                   fuse_cfg["projection_size"]])
 
-        self.fuse_method = fuse_cfg["method"]
+        # self.uni_bi_proj = FC_Net(input_size=900, layer_list=[500, 500, 100])
+        # late fuser
+        # tav(i), tav(ii)
+        self.mmdrop = MultimodalDropout(p=0.5, n_modalities=8)
+        self.late_fuser = nn.Sequential(
+            nn.Linear(13*fuse_cfg["projection_size"],
+                      5*fuse_cfg["projection_size"]),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(5*fuse_cfg["projection_size"],
+                      5*fuse_cfg["projection_size"]),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(5*fuse_cfg["projection_size"],
+                      fuse_cfg["projection_size"]),
+            nn.ReLU(),
+            nn.Dropout(0.5)
+        )
 
-        self.out_size = self.fuser.out_size
+        # self.out_size = self.fuser.out_size
+        self.out_size = fuse_cfg["projection_size"]
 
         if feedback:
             self.fm = Feedback(
@@ -772,8 +858,55 @@ class AudioVisualTextEncoder(nn.Module):
         txt, au, vi = self._encode(
             txt, au, vi, lengths, txt_h0=txt_h0, au_h0=au_h0, vi_h0=vi_h0
         )
-        fused, _ = self._fuse(txt, au, vi, lengths)
 
+        # print("hello 1")
+        tav_early = self.early_fuser(txt, au, vi, lengths)
+        # print("hello 2")
+        tv = self.tv_fuser(txt, vi, lengths)
+        av = self.av_fuser(au, vi, lengths)
+        ta = self.ta_fuser(txt, au, lengths)
+        # print(f"Tav early {tav_early.size()}")
+        # print(f"tv {tv.size()}")
+        # print(f"av {av.size()}")
+        # print(f"ta {ta.size()}")
+        # print("hello 3")
+        tav_mid = self.tav_fuser(tv, av, ta, lengths)
+        # print(f"tav_mid sizei is {tav_mid.size()}")
+        # print("hello 2")
+        tav_early = tav_early.sum(1)
+        # print(f"tav_early size is {tav_early.size()}")
+        txt = txt.sum(1)
+        au = au.sum(1)
+        vi = vi.sum(1)
+        # tav_1 = torch.cat([tav_early, txt, au, vi], dim=1)
+        # tav_1 = self.early_proj(tav_1)
+        
+        
+        # print(f"tav1 size is {tav_1.size()}")
+        # print(self.early_proj)
+        
+        # print(f"tav1 size is {tav_1.size()}")
+        tv = tv.sum(1)
+        av = av.sum(1)
+        ta = ta.sum(1)
+        tav_mid = tav_mid.sum(1)
+        
+        # print(f"tav2 size is {tav_2.size()}")
+        # tav_2 = self.bi_proj(tav_2)
+        # print(f"tav2 size is {tav_2.size()}")
+
+        # tav_3 = torch.cat([au, vi, txt, tv, av, ta], dim=1)
+        # tav_3 = self.uni_bi_proj(tav_3)
+
+        # tav_mid = torch.cat([tav_mid, tv, av, ta], dim=1)
+        # fused = torch.cat([tav_early, tav_mid], dim=1)
+        # fused = [tav_early,   tav_mid, tv, av, ta]
+        tav_early, tav_mid, tv, av, ta, txt, au, vi = \
+            self.mmdrop(tav_early, tav_mid, tv, av, ta, txt, au, vi)
+        fused = torch.cat([tav_early, tav_mid, tv, av, ta, txt, au, vi], dim=1)
+        # print(self.late_fuser)
+        fused = self.late_fuser(fused)
+        # fused, _ = self._fuse(txt, au, vi, lengths)
         return fused
 
 
@@ -819,3 +952,38 @@ class AudioVisualTextClassifier(nn.Module):
         )
 
         return self.classifier(out)
+
+class FC_Net(nn.Module):
+    def __init__(self,
+                 input_size,
+                 layer_list,
+                 p_drop=0.5):
+        super(FC_Net, self).__init__()
+        self.input_size = input_size
+        self.layer_list = layer_list
+        self.p_drop = p_drop
+
+        self.fc = self._make_fc()
+
+    def _make_fc(self):
+        """Generate fully connected layers
+        """
+        # copy to not affect original list
+        # append the cnn output at the beggining
+        fc_list = self.layer_list.copy()
+        fc_list.insert(0, self.input_size)
+        fc = []
+        n_layers = len(fc_list)
+        # append linear layers
+        for i_fc in range(1, n_layers):
+            if i_fc != (n_layers-1):
+                fc.extend([nn.Linear(fc_list[i_fc-1], fc_list[i_fc]),
+                           nn.ReLU(),
+                           nn.Dropout(p=self.p_drop)])
+            else:
+                fc.extend([nn.Linear(fc_list[i_fc-1], fc_list[i_fc])])
+        return nn.Sequential(*fc)
+
+    def forward(self, x):
+        out = self.fc(x)
+        return out
