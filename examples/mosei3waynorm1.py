@@ -18,7 +18,7 @@ from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import mosei
 
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
-from slp.modules.mm1 import AudioVisualTextClassifier
+from slp.modules.mm import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
 from slp.trainer import MOSITrainer
 from slp.ui.config import load_config
@@ -273,7 +273,7 @@ if __name__ == "__main__":
     to_tensor = ToTensor(device="cpu")
     to_tensor_float = ToTensor(device="cpu", dtype=torch.float)
 
-    def create_dataloader(data):
+    def create_dataloader(data, shuffle=False):
         d = MOSEI(data, modalities=C["modalities"], unpad=False, select_label=0)
         d.map(to_tensor_float, "visual", lazy=True)
 
@@ -291,14 +291,17 @@ if __name__ == "__main__":
             batch_size=C["dataloaders"]["batch_size"],
             num_workers=C["dataloaders"]["num_workers"],
             pin_memory=C["dataloaders"]["batch_size"],
-            shuffle=True,
+            shuffle=shuffle,
             collate_fn=collate_fn,
         )
 
         return dataloader
 
     text_mode = "glove" if "glove" in C["modalities"] else "raw"
-    train_loader, dev_loader, test_loader = map(create_dataloader, [train, dev, test])
+    train_loader = create_dataloader(train, shuffle=True)
+    dev_loader = create_dataloader(dev, shuffle=False)
+    test_loader = create_dataloader(test, shuffle=False)
+    # train_loader, dev_loader, test_loader = map(create_dataloader, [train, dev, test])
     # x = next(iter(train_loader))
     print("Running with feedback = {}".format(C["feedback"]))
 

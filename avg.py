@@ -1,6 +1,7 @@
 import glob
 import os
 import sys
+import numpy as np
 
 
 if __name__ == "__main__":
@@ -19,4 +20,5 @@ if __name__ == "__main__":
                     res[metric] = [value]
 
     for m, values in res.items():
-        print("{}:\t{}".format(m, sum(values)/ len(values)))
+
+        print("{}:\t{}+-{}".format(m, np.mean(values), np.std(values)))

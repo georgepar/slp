@@ -19,17 +19,11 @@ class MultimodalDropout(nn.Module):
         mods = list(mods)
 
         if self.training:
-            if random.random() < self.p:
-                for i in range(mods[0].size(0)):
-                    m = random.randint(0, self.n_modalities - 1)
-                    mask = torch.ones_like(mods[m])
-                    mask[i] = 0.0
-                    mods[m] = mods[m] * mask
-
-            if self.p > 0:
-                for m in range(len(mods)):
-                    keep_prob = 1 - (self.p / self.n_modalities)  # (1 - self.p) * (self.n_modalities - 1) / self.n_modalities
-                    mods[m] = mods[m] * (1 / keep_prob)
+            m = random.randint(0, self.n_modalities - 1)
+            binomial = torch.distributions.binomial.Binomial(probs=1-self.p)
+            mods[m] = mods[m] * binomial.sample(mods[m].size()).to(self.device)
+            for m in range(self.n_modalities):
+                mods[m] = mods[m] * (1.0/ (1 - self.p / self.n_modalities))
 
         return mods
 
@@ -971,8 +965,7 @@ class AudioVisualTextEncoder(nn.Module):
     def forward(self, txt, au, vi, lengths):
         if self.feedback:
             for _ in range(1):
-                with torch.no_grad():
-                    txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
+                txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
                 txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
 
         txt, au, vi = self._encode(txt, au, vi, lengths)

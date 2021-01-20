@@ -1,7 +1,7 @@
 feedback: false
 device: cuda
 data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/res_fix/no_feedback_attrnn
+results_dir: /home/geopar/projects/mm/res_fix/no_feedback_attrnn_noshuffle
 train: true
 test: true
 overfit_batch: false
@@ -82,4 +82,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-no-feedback-attrnn
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-no-feedback-attrnn-noshuffle

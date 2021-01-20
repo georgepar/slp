@@ -59,7 +59,7 @@ fuse:
     model_dim: 100
     projection_type: null
     residual: 1
-    mmdrop: !!float 0.1
+    mmdrop: !!float 0.05
     self_feedback: false
     feedback_type: sum_rnn
 

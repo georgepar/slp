@@ -1,7 +1,6 @@
-feedback: false
+feedback: true
 device: cuda
-data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/res_fix/no_feedback_attrnn_mmdrop_noshuffle
+results_dir: /home/geopar/projects/mm/res_fix/sum_rnn_feedback_attrnn_64
 train: true
 test: true
 overfit_batch: false
@@ -60,26 +59,26 @@ fuse:
     model_dim: 100
     projection_type: null
     residual: 1
-    mmdrop: !!float 0.1
+    mmdrop: !!float 0.0
     self_feedback: false
-    feedback_type: sigmoid
+    feedback_type: sum_rnn
 
 experiment:
     name: mosei-binary-audio-text-visual
     description: MOSEI binary task
 
 dataloaders:
-    batch_size: 32
+    batch_size: 64
     num_workers: 1
     pin_memory: false
 
 optimizer:
     name: Adam
-    learning_rate: !!float 5e-4
+    learning_rate: !!float 1e-3
 
 trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-no-feedback-attrnn-mmdrop-noshuffle
+    checkpoint_dir: /home/geopar/projects/mm/checkpoints-sum-rnn-feedback-attrnn-64
