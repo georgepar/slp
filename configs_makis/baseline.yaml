@@ -1,7 +1,7 @@
 feedback: false
 device: cuda
-data_dir: /home/geopar/projects/mm/data/cmumosei
-results_dir: /home/geopar/projects/mm/res_fix/no_feedback_attrnn_noshuffle
+data_dir: ./data/cmumosei
+results_dir: /home/egeorgiou/experimental/mm/slp/results_mosei/baseline
 train: true
 test: true
 overfit_batch: false
@@ -20,9 +20,9 @@ modalities:
 audio:
     model:
         input_size: 74
-        hidden_size: 100
+        hidden_size: 30
         layers: 1
-        dropout: !!float 0.2
+        dropout: !!float 0.1
         bidirectional: true
         rnn_type: lstm
         attention: true
@@ -32,9 +32,9 @@ audio:
 visual:
     model:
         input_size: 35
-        hidden_size: 100
+        hidden_size: 30
         layers: 1
-        dropout: !!float 0.2
+        dropout: !!float 0.1
         bidirectional: true
         rnn_type: lstm
         attention: true
@@ -59,7 +59,7 @@ fuse:
     use_mask: false
     model_dim: 100
     projection_type: null
-    residual: 1
+    residual: 0
     mmdrop: !!float 0.0
     self_feedback: false
     feedback_type: sigmoid
@@ -82,4 +82,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/geopar/projects/mm/checkpoints-no-feedback-attrnn-noshuffle
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/mosei_baseline

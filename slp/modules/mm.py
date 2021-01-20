@@ -509,11 +509,17 @@ class AttentionFuser1(nn.Module):
 
 class AttentionFuser(nn.Module):
     def __init__(
-        self, proj_sz=None, residual=1, return_hidden=True, mmdrop=0, device="cpu"
+        self,
+        a_hidden=None,
+        t_hidden=None,
+        v_hidden=None,
+        proj_sz=None, residual=1, return_hidden=True, mmdrop=0, device="cpu"
     ):
         super(AttentionFuser, self).__init__()
         self.return_hidden = return_hidden
         self.ta = SymmetricAttention(
+            mod1_size=t_hidden,
+            mod2_size=a_hidden,
             attention_size=proj_sz,
             dropout=0.1,
             residual=residual,
@@ -521,6 +527,8 @@ class AttentionFuser(nn.Module):
         )
 
         self.va = SymmetricAttention(
+            mod1_size=v_hidden,
+            mod2_size=a_hidden,
             attention_size=proj_sz,
             dropout=0.1,
             residual=residual,
@@ -528,6 +536,8 @@ class AttentionFuser(nn.Module):
         )
 
         self.tv = SymmetricAttention(
+            mod1_size=t_hidden,
+            mod2_size=v_hidden,
             attention_size=proj_sz,
             dropout=0.1,
             residual=residual,
@@ -540,14 +550,15 @@ class AttentionFuser(nn.Module):
         )
         self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
 
-        self.out_size = 7 * proj_sz
+        self.out_size = a_hidden + v_hidden + t_hidden + 4*proj_sz
 
     def forward(self, txt, au, vi):
         txt, au, vi = self.mmdrop(txt, au, vi)
+        # print(f"{txt.size()}")
         ta, at = self.ta(txt, au)
         va, av = self.va(vi, au)
         tv, vt = self.tv(txt, vi)
-
+        # print(f"hello")
         av = va + av
         tv = vt + tv
         ta = ta + at
@@ -651,10 +662,21 @@ class BilinearRnnFuser(nn.Module):
 
 class AttRnnFuser(nn.Module):
     def __init__(
-        self, proj_sz=None, residual=1, mmdrop=0, device="cpu", return_hidden=False
+        self,
+        a_hidden=None,
+        t_hidden=None,
+        v_hidden=None,
+        proj_sz=None,
+        residual=1,
+        mmdrop=0,
+        device="cpu",
+        return_hidden=False
     ):
         super(AttRnnFuser, self).__init__()
         self.att_fuser = AttentionFuser(
+            a_hidden=a_hidden,
+            t_hidden=t_hidden,
+            v_hidden=v_hidden,
             proj_sz=proj_sz,
             residual=residual,
             return_hidden=True,
@@ -674,6 +696,7 @@ class AttRnnFuser(nn.Module):
 
     def forward(self, txt, au, vi, lengths):
         att = self.att_fuser(txt, au, vi)  # B x L x 7 * D
+        # print(f"attention size is {att.size()}")
         out = self.rnn(att, lengths)  # B x L x 2 * D
 
         return out
@@ -852,6 +875,10 @@ class AudioVisualTextEncoder(nn.Module):
         audio_cfg["return_hidden"] = True
         visual_cfg["return_hidden"] = True
 
+        a_hidden = audio_cfg["hidden_size"]
+        t_hidden = text_cfg["hidden_size"]
+        v_hidden = visual_cfg["hidden_size"]
+
         if text_mode == "glove":
             self.text = GloveEncoder(text_cfg, device=device)
         else:
@@ -904,6 +931,9 @@ class AudioVisualTextEncoder(nn.Module):
             )
         elif fuse_cfg["method"] == "attrnn":
             self.fuser = AttRnnFuser(
+                a_hidden=a_hidden,
+                t_hidden=t_hidden,
+                v_hidden=v_hidden,
                 proj_sz=fuse_cfg["projection_size"],
                 residual=fuse_cfg["residual"],
                 mmdrop=fuse_cfg["mmdrop"],
@@ -972,9 +1002,11 @@ class AudioVisualTextEncoder(nn.Module):
         if self.feedback:
             for _ in range(1):
                 txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
+                # print(f"audio size is {au1.size()}")
                 txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
 
         txt, au, vi = self._encode(txt, au, vi, lengths)
+        # print(f"audio size is {au.size()}")
         fused = self._fuse(txt, au, vi, lengths)
 
         return fused

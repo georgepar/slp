@@ -80,22 +80,28 @@ class SymmetricAttention(nn.Module):
     def __init__(
         self,
         attention_size=512,
-        input_size=None,
+        mod1_size=None,
+        mod2_size=None,
         dropout=0.1,
         residual=0,
         layernorm=False,
     ):
         super(SymmetricAttention, self).__init__()
 
-        if input_size is None:
-            input_size = attention_size
-        self.dk = input_size
-        self.kx = nn.Linear(input_size, attention_size, bias=False)
-        self.qx = nn.Linear(input_size, attention_size, bias=False)
-        self.vx = nn.Linear(input_size, attention_size, bias=False)
-        self.ky = nn.Linear(input_size, attention_size, bias=False)
-        self.qy = nn.Linear(input_size, attention_size, bias=False)
-        self.vy = nn.Linear(input_size, attention_size, bias=False)
+        if mod1_size is None:
+            mod1_size = attention_size
+        if mod2_size is None:
+            mod2_size = attention_size
+        self.dk1 = mod1_size
+        self.dk2 = mod2_size
+        self.kx = nn.Linear(self.dk1, attention_size, bias=False)
+        self.qx = nn.Linear(self.dk1, attention_size, bias=False)
+        self.vx = nn.Linear(self.dk1, attention_size, bias=False)
+        self.ky = nn.Linear(self.dk2, attention_size, bias=False)
+        self.qy = nn.Linear(self.dk2, attention_size, bias=False)
+        self.vy = nn.Linear(self.dk2, attention_size, bias=False)
+        self.res_mod1 = nn.Linear(self.dk2, attention_size)
+        self.res_mod2 = nn.Linear(self.dk1, attention_size)
         self.drop = nn.Dropout(dropout)
         self.layernorm = False
 
@@ -122,8 +128,8 @@ class SymmetricAttention(nn.Module):
 
         # weights => (B, L, L)
 
-        scores_mod1 = torch.bmm(q_mod2, k_mod1.transpose(1, 2)) / math.sqrt(self.dk)
-        scores_mod2 = torch.bmm(q_mod1, k_mod2.transpose(1, 2)) / math.sqrt(self.dk)
+        scores_mod1 = torch.bmm(q_mod2, k_mod1.transpose(1, 2)) / math.sqrt(self.dk1)
+        scores_mod2 = torch.bmm(q_mod1, k_mod2.transpose(1, 2)) / math.sqrt(self.dk2)
 
         if attention_mask is not None:
             scores_mod1 = scores_mod1 + ((1 - attention_mask.unsqueeze(1)) * -1e5)
@@ -142,12 +148,21 @@ class SymmetricAttention(nn.Module):
             out_mod2 = self.lny(out_mod2)
 
         if self.residual == 0:
+            # print(f"out_mod1 size is {out_mod1.size()}")
+            # print(f"out_mod2 size is {out_mod2.size()}")
+            # print(f"k_mod1 size is {k_mod1.size()}")
+            # print(f"k_mod2 size is {k_mod2.size()}")
+            out_mod1 = out_mod1 + self.res_mod1(mod2)
+            out_mod2 = out_mod2 + self.res_mod2(mod1)
             return out_mod1, out_mod2
         elif self.residual == 1:
             # vilbert cross residual
-
             # v + attention(v->a)
             # a + attention(a->v)
+            
+            # print(f"mod2 size is {mod2.size()}")
+            # print(f"out_mod1 size is {out_mod1.size()}")
+            
             out_mod1 += mod2
             out_mod2 += mod1
             return out_mod1, out_mod2
