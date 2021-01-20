@@ -1,4 +1,3 @@
-  
 import argparse
 import glob
 import os
@@ -17,6 +16,7 @@ from slp.data.collators import IEMOCAPCollator
 from slp.data.mosi import IEMOCAP_MULT
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.mm.load import data_pickle
+
 # from slp.data.transforms import InstanceNorm, ToTokenIds, ToTensor, FilterCovarep
 from slp.modules.mm import AudioVisualTextClassifier
 from slp.modules.rnn import WordRNN
@@ -249,12 +249,13 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
 
     metrics = {
-       "loss": Loss(criterion),
+        "loss": Loss(criterion),
     }
     # score_fn = lambda engine: engine.state.metrics["bin_accuracy"]
 
     if C["overfit_batch"] or C["overfit_batch"] or C["train"]:
         import shutil
+
         try:
             shutil.rmtree(C["trainer"]["checkpoint_dir"])
         except:

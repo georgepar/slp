@@ -233,7 +233,7 @@ class Trainer(object):
             self.trainer, self.valid_evaluator, val_loader, validation=True
         )
         self.model.zero_grad()
-        self.valid_evaluator.run(val_loader)
+        # self.valid_evaluator.run(val_loader)
         self.trainer.run(train_loader, max_epochs=epochs)
 
     def overfit_single_batch(self: TrainerType, train_loader: DataLoader) -> State:
