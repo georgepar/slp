@@ -314,6 +314,12 @@ if __name__ == "__main__":
         num_classes=1,
         feedback=C["feedback"],
     )
+
+    def count_parameters(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    print("NUMBER OF PARAMETERS: {}".format(count_parameters(model)))
+
     model = model.to(C["device"])
     optimizer = getattr(torch.optim, C["optimizer"]["name"])(
         [p for p in model.parameters() if p.requires_grad],
