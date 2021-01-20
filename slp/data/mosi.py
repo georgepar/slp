@@ -309,3 +309,61 @@ class MOSEI_MULT(Dataset):
         dat["label"] = self.labels[idx]
 
         return dat
+
+
+class IEMOCAP_MULT(Dataset):
+    def __init__(self, data, modalities={"text", "audio", "visual"}, transforms=None):
+        visual = data["vision"].astype(np.float32)
+        audio = data["audio"].astype(np.float32)
+        audio[audio == -np.inf] = 0
+        audio[audio == np.inf] = 0
+        text = data["text"].astype(np.float32)
+        self.labels = data["labels"].astype(np.int)
+        #self.labels = [np.where(l[:, 1] == 1)[0][0] for l in labels]
+
+        self.data = []
+
+        for v, a, t in zip(visual, audio, text):
+            dat = {
+                "visual": v,
+                "audio": a,
+                "text": t,
+            }
+            self.data.append(dat)
+
+        self.modalities = modalities
+        self.transforms = transforms
+
+        if self.transforms is None:
+            self.transforms = {m: [] for m in self.modalities}
+
+    def map(self, fn, modality, lazy=True):
+        if modality not in self.modalities:
+            return self
+        self.transforms[modality].append(fn)
+
+        if not lazy:
+            self.apply_transforms()
+
+        return self
+
+    def apply_transforms(self):
+        for m in self.modalities:
+            if len(self.transforms[m]) == 0:
+                continue
+            fn = compose(*self.transforms[m][::-1])
+            # In place transformation to save some mem.
+
+            for i in tqdm(range(len(self.data)), total=len(self.data)):
+                self.data[i][m] = fn(self.data[i][m])
+        self.transforms = {m: [] for m in self.modalities}
+
+        return self
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        dat = self.data[idx]
+        dat["label"] = self.labels[idx].argmax(-1)
+        return dat

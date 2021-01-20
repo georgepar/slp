@@ -400,7 +400,7 @@ def mosei2(
     )
 
 
-def mosei_pickle(fname):
+def data_pickle(fname):
     data = pickle_load(fname)
     return data["train"], data["valid"], data["test"], None
 
