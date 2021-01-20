@@ -117,3 +117,20 @@ def save_metrics(metrics, results_file):
 
 def eval_mosi(results, truths, exclude_zero=False):
     return eval_mosei_senti(results, truths, exclude_zero)
+
+
+def eval_iemocap(results, truths, single=-1):
+    emos = ["neutral", "happy", "sad", "angry"]
+    test_preds = results.view(-1, 4, 2).cpu().detach().numpy()
+    test_truth = truths.view(-1, 4).cpu().detach().numpy()
+
+    results = {}
+    for emo_ind in range(4):
+        test_preds_i = np.argmax(test_preds[:, emo_ind], axis=1)
+        test_truth_i = test_truth[:, emo_ind]
+        f1 = f1_score(test_truth_i, test_preds_i, average="weighted")
+        acc = accuracy_score(test_truth_i, test_preds_i)
+        results["{}_acc".format(emos[emo_ind])] = acc
+        results["{}_f1".format(emos[emo_ind])] = f1
+
+    return results
