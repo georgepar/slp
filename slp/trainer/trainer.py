@@ -1,26 +1,20 @@
 import os
-from typing import Union
+from typing import List, Optional, Tuple, TypeVar, Union, cast
+
 import torch
 import torch.nn as nn
-from slp.modules.util import pad_mask
-from ignite.handlers import EarlyStopping
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events, State
-from ignite.metrics import RunningAverage, Loss
-
-from torch.optim.optimizer import Optimizer
+from ignite.handlers import EarlyStopping
+from ignite.metrics import Loss, RunningAverage
 from torch.nn.modules.loss import _Loss
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
-from typing import cast, List, Optional, Tuple, TypeVar
-from slp.util import types
-from slp.util.parallel import DataParallelModel, DataParallelCriterion
-
+from slp.modules.util import pad_mask
 from slp.trainer.handlers import CheckpointHandler, EvaluationHandler
-from slp.util import from_checkpoint, to_device
-from slp.util import log
-from slp.util import system
-
+from slp.util import from_checkpoint, log, system, to_device, types
+from slp.util.parallel import DataParallelCriterion, DataParallelModel
 
 TrainerType = TypeVar('TrainerType', bound='Trainer')
 
@@ -65,13 +59,16 @@ class Trainer(object):
         self.model = self.model.type(dtype).to(device)
         self.optimizer = from_checkpoint(optimizer_checkpoint, optimizer)
         self.parallel = parallel
+
         if parallel:
             if device == 'cpu':
                 raise ValueError("parallel can be used only with cuda device")
             self.model = DataParallelModel(self.model).to(device)
             self.loss_fn = DataParallelCriterion(self.loss_fn)  # type: ignore
+
         if metrics is None:
             metrics = {}
+
         if 'loss' not in metrics:
             if self.parallel:
                 metrics['loss'] = Loss(
@@ -81,6 +78,7 @@ class Trainer(object):
         self.trainer = Engine(self.train_step)
         self.train_evaluator = Engine(self.eval_step)
         self.valid_evaluator = Engine(self.eval_step)
+
         for name, metric in metrics.items():
             metric.attach(self.train_evaluator, name)
             metric.attach(self.valid_evaluator, name)
@@ -115,11 +113,14 @@ class Trainer(object):
 
     def _check_checkpoint(self: TrainerType,
                           ckpt: Optional[str]) -> Optional[str]:
+
         if ckpt is None:
             return ckpt
+
         if system.is_url(ckpt):
             ckpt = system.download_url(cast(str, ckpt), self.checkpoint_dir)
         ckpt = os.path.join(self.checkpoint_dir, ckpt)
+
         return ckpt
 
     @staticmethod
@@ -134,6 +135,7 @@ class Trainer(object):
             (float): The validation loss
         """
         negloss: float = -engine.state.metrics['loss']
+
         return negloss
 
     def parse_batch(
@@ -145,6 +147,7 @@ class Trainer(object):
         targets = to_device(batch[1],
                             device=self.device,
                             non_blocking=self.non_blocking)
+
         return inputs, targets
 
     def get_predictions_and_targets(
@@ -152,6 +155,7 @@ class Trainer(object):
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
         inputs, targets = self.parse_batch(batch)
         y_pred = self.model(inputs)
+
         return y_pred, targets
 
     def train_step(self: TrainerType,
@@ -160,14 +164,17 @@ class Trainer(object):
         self.model.train()
         y_pred, targets = self.get_predictions_and_targets(batch)
         loss = self.loss_fn(y_pred, targets)  # type: ignore
+
         if self.parallel:
             loss = loss.mean()
         loss = loss / self.accumulation_steps
         loss.backward(retain_graph=self.retain_graph)
+
         if (self.trainer.state.iteration + 1) % self.accumulation_steps == 0:
             self.optimizer.step()  # type: ignore
             self.optimizer.zero_grad()
         loss_value: float = loss.item()
+
         return loss_value
 
     def eval_step(
@@ -177,10 +184,24 @@ class Trainer(object):
         self.model.eval()
         with torch.no_grad():
             y_pred, targets = self.get_predictions_and_targets(batch)
+
             return y_pred, targets
 
     def predict(self: TrainerType, dataloader: DataLoader) -> State:
-        return self.valid_evaluator.run(dataloader)
+        predictions, targets = [], []
+
+        for batch in dataloader:
+            self.model.eval()
+            with torch.no_grad():
+                pred, targ = self.get_predictions_and_targets(batch)
+                predictions.append(pred)
+                targets.append(targ)
+
+        predictions = torch.cat(predictions)
+        targets = torch.cat(targets)
+
+        return predictions, targets
+
 
     def fit(self: TrainerType,
             train_loader: DataLoader,
@@ -214,6 +235,7 @@ class Trainer(object):
                                 single_batch,  # type: ignore
                                 validation=False)
         out = self.trainer.run(single_batch, max_epochs=100)
+
         return out
 
     def fit_debug(self: TrainerType,
@@ -224,6 +246,7 @@ class Trainer(object):
         val_loader = iter(val_loader)  # type: ignore
         val_subset = [next(val_loader), next(val_loader)]  # type ignore
         out = self.fit(train_subset, val_subset, epochs=6)  # type: ignore
+
         return out
 
     def _attach_checkpoint(self: TrainerType) -> TrainerType:
@@ -231,9 +254,11 @@ class Trainer(object):
             'model': self.model,
             'optimizer': self.optimizer
         }
+
         if self.checkpoint_dir is not None:
             self.valid_evaluator.add_event_handler(
                 Events.COMPLETED, self.checkpoint, ckpt)
+
         return self
 
 
@@ -258,6 +283,7 @@ class Trainer(object):
                                                graceful_exit)
         self.valid_evaluator.add_event_handler(Events.EXCEPTION_RAISED,
                                                graceful_exit)
+
         return self
 
 
@@ -268,6 +294,7 @@ class AutoencoderTrainer(Trainer):
         inputs = to_device(batch[0],
                            device=self.device,
                            non_blocking=self.non_blocking)
+
         return inputs, inputs
 
 
@@ -284,6 +311,7 @@ class SequentialTrainer(Trainer):
         lengths = to_device(batch[2],
                             device=self.device,
                             non_blocking=self.non_blocking)
+
         return inputs, targets, lengths
 
     def get_predictions_and_targets(
@@ -291,6 +319,7 @@ class SequentialTrainer(Trainer):
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
         inputs, targets, lengths = self.parse_batch(batch)
         y_pred = self.model(inputs, lengths)
+
         return y_pred, targets
 
 
@@ -304,6 +333,7 @@ class Seq2seqTrainer(SequentialTrainer):
         lengths = to_device(batch[1],
                             device=self.device,
                             non_blocking=self.non_blocking)
+
         return inputs, inputs, lengths
 
 
@@ -323,6 +353,7 @@ class TransformerTrainer(Trainer):
         mask_targets = to_device(batch[3],
                                  device=self.device,
                                  non_blocking=self.non_blocking)
+
         return inputs, targets, mask_inputs, mask_targets
 
     def get_predictions_and_targets(
@@ -336,6 +367,7 @@ class TransformerTrainer(Trainer):
         targets = targets.view(-1)
         y_pred = y_pred.view(targets.size(0), -1)
         # TODO: BEAMSEARCH!!
+
         return y_pred, targets
 
 
@@ -351,6 +383,7 @@ class TransformerImdbSequentialTrainer(Trainer):
                             device=self.device,
                             non_blocking=self.non_blocking)
         mask = pad_mask(lengths, max_length=self.extra_args["max_length"], device=self.device)
+
         return inputs, targets, mask.unsqueeze(1)
 
     def get_predictions_and_targets(
@@ -358,7 +391,5 @@ class TransformerImdbSequentialTrainer(Trainer):
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
         inputs, targets, mask = self.parse_batch(batch)
         y_pred = self.model(inputs, attention_mask=mask)
+
         return y_pred, targets
-
-
-
