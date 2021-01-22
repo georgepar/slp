@@ -5,7 +5,7 @@ import torch.nn as nn
 from slp.modules.attention import MultiheadAttention
 from slp.modules.embed import PositionalEncoding, Embed
 from slp.modules.feedforward import PositionwiseFF
-from slp.modules.norm import LayerNorm
+from torch.nn import LayerNorm
 from slp.modules.util import repeat_layer
 
 
@@ -230,6 +230,67 @@ class Transformer(nn.Module):
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
+
+
+class TransformerEncoder(nn.Module):
+    def __init__(
+        self,
+        embeddings=None,
+        vocab_size=None,
+        embeddings_dim=None,
+        max_length=256,
+        num_layers=6,
+        hidden_size=512,
+        num_heads=8,
+        inner_size=2048,
+        dropout=0.1,
+        finetune_embeddings=True,
+        embeddings_dropout=0,
+        device="cpu",
+    ):
+        super(TransformerEncoder, self).__init__()
+
+        vocab_size = vocab_size if vocab_size is not None else embeddings.shape[0]
+        embeddings_dim = (
+            embeddings_dim if embeddings_dim is not None else embeddings.shape[1]
+        )
+        self.embeddings_dim = embeddings_dim
+        self.embed = nn.Embedding.from_pretrained(embeddings,freeze=not finetune_embeddings)
+        self.pe = PositionalEncoding(
+            max_length, embedding_dim=hidden_size, device=device
+        )
+        self.proj = nn.Linear(embeddings_dim, hidden_size)
+        self.transformer_block = Encoder(
+            num_layers=num_layers,
+            hidden_size=hidden_size,
+            num_heads=num_heads,
+            inner_size=inner_size,
+            dropout=dropout,
+        )
+        self.drop = nn.Dropout(dropout)
+        self._reset_parameters()
+
+    def forward(self, source, attention_mask=None):
+        source = self.embed(source)
+        source = self.proj(source)
+        # Adding embeddings + pos embeddings
+        # is done in PositionalEncoding class
+        source = self.pe(source)
+        out = self.transformer_block(
+            source, attention_mask=attention_mask
+        )
+        out = self.drop(out)
+
+        return out
+
+    def _reset_parameters(self):
+        """Initiate parameters in the transformer model."""
+
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
+
+
 
 # IDEA: Instead of flat encoder / decoder create
 # hierarchical encoding / decoding layers

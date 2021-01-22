@@ -1,5 +1,5 @@
 import torch
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
+from torch.nn.utils.rnn import pack_padded_sequence, pad_sequence
 
 from slp.modules.util import pad_mask, subsequent_mask
 from slp.util import mktensor
@@ -19,13 +19,15 @@ class SequenceClassificationCollator(object):
                                padding_value=self.pad_indx)
                   .to(self.device))
         targets = mktensor(targets, device=self.device, dtype=torch.long)
+
         return inputs, targets.to(self.device), lengths
 
 
 class TransformerCollator(object):
-    def __init__(self, pad_indx=0, device='cpu'):
+    def __init__(self, pad_indx=0, max_length=-1, device='cpu'):
         self.pad_indx = pad_indx
         self.device = device
+        self.max_length = max_length
 
     def pad_and_mask(self, tensors):
         lengths = torch.tensor([len(s) for s in tensors],
@@ -37,11 +39,13 @@ class TransformerCollator(object):
                                 batch_first=True,
                                 padding_value=self.pad_indx)
                    .to(self.device))
+
         return tensors, pad_m, sub_m
 
     @staticmethod
     def get_inputs_and_targets(batch):
         inputs, targets = map(list, zip(*batch))
+
         return inputs, targets
 
     def __call__(self, batch):
@@ -50,7 +54,39 @@ class TransformerCollator(object):
         targets, pad_m_targets, sub_m = self.pad_and_mask(targets)
         mask_targets = pad_m_targets.unsqueeze(-2) * sub_m
         mask_inputs = pad_m_inputs.unsqueeze(-2)
+
         return inputs, targets, mask_inputs, mask_targets
+
+
+class TransformerSequenceClassificationCollator(object):
+    def __init__(self, pad_indx=0, max_length=-1, device='cpu'):
+        self.pad_indx = pad_indx
+        self.device = device
+        self.max_length = max_length
+
+    def pad_and_mask(self, tensors):
+        lengths = torch.tensor([len(s) for s in tensors],
+                               device=self.device)
+        max_length = torch.max(lengths)
+        pad_m = pad_mask(lengths, max_length=max_length, device=self.device)
+        sub_m = subsequent_mask(max_length)
+        tensors = (pad_sequence(tensors,
+                                batch_first=True,
+                                padding_value=self.pad_indx)
+                   .to(self.device))
+
+        return tensors, pad_m, sub_m, lengths
+
+
+    def __call__(self, batch):
+        inputs, targets = map(list, zip(*batch))
+        inputs = [i[:self.max_length] for i in inputs]
+        inputs, pad_m_inputs, _, lengths = self.pad_and_mask(inputs)
+        mask_inputs = pad_m_inputs.unsqueeze(-2)
+        targets = mktensor(targets, device=self.device, dtype=torch.long)
+
+        return inputs, targets.to(self.device), mask_inputs
+
 
 
 class PackedSequenceCollator(object):
@@ -66,4 +102,5 @@ class PackedSequenceCollator(object):
             inputs, lengths,
             batch_first=self.batch_first,
             enforce_sorted=False)
+
         return inputs, targets.to(self.device), lengths[inputs.sorted_indices]

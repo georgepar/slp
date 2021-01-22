@@ -13,11 +13,12 @@ from slp.util import types
 
 class EmbeddingsLoader(object):
     def __init__(self,
-                 embeddings_file: str, dim: int,
+                 embeddings_file: str, dim: int, max_vectors=-1,
                  extra_tokens: Any = SPECIAL_TOKENS) -> None:
         self.embeddings_file = embeddings_file
         self.cache_ = self._get_cache_name()
         self.dim_ = dim
+        self.max_vectors_ = max_vectors
         self.extra_tokens = extra_tokens
 
     def _get_cache_name(self) -> str:
@@ -106,6 +107,8 @@ class EmbeddingsLoader(object):
                 idx2word[index] = word
                 word2idx[word] = index
                 embeddings.append(vector)
+                if self.max_vectors_ > 0 and len(word2idx) >= self.max_vectors_:
+                    break
                 index += 1
 
         log.info(f'Found {len(embeddings)} word vectors.')

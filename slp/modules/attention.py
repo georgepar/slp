@@ -120,11 +120,7 @@ class MultiheadAttentionParallel(nn.Module):
         self.k = nn.Linear(input_size, attention_size, bias=False)
         self.q = nn.Linear(input_size, attention_size, bias=False)
         self.v = nn.Linear(input_size, attention_size, bias=False)
-        self.output = FF(attention_size,
-                         attention_size,
-                         activation='none',
-                         layer_norm=True,
-                         dropout=dropout)
+        self.output = nn.Linear(attention_size, attention_size)
         self.drop = nn.Dropout(dropout)
         self._reset_parameters()
 
@@ -182,8 +178,8 @@ class MultiheadAttentionParallel(nn.Module):
         nn.init.xavier_uniform_(self.k.weight)
         nn.init.xavier_uniform_(self.q.weight)
         nn.init.xavier_uniform_(self.v.weight)
-        nn.init.xavier_uniform_(self.output.fc.weight)
-        nn.init.constant_(self.output.fc.bias, 0.)
+        nn.init.xavier_uniform_(self.output.weight)
+        nn.init.constant_(self.output.bias, 0.)
 
 
 MultiheadAttention = MultiheadAttentionParallel

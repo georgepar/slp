@@ -4,5 +4,6 @@ from slp.trainer.trainer import (
     AutoencoderTrainer,
     Seq2seqTrainer,
     SequentialTrainer,
-    TransformerTrainer
+    TransformerTrainer,
+    TransformerImdbSequentialTrainer
 )

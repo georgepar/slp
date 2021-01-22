@@ -13,4 +13,18 @@ class Classifier(nn.Module):
 
     def forward(self, *args, **kwargs):
         x = self.encoder(*args, **kwargs)
+
+        return self.clf(x)
+
+
+class AttentionClassifier(nn.Module):
+    def __init__(self, encoder, encoded_features, num_classes):
+        super(AttentionClassifier, self).__init__()
+        self.encoder = encoder
+        self.clf = nn.Linear(encoded_features, num_classes)
+
+    def forward(self, *args, **kwargs):
+        x = self.encoder(*args, **kwargs)
+        x = x.mean(1)
+
         return self.clf(x)

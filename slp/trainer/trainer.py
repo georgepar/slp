@@ -2,7 +2,7 @@ import os
 from typing import Union
 import torch
 import torch.nn as nn
-
+from slp.modules.util import pad_mask
 from ignite.handlers import EarlyStopping
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events, State
@@ -26,23 +26,27 @@ TrainerType = TypeVar('TrainerType', bound='Trainer')
 
 
 class Trainer(object):
-    def __init__(self: TrainerType,
-                 model: nn.Module,
-                 optimizer: Optimizer,
-                 checkpoint_dir: str = '../../checkpoints',
-                 experiment_name: str = 'experiment',
-                 model_checkpoint: Optional[str] = None,
-                 optimizer_checkpoint: Optional[str] = None,
-                 metrics: types.GenericDict = None,
-                 patience: int = 10,
-                 validate_every: int = 1,
-                 accumulation_steps: int = 1,
-                 loss_fn: Union[_Loss, DataParallelCriterion] = None,
-                 non_blocking: bool = True,
-                 retain_graph: bool = False,
-                 dtype: torch.dtype = torch.float,
-                 device: str = 'cpu',
-                 parallel: bool = False) -> None:
+    def __init__(
+        self: TrainerType,
+        model: nn.Module,
+        optimizer: Optimizer,
+        checkpoint_dir: str = '../../checkpoints',
+        experiment_name: str = 'experiment',
+        model_checkpoint: Optional[str] = None,
+        optimizer_checkpoint: Optional[str] = None,
+        metrics: types.GenericDict = None,
+        patience: int = 10,
+        validate_every: int = 1,
+        accumulation_steps: int = 1,
+        loss_fn: Union[_Loss, DataParallelCriterion] = None,
+        non_blocking: bool = True,
+        retain_graph: bool = False,
+        dtype: torch.dtype = torch.float,
+        device: str = 'cpu',
+        parallel: bool = False,
+        extra_args=None
+    ) -> None:
+        self.extra_args = extra_args
         self.dtype = dtype
         self.retain_graph = retain_graph
         self.non_blocking = non_blocking
@@ -333,3 +337,28 @@ class TransformerTrainer(Trainer):
         y_pred = y_pred.view(targets.size(0), -1)
         # TODO: BEAMSEARCH!!
         return y_pred, targets
+
+
+class TransformerImdbSequentialTrainer(Trainer):
+    def parse_batch(self, batch) -> Tuple[torch.Tensor, ...]:
+        inputs = to_device(batch.text[0],
+                           device=self.device,
+                           non_blocking=self.non_blocking)
+        targets = to_device(batch.label,
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        lengths = to_device(batch.text[1],
+                            device=self.device,
+                            non_blocking=self.non_blocking)
+        mask = pad_mask(lengths, max_length=self.extra_args["max_length"], device=self.device)
+        return inputs, targets, mask.unsqueeze(1)
+
+    def get_predictions_and_targets(
+            self,
+            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
+        inputs, targets, mask = self.parse_batch(batch)
+        y_pred = self.model(inputs, attention_mask=mask)
+        return y_pred, targets
+
+
+

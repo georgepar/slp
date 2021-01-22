@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class LayerNorm(nn.Module):
+class LayerNormTf(nn.Module):
     def __init__(self, hidden_size, eps=1e-12):
         """Construct a layernorm module in the TF style (epsilon inside the square root).
         Link: https://github.com/huggingface/pytorch-pretrained-BERT/blob/master/pytorch_pretrained_bert/modeling.py#L234  # noqa: E501
@@ -17,3 +17,6 @@ class LayerNorm(nn.Module):
         s = (x - u).pow(2).mean(-1, keepdim=True)
         x = (x - u) / torch.sqrt(s + self.variance_epsilon)
         return self.weight * x + self.bias
+
+
+LayerNorm = nn.LayerNorm
