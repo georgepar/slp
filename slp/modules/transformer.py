@@ -256,6 +256,7 @@ class TransformerEncoder(nn.Module):
         )
         self.embeddings_dim = embeddings_dim
         self.embed = nn.Embedding.from_pretrained(embeddings,freeze=not finetune_embeddings)
+        self.embed_drop = nn.Dropout(embeddings_dropout)
         self.pe = PositionalEncoding(
             max_length, embedding_dim=hidden_size, device=device
         )
@@ -272,6 +273,7 @@ class TransformerEncoder(nn.Module):
 
     def forward(self, source, attention_mask=None):
         source = self.embed(source)
+        source = self.embed_drop(source)
         source = self.proj(source)
         # Adding embeddings + pos embeddings
         # is done in PositionalEncoding class

@@ -27,7 +27,7 @@ EPOCHS = 10
 LEARNING_RATE = 1e-4
 PATIENCE = 3
 
-MAX_EMBEDDING_VECTORS = 1000000
+MAX_EMBEDDING_VECTORS = 250000
 
 FINETUNE_EMBEDDINGS = True  # Leave true else not training
 NUM_LAYERS = 4
@@ -35,6 +35,7 @@ HIDDEN_SIZE = 256
 NUM_HEADS = 8
 INNER_SIZE = 2 * HIDDEN_SIZE
 DROPOUT = .1
+EMBEDDINGS_DROPOUT = .1
 
 DATASET = "smt"  # "imdb" or "smt" (Stanford Sentiment Treebank)
 FINEGRAINED_SMT = False  # If True perform 5-class classification on smt
@@ -134,6 +135,7 @@ if __name__ == '__main__':
             num_heads=NUM_HEADS,
             inner_size=INNER_SIZE,
             dropout=DROPOUT,
+            embeddings_dropout=EMBEDDINGS_DROPOUT,
             device=DEVICE
         ),
         HIDDEN_SIZE, num_classes
