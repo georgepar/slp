@@ -25,8 +25,9 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 BATCH_SIZE = 64
 EPOCHS = 10
 LEARNING_RATE = 1e-4
+PATIENCE = 3
 
-MAX_EMBEDDING_VECTORS = 500000
+MAX_EMBEDDING_VECTORS = 1000000
 
 FINETUNE_EMBEDDINGS = True  # Leave true else not training
 NUM_LAYERS = 4
@@ -35,7 +36,8 @@ NUM_HEADS = 8
 INNER_SIZE = 2 * HIDDEN_SIZE
 DROPOUT = .1
 
-DATASET = "smt"  # "imdb" or "smt"
+DATASET = "smt"  # "imdb" or "smt" (Stanford Sentiment Treebank)
+FINEGRAINED_SMT = False  # If True perform 5-class classification on smt
 
 
 class DatasetWrapper(Dataset):
@@ -111,11 +113,11 @@ if __name__ == '__main__':
     else:
         train, dev, test = smt_dataset(
             directory='./data/', train=True, dev=True, test=True,
-            fine_grained=False
+            fine_grained=FINEGRAINED_SMT
         )
 
         train = train[:LIMIT_TRAIN_DATASET]
-        num_classes = 3
+        num_classes = 3 if not FINEGRAINED_SMT else 5
 
 
     train_loader = create_dataloader(train, shuffle=True)
@@ -154,7 +156,7 @@ if __name__ == '__main__':
         metrics=metrics,
         non_blocking=True,
         retain_graph=True,
-        patience=5,
+        patience=PATIENCE,
         loss_fn=criterion,
         device=DEVICE,
         extra_args={"max_length": MAX_LENGTH}

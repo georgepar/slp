@@ -16,15 +16,20 @@ class EmbeddingsLoader(object):
                  embeddings_file: str, dim: int, max_vectors=-1,
                  extra_tokens: Any = SPECIAL_TOKENS) -> None:
         self.embeddings_file = embeddings_file
-        self.cache_ = self._get_cache_name()
         self.dim_ = dim
         self.max_vectors_ = max_vectors
         self.extra_tokens = extra_tokens
+        self.cache_ = self._get_cache_name()
 
     def _get_cache_name(self) -> str:
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
-        cache_name = os.path.join(head, f'{filename}.p')
+        if self.max_vectors_ > 0:
+            mv = str(self.max_vectors_)
+            cache_name = os.path.join(head, f'{filename}_{mv}.p')
+        else:
+            cache_name = os.path.join(head, f'{filename}.p')
+
         log.info(f'Cache: {cache_name}')
         return cache_name
 
