@@ -108,3 +108,5 @@ venv.bak/
 
 *.log
 data/*
+.data/*
+.vector_cache/*
