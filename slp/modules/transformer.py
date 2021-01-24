@@ -3,7 +3,7 @@ import math
 import torch.nn as nn
 
 from slp.modules.attention import MultiheadAttention
-from slp.modules.embed import PositionalEncoding, Embed
+from slp.modules.embed import Embed, PositionalEncoding
 from slp.modules.feedforward import PositionwiseFF
 from slp.modules.norm import LayerNorm
 from slp.modules.util import repeat_layer
@@ -56,6 +56,7 @@ class EncoderLayer(nn.Module):
     def forward(self, x, attention_mask=None):
         out = self.l1(x, attention_mask=attention_mask)
         out = self.l2(out)
+
         return out
 
 
@@ -79,6 +80,7 @@ class Encoder(nn.Module):
     def forward(self, x, attention_mask=None):
         for layer in self.encoder:
             x = layer(x, attention_mask=attention_mask)
+
         return x
 
 
@@ -99,6 +101,7 @@ class DecoderLayer(nn.Module):
         out = self.in_layer(x, attention_mask=target_mask)
         out = self.fuse_layer(encoded, out, attention_mask=source_mask)
         out = self.out_layer(out)
+
         return out
 
 
@@ -125,6 +128,7 @@ class Decoder(nn.Module):
             target = l(
                 target, encoded, source_mask=source_mask, target_mask=target_mask
             )
+
         return target
 
 
@@ -153,6 +157,7 @@ class EncoderDecoder(nn.Module):
         decoded = self.decoder(
             target, encoded, source_mask=source_mask, target_mask=target_mask
         )
+
         return decoded
 
 
@@ -202,10 +207,12 @@ class Transformer(nn.Module):
         )
         out = self.drop(out)
         out = self.predict(out)
+
         return out
 
     def _reset_parameters(self):
         """Initiate parameters in the transformer model."""
+
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)

@@ -19,7 +19,12 @@ class Attention(nn.Module):
     """Some Information about Attention"""
 
     def __init__(
-        self, attention_size=512, input_size=None, query_size=None, dropout=0.1, grad_checkpoint=False
+        self,
+        attention_size=512,
+        input_size=None,
+        query_size=None,
+        dropout=0.1,
+        grad_checkpoint=False
     ):
         super(Attention, self).__init__()
 
@@ -159,10 +164,8 @@ class SymmetricAttention(nn.Module):
             # vilbert cross residual
             # v + attention(v->a)
             # a + attention(a->v)
-            
             # print(f"mod2 size is {mod2.size()}")
             # print(f"out_mod1 size is {out_mod1.size()}")
-            
             out_mod1 += mod2
             out_mod2 += mod1
             return out_mod1, out_mod2

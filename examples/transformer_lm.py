@@ -49,24 +49,24 @@ if __name__ == "__main__":
         )
         return DataLoader(
             wrapped,
-            batch_size=128,
+            batch_size=32,
             num_workers=1,
             pin_memory=True,
             collate_fn=collate_fn,
         )
 
-    train_loader = create_dataloader(train[:1000])
-    dev_loader = create_dataloader(dev[:1000])
-    test_loader = create_dataloader(test[:1000])
+    train_loader = create_dataloader(train)
+    dev_loader = create_dataloader(dev)
+    test_loader = create_dataloader(test)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda:0" # "cuda" if torch.cuda.is_available() else "cpu"
     model = Transformer(
         vocab_size=vocab_size,
         max_length=max_len,
         num_layers=2,
         hidden_size=128,
         num_heads=4,
-        inner_size=512,
+        inner_size=256,
         device=device,
     )
 

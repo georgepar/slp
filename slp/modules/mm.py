@@ -34,48 +34,99 @@ class MultimodalDropout(nn.Module):
         return mods
 
 
+class GatedMultimodalLayer(nn.Module):
+    """ 
+    Gated Multimodal Layer based on 
+    'Gated multimodal networks, 
+    Arevalo1 et al.' (https://arxiv.org/abs/1702.01992) 
+    """
+    def __init__(self,
+                 size_in1,
+                 size_in2,
+                 size_in3,
+                 size_out=None):
+        super(GatedMultimodalLayer, self).__init__()
+        self.size_in1, self.size_in2, self.size_in3 = \
+            size_in1, size_in2, size_in3
+        self.size_out = size_out
+        if self.size_out is None:
+            self.size_out = size_in1
+
+        self.hidden1 = nn.Linear(size_in1, size_out, bias=False)
+        self.hidden2 = nn.Linear(size_in2, size_out, bias=False)
+        self.hidden3 = nn.Linear(size_in3, size_out, bias=False)
+        self.hidden_sigmoid1 = nn.Linear(size_out*3, 1, bias=False)
+        self.hidden_sigmoid2 = nn.Linear(size_out*3, 1, bias=False)
+        self.hidden_sigmoid3 = nn.Linear(size_out*3, 1, bias=False)
+
+        # Activation functions
+        self.tanh_f = nn.Tanh()
+        self.sigmoid_f = nn.Sigmoid()
+
+    def forward(self, x1, x2):
+        h1 = self.tanh_f(self.hidden1(x1))
+        h2 = self.tanh_f(self.hidden2(x2))
+        h3 = self.tanh_f(self.hidden3(x3))
+        x = torch.cat((h1, h2, h3), dim=1)
+        z1 = self.sigmoid_f(self.hidden_sigmoid1(x))
+        z2 = self.sigmoid_f(self.hidden_sigmoid2(x))
+        z3 = self.sigmoid_f(self.hidden_sigmoid3(x))
+
+        # return z.view(z.size()[0],1)*h1 + (1-z).view(z.size()[0],1)*h2
+        return z1.view(z1.size()[0],1)*h1 + z2.view(z2.size()[0],1)*h2 + z3.view(z3.size()[0],1)*h3
+
+
 class FeedbackUnit(nn.Module):
     def __init__(
         self,
-        hidden_dim,
-        mod1_sz,
+        hidden_dim1,
+        hidden_dim2,
+        mod_sz,
         use_self=False,
         mask_type="sigmoid",
         dropout=0.1,
         device="cpu",
+        use_gmu=False
     ):
         super(FeedbackUnit, self).__init__()
         self.use_self = use_self
         self.mask_type = mask_type
-        self.mod1_sz = mod1_sz
-        self.hidden_dim = hidden_dim
+        self.mod_sz = mod_sz
+        self.hidden_dim1 = hidden_dim1
+        self.hidden_dim2 = hidden_dim2
+        self.use_gmu = use_gmu
 
         if mask_type == "rnn" or mask_type == "sum_rnn":
-            self.mask1 = RNN(hidden_dim, mod1_sz, dropout=dropout, device=device)
-            self.mask2 = RNN(hidden_dim, mod1_sz, dropout=dropout, device=device)
+            self.mask1 = RNN(hidden_dim1, mod_sz, dropout=dropout, device=device)
+            self.mask2 = RNN(hidden_dim2, mod_sz, dropout=dropout, device=device)
 
+            if self.use_gmu:
+                pass
+                # self.gmu = GatedMultimodalLayer()
             if use_self:
                 self.mask_self = RNN(
-                    hidden_dim, mod1_sz, dropout=dropout, device=device
+                    hidden_dim1, mod_sz, dropout=dropout, device=device
                 )
         elif mask_type == "attention":
             self.mask1 = Attention(
-                attention_size=mod1_sz, query_size=hidden_dim, dropout=dropout
+                attention_size=mod_sz, query_size=hidden_dim1, dropout=dropout
             )
             self.mask2 = Attention(
-                attention_size=mod1_sz, query_size=hidden_dim, dropout=dropout
+                attention_size=mod_sz, query_size=hidden_dim1, dropout=dropout
             )
 
             if use_self:
                 self.mask_self = Attention(
-                    attention_size=mod1_sz, query_size=hidden_dim, dropout=dropout
+                    attention_size=mod_sz, query_size=hidden_dim1, dropout=dropout
                 )
+        elif mask_type == "gmu":
+            pass
         else:
-            self.mask1 = nn.Linear(hidden_dim, mod1_sz)
-            self.mask2 = nn.Linear(hidden_dim, mod1_sz)
+            self.mask1 = nn.Linear(hidden_dim1, mod_sz)
+            self.mask2 = nn.Linear(hidden_dim2, mod_sz)
 
             if use_self:
-                self.mask_self = nn.Linear(hidden_dim, mod1_sz)
+                self.mask_self = nn.Linear(hidden_dim1, mod_sz)
 
         mask_fn = {
             "sigmoid": self._sigmoid_mask,
@@ -106,7 +157,12 @@ class FeedbackUnit(nn.Module):
         oy, _, _ = self.mask1(y, lengths)
         oz, _, _ = self.mask2(z, lengths)
 
-        lg = (torch.sigmoid(oy) + torch.sigmoid(oz)) * 0.5
+        if self.use_gmu:
+            lg_y = self.gmu_y(x, oy)
+            lg_z = self.gmu_z(x, oy)
+            lg = (torch.sigmoid(lg_y) + torch.sigmoid(lg_z)) * 0.5
+        else:
+            lg = (torch.sigmoid(oy) + torch.sigmoid(oz)) * 0.5
 
         if self.use_self:
             ox, _, _ = self.mask_self(x_high, lengths)
@@ -211,10 +267,12 @@ class FeedbackUnit(nn.Module):
 class Feedback(nn.Module):
     def __init__(
         self,
-        hidden_dim,
         mod1_sz,
         mod2_sz,
         mod3_sz,
+        mod1_hidden,
+        mod2_hidden,
+        mod3_hidden,
         use_self=False,
         mask_type="sigmoid",
         dropout=0.1,
@@ -222,7 +280,8 @@ class Feedback(nn.Module):
     ):
         super(Feedback, self).__init__()
         self.f1 = FeedbackUnit(
-            hidden_dim,
+            mod2_hidden,
+            mod3_hidden,
             mod1_sz,
             use_self=use_self,
             mask_type=mask_type,
@@ -230,7 +289,8 @@ class Feedback(nn.Module):
             device=device,
         )
         self.f2 = FeedbackUnit(
-            hidden_dim,
+            mod1_hidden,
+            mod3_hidden,
             mod2_sz,
             use_self=use_self,
             mask_type=mask_type,
@@ -238,7 +298,8 @@ class Feedback(nn.Module):
             device=device,
         )
         self.f3 = FeedbackUnit(
-            hidden_dim,
+            mod1_hidden,
+            mod2_hidden,
             mod3_sz,
             use_self=use_self,
             mask_type=mask_type,
@@ -513,10 +574,16 @@ class AttentionFuser(nn.Module):
         a_hidden=None,
         t_hidden=None,
         v_hidden=None,
-        proj_sz=None, residual=1, return_hidden=True, mmdrop=0, device="cpu"
+        proj_sz=None,
+        residual=1,
+        return_hidden=True,
+        all_modalities=False,
+        mmdrop=0,
+        device="cpu"
     ):
         super(AttentionFuser, self).__init__()
         self.return_hidden = return_hidden
+        self.all_modalities = all_modalities
         self.ta = SymmetricAttention(
             mod1_size=t_hidden,
             mod2_size=a_hidden,
@@ -545,12 +612,33 @@ class AttentionFuser(nn.Module):
         )
 
         self.tav = Attention(
+            input_size=t_hidden,
+            query_size=proj_sz,
             attention_size=proj_sz,
             dropout=0.1,
         )
-        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
 
         self.out_size = a_hidden + v_hidden + t_hidden + 4*proj_sz
+
+        if self.all_modalities:
+            self.atv = Attention(
+                input_size=a_hidden,
+                query_size=proj_sz,
+                attention_size=proj_sz,
+                dropout=0.1,
+            )
+
+            self.vat = Attention(
+                input_size=v_hidden,
+                query_size=proj_sz,
+                attention_size=proj_sz,
+                dropout=0.1,
+            )
+
+            self.out_size = a_hidden + v_hidden + t_hidden + 6*proj_sz
+
+        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
+
 
     def forward(self, txt, au, vi):
         txt, au, vi = self.mmdrop(txt, au, vi)
@@ -564,7 +652,11 @@ class AttentionFuser(nn.Module):
         ta = ta + at
 
         tav, _ = self.tav(txt, queries=av)
+        if self.all_modalities:
+            atv, _ = self.atv(au, queries=tv)
+            vat, _ = self.vat(vi, queries=ta)
 
+        # print(f"hello3")
         # Sum weighted attention hidden states
 
         if not self.return_hidden:
@@ -575,9 +667,15 @@ class AttentionFuser(nn.Module):
             av = av.sum(1)
             tv = tv.sum(1)
             tav = tav.sum(1)
+            if self.all_modalities:
+                atv = atv.sum(1)
+                vat = vat.sum(1)
 
         # B x L x 7*D
-        fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
+        if self.all_modalities:
+            fused = torch.cat([txt, au, vi, ta, tv, av, tav, atv, vat], dim=-1)
+        else:
+            fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
 
         return fused
 
@@ -601,20 +699,20 @@ class BilinearFuser(nn.Module):
 
     def forward(self, txt, au, vi):
         txt, au, vi = self.mmdrop(txt, au, vi)
-
+        # print("hello")
         ta = self.ta(txt, au)
         at = self.at(au, txt)
         av = self.av(au, vi)
         va = self.va(vi, au)
         vt = self.vt(vi, txt)
         tv = self.tv(txt, vi)
-
+        # print("hello2")
         av = va + av
         tv = vt + tv
         ta = ta + at
-
+        # print("hello3")
         tav = self.tav(txt, av)
-
+        # print("hello4")
         if not self.return_hidden:
             txt = txt.sum(1)
             au = au.sum(1)
@@ -667,10 +765,12 @@ class AttRnnFuser(nn.Module):
         t_hidden=None,
         v_hidden=None,
         proj_sz=None,
+        layers=1,
         residual=1,
         mmdrop=0,
         device="cpu",
-        return_hidden=False
+        return_hidden=False,
+        all_modalities=False
     ):
         super(AttRnnFuser, self).__init__()
         self.att_fuser = AttentionFuser(
@@ -680,6 +780,7 @@ class AttRnnFuser(nn.Module):
             proj_sz=proj_sz,
             residual=residual,
             return_hidden=True,
+            all_modalities=all_modalities,
             mmdrop=mmdrop,
             device=device,
         )
@@ -687,6 +788,7 @@ class AttRnnFuser(nn.Module):
             self.att_fuser.out_size,
             proj_sz,
             bidirectional=True,
+            layers=layers,
             merge_bi="cat",
             attention=True,
             device=device,
@@ -937,6 +1039,8 @@ class AudioVisualTextEncoder(nn.Module):
                 proj_sz=fuse_cfg["projection_size"],
                 residual=fuse_cfg["residual"],
                 mmdrop=fuse_cfg["mmdrop"],
+                all_modalities=fuse_cfg["all_modalities"],
+                layers=fuse_cfg["layers"],
                 device=device,
             )
         elif fuse_cfg["method"] == "attrnn1":
@@ -968,10 +1072,12 @@ class AudioVisualTextEncoder(nn.Module):
 
         if feedback:
             self.fm = Feedback(
-                fuse_cfg["projection_size"],
-                text_cfg["orig_size"],
-                audio_cfg["orig_size"],
-                visual_cfg["orig_size"],
+                mod1_sz=text_cfg["orig_size"],
+                mod2_sz=audio_cfg["orig_size"],
+                mod3_sz=visual_cfg["orig_size"],
+                mod1_hidden=text_cfg["hidden_size"],
+                mod2_hidden=audio_cfg["hidden_size"],
+                mod3_hidden=visual_cfg["hidden_size"],
                 use_self=fuse_cfg["self_feedback"],
                 mask_type=fuse_cfg["feedback_type"],
                 dropout=0.1,
@@ -1003,6 +1109,8 @@ class AudioVisualTextEncoder(nn.Module):
             for _ in range(1):
                 txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
                 # print(f"audio size is {au1.size()}")
+                # print(f"text size is {txt1.size()}")
+                # print(f"video size is {vi1.size()}")
                 txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
 
         txt, au, vi = self._encode(txt, au, vi, lengths)

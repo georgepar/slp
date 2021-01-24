@@ -1,7 +1,7 @@
-feedback: false
+feedback: true
 device: cuda
 data_dir: ./data/iemocap_data.pkl
-results_dir: /home/egeorgiou/experimental/mm/slp/results_iemocap/no_feedback_attrnn_mmdrop_noshuffle
+results_dir: /home/egeorgiou/experimental/mm/slp/results_iemocap/sum_rnn_feedback_attrnn_3medium_all
 train: true
 test: true
 overfit_batch: false
@@ -17,11 +17,17 @@ modalities:
     - audio
     - visual
 
+modalities:
+    - text
+    - glove
+    - audio
+    - visual
+
 audio:
     model:
         input_size: 74
-        hidden_size: 100
-        layers: 1
+        hidden_size: 60
+        layers: 3
         dropout: !!float 0.2
         bidirectional: true
         rnn_type: lstm
@@ -32,8 +38,8 @@ audio:
 visual:
     model:
         input_size: 35
-        hidden_size: 100
-        layers: 1
+        hidden_size: 60
+        layers: 3
         dropout: !!float 0.2
         bidirectional: true
         rnn_type: lstm
@@ -45,7 +51,7 @@ text:
     model:
         input_size: 300
         hidden_size: 100
-        layers: 1
+        layers: 3
         dropout: !!float 0.2
         bidirectional: true
         rnn_type: lstm
@@ -59,13 +65,15 @@ fuse:
     use_mask: false
     model_dim: 100
     projection_type: null
+    layers: 1
+    all_modalities: true
     residual: 0
-    mmdrop: !!float 0.1
+    mmdrop: !!float 0.0
     self_feedback: false
-    feedback_type: sigmoid
+    feedback_type: sum_rnn
 
 experiment:
-    name: iemo-binary-audio-text-visual
+    name: iemocap-binary-audio-text-visual
     description: IEMOCAP
 
 dataloaders:
@@ -82,4 +90,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: iemocap-binary-audio-text-visual_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-no-feedback-attrnn-mmdrop-noshuffle
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-sum-rnn-feedback-attrnn-iemo_3medium_all
