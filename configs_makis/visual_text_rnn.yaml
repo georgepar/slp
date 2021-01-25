@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/audio-mosei/audio-rnn
+results_dir: /home/egeorgiou/experimental/mm/slp/visual-text-mosei/visual-text-rnn
 train: true
 test: true
 overfit_batch: false
@@ -63,10 +63,12 @@ fuse:
     mmdrop: !!float 0.0
     self_feedback: false
     feedback_type: sum_rnn
+    all_modalities: false
+    layers: 1
 
 experiment:
-    name: mosei-binary-audio
-    description: MOSEI binary task
+    name: mosei-binary-visual-text
+    description: MOSEI visual-text
 
 dataloaders:
     batch_size: 32
@@ -81,5 +83,5 @@ trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
-    load_model: mosei-binary-audio_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-rnn
+    load_model: mosei-binary-visual-text_checkpoint.best.pth
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-visual-text-rnn

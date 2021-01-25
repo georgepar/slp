@@ -406,3 +406,101 @@ class IEMOCAPTrainer(Trainer):
         y_pred = y_pred.view(-1, 2)
         targets = targets.view(-1)
         return y_pred, targets
+
+class MM_AudioTrainer(MOSITrainer):
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        au = inputs["audio"]
+        lengths = inputs["lengths"]
+        # import pdb; pdb.set_trace()
+        y_pred = self.model(au, lengths)
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
+        return y_pred, targets
+
+
+class MM_TextTrainer(MOSITrainer):
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        txt = inputs["text"]
+        lengths = inputs["lengths"]
+        # import pdb; pdb.set_trace()
+        y_pred = self.model(txt, lengths)
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
+        return y_pred, targets
+
+
+class MM_VisualTrainer(MOSITrainer):
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        vi = inputs["visual"]
+        lengths = inputs["lengths"]
+        # import pdb; pdb.set_trace()
+        y_pred = self.model(vi, lengths)
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
+        return y_pred, targets
+
+
+class MM_AudioVisualTrainer(MOSITrainer):
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        au = inputs["audio"]
+        vi = inputs["visual"]
+        lengths = inputs["lengths"]
+        # import pdb; pdb.set_trace()
+        y_pred = self.model(au, vi, lengths)
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
+        return y_pred, targets
+
+    
+class MM_AudioTextTrainer(MOSITrainer):
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        au = inputs["audio"]
+        txt = inputs["text"]
+        lengths = inputs["lengths"]
+        # import pdb; pdb.set_trace()
+        y_pred = self.model(au, txt, lengths)
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
+        return y_pred, targets
+
+
+class MM_VisualTextTrainer(MOSITrainer):
+
+    def get_predictions_and_targets(
+        self, batch: List[torch.Tensor]
+    ) -> Tuple[torch.Tensor, ...]:
+        inputs, targets = self.parse_batch(batch)
+        txt = inputs["text"]
+        vi = inputs["visual"]
+        lengths = inputs["lengths"]
+        # import pdb; pdb.set_trace()
+        y_pred = self.model(vi, txt, lengths)
+        y_pred = y_pred.squeeze()
+        targets = targets.squeeze()
+
+        return y_pred, targets
