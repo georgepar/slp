@@ -1,7 +1,7 @@
-feedback: false
-device: cuda:1
+feedback: true
+device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/audio-text-mosei/audio-text-rnn
+results_dir: /home/egeorgiou/experimental/mm/slp/audio-visual-feedback-mosei/audio-visual-rnn-feedback
 train: true
 test: true
 overfit_batch: false
@@ -66,9 +66,10 @@ fuse:
     all_modalities: false
     layers: 1
 
+
 experiment:
-    name: mosei-binary-audio-text
-    description: MOSEI audio text
+    name: mosei-binary-audio-visual-feedback
+    description: MOSEI audio visual feedback
 
 dataloaders:
     batch_size: 32
@@ -83,5 +84,5 @@ trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
-    load_model: mosei-binary-audio-text_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-text-rnn-mosei
+    load_model: mosei-binary-audio-visual-feedback_checkpoint.best.pth
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-visual-rnn-feedback-mosei

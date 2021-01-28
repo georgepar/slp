@@ -76,11 +76,10 @@ class GatedMultimodalLayer(nn.Module):
         return z1.view(z1.size()[0],1)*h1 + z2.view(z2.size()[0],1)*h2 + z3.view(z3.size()[0],1)*h3
 
 
-class FeedbackUnit(nn.Module):
+class BiFeedbackUnit(nn.Module):
     def __init__(
         self,
-        hidden_dim1,
-        hidden_dim2,
+        hidden_dim,
         mod_sz,
         use_self=False,
         mask_type="sigmoid",
@@ -88,45 +87,40 @@ class FeedbackUnit(nn.Module):
         device="cpu",
         use_gmu=False
     ):
-        super(FeedbackUnit, self).__init__()
+        super(BiFeedbackUnit, self).__init__()
         self.use_self = use_self
         self.mask_type = mask_type
         self.mod_sz = mod_sz
-        self.hidden_dim1 = hidden_dim1
-        self.hidden_dim2 = hidden_dim2
+        self.hidden_dim = hidden_dim
         self.use_gmu = use_gmu
 
         if mask_type == "rnn" or mask_type == "sum_rnn":
-            self.mask1 = RNN(hidden_dim1, mod_sz, dropout=dropout, device=device)
-            self.mask2 = RNN(hidden_dim2, mod_sz, dropout=dropout, device=device)
+            self.mask = RNN(hidden_dim, mod_sz, dropout=dropout, device=device)
+            # self.mask2 = RNN(hidden_dim2, mod_sz, dropout=dropout, device=device)
 
             if self.use_gmu:
                 pass
                 # self.gmu = GatedMultimodalLayer()
             if use_self:
                 self.mask_self = RNN(
-                    hidden_dim1, mod_sz, dropout=dropout, device=device
+                    hidden_dim, mod_sz, dropout=dropout, device=device
                 )
         elif mask_type == "attention":
-            self.mask1 = Attention(
-                attention_size=mod_sz, query_size=hidden_dim1, dropout=dropout
+            self.mask = Attention(
+                attention_size=mod_sz, query_size=hidden_dim, dropout=dropout
             )
-            self.mask2 = Attention(
-                attention_size=mod_sz, query_size=hidden_dim1, dropout=dropout
-            )
-
             if use_self:
                 self.mask_self = Attention(
-                    attention_size=mod_sz, query_size=hidden_dim1, dropout=dropout
+                    attention_size=mod_sz, query_size=hidden_dim, dropout=dropout
                 )
         elif mask_type == "gmu":
             pass
         else:
-            self.mask1 = nn.Linear(hidden_dim1, mod_sz)
-            self.mask2 = nn.Linear(hidden_dim2, mod_sz)
+            self.mask = nn.Linear(hidden_dim, mod_sz)
+            # self.mask2 = nn.Linear(hidden_dim2, mod_sz)
 
             if use_self:
-                self.mask_self = nn.Linear(hidden_dim1, mod_sz)
+                self.mask_self = nn.Linear(hidden_dim, mod_sz)
 
         mask_fn = {
             "sigmoid": self._sigmoid_mask,
@@ -141,29 +135,31 @@ class FeedbackUnit(nn.Module):
 
         self.get_mask = mask_fn[self.mask_type]
 
-    def _attention_mask(self, x, y, z, x_high=None, lengths=None):
-        _, m1 = self.mask1(x, queries=y)
-        _, m2 = self.mask2(x, queries=z)
+    def _attention_mask(self, x, y, x_high=None, lengths=None):
+        _, m = self.mask(x, queries=y)
+        # _, m2 = self.mask2(x, queries=z)
 
-        mask = m1 + m2
+        mask = m
+        # mask = m1 + m2
 
         if self.use_self:
-            _, m3 = self.mask_self(x_high)
-            mask = mask + m3
+            _, ms = self.mask_self(x_high)
+            mask = mask + ms
 
         return mask
 
-    def _sum_rnn_mask(self, x, y, z, x_high=None, lengths=None):
-        oy, _, _ = self.mask1(y, lengths)
-        oz, _, _ = self.mask2(z, lengths)
+    def _sum_rnn_mask(self, x, y, x_high=None, lengths=None):
+        oy, _, _ = self.mask(y, lengths)
+        # oz, _, _ = self.mask2(z, lengths)
 
-        if self.use_gmu:
-            lg_y = self.gmu_y(x, oy)
-            lg_z = self.gmu_z(x, oy)
-            lg = (torch.sigmoid(lg_y) + torch.sigmoid(lg_z)) * 0.5
-        else:
-            lg = (torch.sigmoid(oy) + torch.sigmoid(oz)) * 0.5
+        # if self.use_gmu:
+        #     lg_y = self.gmu_y(x, oy)
+        #     lg_z = self.gmu_z(x, oy)
+        #     lg = (torch.sigmoid(lg_y) + torch.sigmoid(lg_z)) * 0.5
+        # else:
+        #     lg = (torch.sigmoid(oy) + torch.sigmoid(oz)) * 0.5
 
+        lg = torch.sigmoid(oy)
         if self.use_self:
             ox, _, _ = self.mask_self(x_high, lengths)
             lg = lg + torch.sigmoid(ox)
@@ -172,11 +168,11 @@ class FeedbackUnit(nn.Module):
 
         return mask
 
-    def _rnn_mask(self, x, y, z, x_high=None, lengths=None):
-        oy, _, _ = self.mask1(y, lengths)
-        oz, _, _ = self.mask2(z, lengths)
+    def _rnn_mask(self, x, y, x_high=None, lengths=None):
+        oy, _, _ = self.mask(y, lengths)
+        # oz, _, _ = self.mask2(z, lengths)
 
-        lg = oy + oz
+        lg = oy #+ oz
 
         if self.use_self:
             ox, _, _ = self.mask_self(x_high, lengths)
@@ -186,11 +182,11 @@ class FeedbackUnit(nn.Module):
 
         return mask
 
-    def _sigmoid_mask(self, x, y, z, x_high=None, lengths=None):
-        y = self.mask1(y)
-        z = self.mask2(z)
+    def _sigmoid_mask(self, x, y, x_high=None, lengths=None):
+        y = self.mask(y)
+        # z = self.mask2(z)
 
-        lg = y + z
+        lg = y #+ z
 
         if self.use_self:
             m = self.mask_self(x_high)
@@ -200,11 +196,11 @@ class FeedbackUnit(nn.Module):
 
         return mask
 
-    def _softmax_mask(self, x, y, z, x_high=None, lengths=None):
-        y = self.mask1(y)
-        z = self.mask2(z)
+    def _softmax_mask(self, x, y, x_high=None, lengths=None):
+        y = self.mask(y)
+        # z = self.mask2(z)
 
-        lg = y + z
+        lg = y #+ z
 
         if self.use_self:
             m = self.mask_self(x_high)
@@ -214,12 +210,13 @@ class FeedbackUnit(nn.Module):
 
         return mask
 
-    def _sum_sigmoid_mask(self, x, y, z, x_high=None, lengths=None):
-        y = self.mask1(y)
-        z = self.mask2(z)
-        mask1 = torch.sigmoid(y)
-        mask2 = torch.sigmoid(z)
-        mask = (mask1 + mask2) * 0.5
+    def _sum_sigmoid_mask(self, x, y, x_high=None, lengths=None):
+        y = self.mask(y)
+        # z = self.mask2(z)
+        mask = torch.sigmoid(y)
+        # mask2 = torch.sigmoid(z)
+        # mask = (mask1 + mask2) * 0.5
+        mask = mask
 
         if self.use_self:
             m = torch.sigmoid(self.mask_self(x_high))
@@ -227,12 +224,12 @@ class FeedbackUnit(nn.Module):
 
         return mask
 
-    def _sum_softmax_mask(self, x, y, z, x_high=None, lengths=None):
-        y = self.mask1(y)
-        z = self.mask2(z)
-        mask1 = torch.softmax(y, dim=-1)
-        mask2 = torch.softmax(z, dim=-1)
-        mask = mask1 + mask2
+    def _sum_softmax_mask(self, x, y, x_high=None, lengths=None):
+        y = self.mask(y)
+        # z = self.mask2(z)
+        mask = torch.softmax(y, dim=-1)
+        # mask2 = torch.softmax(z, dim=-1)
+        # mask = mask #1 + mask2
 
         if self.use_self:
             m = torch.softmax(self.mask_self(x_high), dim=-1)
@@ -240,18 +237,18 @@ class FeedbackUnit(nn.Module):
 
         return mask
 
-    def _dot_mask(self, x, y, z, x_high=None, lengths=None):
-        y = self.mask1(y)
-        z = self.mask2(z)
+    def _dot_mask(self, x, y, x_high=None, lengths=None):
+        y = self.mask(y)
+        # z = self.mask2(z)
 
-        lg = y + z
+        lg = y
 
         mask = torch.sigmoid(lg * x)
 
         return mask
 
-    def forward(self, x, y, z, x_high=None, lengths=None):
-        mask = self.get_mask(x, y, z, x_high=x_high, lengths=lengths)
+    def forward(self, x, y, x_high=None, lengths=None):
+        mask = self.get_mask(x, y, x_high=x_high, lengths=lengths)
 
         if self.mask_type == "attention":
             x = torch.bmm(mask, x)
@@ -313,6 +310,43 @@ class Feedback(nn.Module):
         z = self.f3(low_z, hi_x, hi_y, x_high=hi_z, lengths=lengths)
 
         return x, y, z
+
+class BiFeedback(nn.Module):
+    def __init__(
+        self,
+        mod1_sz,
+        mod2_sz,
+        mod1_hidden,
+        mod2_hidden,
+        use_self=False,
+        mask_type="sigmoid",
+        dropout=0.1,
+        device="cpu",
+    ):
+        super(BiFeedback, self).__init__()
+        self.f1 = BiFeedbackUnit(
+            mod2_hidden,
+            mod1_sz,
+            use_self=use_self,
+            mask_type=mask_type,
+            dropout=dropout,
+            device=device,
+        )
+        self.f2 = BiFeedbackUnit(
+            mod1_hidden,
+            mod2_sz,
+            use_self=use_self,
+            mask_type=mask_type,
+            dropout=dropout,
+            device=device,
+        )
+
+    def forward(self, low_x, low_y, hi_x, hi_y, lengths=None):
+        x = self.f1(low_x, hi_y, x_high=hi_x, lengths=lengths)
+        y = self.f2(low_y, hi_x, x_high=hi_y, lengths=lengths)
+        # z = self.f3(low_z, hi_x, hi_y, x_high=hi_z, lengths=lengths)
+
+        return x, y
 
 
 class Conv1dProj(nn.Module):
@@ -1300,7 +1334,6 @@ class AudioVisualEncoder(nn.Module):
         a_hidden = audio_cfg["hidden_size"]
         v_hidden = visual_cfg["hidden_size"]
 
-
         self.audio = AudioEncoder(audio_cfg, device=device)
 
         self.visual = VisualEncoder(visual_cfg, device=device)
@@ -1385,20 +1418,17 @@ class AudioVisualEncoder(nn.Module):
 
         self.out_size = self.fuser.out_size
 
-        #  TODO for bimodal
-        # if feedback:
-        #     self.fm = Feedback(
-        #         mod1_sz=text_cfg["orig_size"],
-        #         mod2_sz=audio_cfg["orig_size"],
-        #         mod3_sz=visual_cfg["orig_size"],
-        #         mod1_hidden=text_cfg["hidden_size"],
-        #         mod2_hidden=audio_cfg["hidden_size"],
-        #         mod3_hidden=visual_cfg["hidden_size"],
-        #         use_self=fuse_cfg["self_feedback"],
-        #         mask_type=fuse_cfg["feedback_type"],
-        #         dropout=0.1,
-        #         device=device,
-        #     )
+        if feedback:
+            self.fm = BiFeedback(
+                mod1_sz=audio_cfg["orig_size"],
+                mod2_sz=visual_cfg["orig_size"],
+                mod1_hidden=audio_cfg["hidden_size"],
+                mod2_hidden=visual_cfg["hidden_size"],
+                use_self=fuse_cfg["self_feedback"],
+                mask_type=fuse_cfg["feedback_type"],
+                dropout=0.1,
+                device=device,
+            )
 
     def _encode(self, au, vi, lengths):
         if self.proj is not None:
@@ -1457,7 +1487,7 @@ class AudioTextEncoder(nn.Module):
         self.feedback = feedback
         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
-        
+
         if fuse_cfg["projection_type"] == "conv":
             self.proj = Conv1dProj(
                 text_cfg["orig_size"],
@@ -1476,13 +1506,13 @@ class AudioTextEncoder(nn.Module):
         if self.proj is not None:
             text_cfg["input_size"] = fuse_cfg["model_dim"]
             audio_cfg["input_size"] = fuse_cfg["model_dim"]
-        
+
         text_cfg["return_hidden"] = True
         audio_cfg["return_hidden"] = True
-        
+
         a_hidden = audio_cfg["hidden_size"]
         t_hidden = text_cfg["hidden_size"]
-        
+
         if text_mode == "glove":
             self.text = GloveEncoder(text_cfg, device=device)
         else:
@@ -1569,19 +1599,17 @@ class AudioTextEncoder(nn.Module):
 
         self.out_size = self.fuser.out_size
 
-        # if feedback:
-        #     self.fm = Feedback(
-        #         mod1_sz=text_cfg["orig_size"],
-        #         mod2_sz=audio_cfg["orig_size"],
-        #         mod3_sz=visual_cfg["orig_size"],
-        #         mod1_hidden=text_cfg["hidden_size"],
-        #         mod2_hidden=audio_cfg["hidden_size"],
-        #         mod3_hidden=visual_cfg["hidden_size"],
-        #         use_self=fuse_cfg["self_feedback"],
-        #         mask_type=fuse_cfg["feedback_type"],
-        #         dropout=0.1,
-        #         device=device,
-        #     )
+        if feedback:
+            self.fm = BiFeedback(
+                mod1_sz=audio_cfg["orig_size"],
+                mod2_sz=text_cfg["orig_size"],
+                mod1_hidden=audio_cfg["hidden_size"],
+                mod2_hidden=text_cfg["hidden_size"],
+                use_self=fuse_cfg["self_feedback"],
+                mask_type=fuse_cfg["feedback_type"],
+                dropout=0.1,
+                device=device,
+            )
 
     def _encode(self, au, txt, lengths):
         if self.proj is not None:
@@ -1752,19 +1780,17 @@ class VisualTextEncoder(nn.Module):
 
         self.out_size = self.fuser.out_size
 
-        # if feedback:
-        #     self.fm = Feedback(
-        #         mod1_sz=text_cfg["orig_size"],
-        #         mod2_sz=audio_cfg["orig_size"],
-        #         mod3_sz=visual_cfg["orig_size"],
-        #         mod1_hidden=text_cfg["hidden_size"],
-        #         mod2_hidden=audio_cfg["hidden_size"],
-        #         mod3_hidden=visual_cfg["hidden_size"],
-        #         use_self=fuse_cfg["self_feedback"],
-        #         mask_type=fuse_cfg["feedback_type"],
-        #         dropout=0.1,
-        #         device=device,
-        #     )
+        if feedback:
+            self.fm = BiFeedback(
+                mod1_sz=visual_cfg["orig_size"],
+                mod2_sz=text_cfg["orig_size"],
+                mod1_hidden=visual_cfg["hidden_size"],
+                mod2_hidden=text_cfg["hidden_size"],
+                use_self=fuse_cfg["self_feedback"],
+                mask_type=fuse_cfg["feedback_type"],
+                dropout=0.1,
+                device=device,
+            )
 
     def _encode(self, vi, txt, lengths):
         if self.proj is not None:

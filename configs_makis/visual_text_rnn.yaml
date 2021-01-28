@@ -1,7 +1,7 @@
-feedback: true
+feedback: false
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/visual-text-mosei/visual-text-rnn
+results_dir: /home/egeorgiou/experimental/mm/slp/visual-text-mosei-new/visual-text-rnn-new
 train: true
 test: true
 overfit_batch: false
@@ -84,4 +84,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-visual-text_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-visual-text-rnn
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-visual-text-rnn-mosei-new

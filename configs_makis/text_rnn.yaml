@@ -82,4 +82,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-text_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-text-rnn
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-text-rnn-mosei

@@ -82,4 +82,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-rnn
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-rnn-mosei

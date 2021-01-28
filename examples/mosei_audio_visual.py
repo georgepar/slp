@@ -308,6 +308,7 @@ if __name__ == "__main__":
         device=C["device"],
         modalities=C["modalities"],
         fuse_cfg=C["fuse"],
+        feedback=C["feedback"],
         num_classes=1,
     )
 

@@ -1,4 +1,4 @@
-feedback: true
+feedback: false
 device: cuda
 data_dir: ./data/cmumosei
 results_dir: /home/egeorgiou/experimental/mm/slp/audio-visual-mosei/audio-visual-rnn
@@ -85,4 +85,4 @@ trainer:
     max_epochs: 100
     retain_graph: true
     load_model: mosei-binary-audio-visual_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-visual-rnn
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-visual-rnn-mosei
