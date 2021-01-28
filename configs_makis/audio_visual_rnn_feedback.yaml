@@ -1,7 +1,7 @@
 feedback: true
 device: cuda
 data_dir: ./data/cmumosei
-results_dir: /home/egeorgiou/experimental/mm/slp/audio-visual-feedback-mosei/audio-visual-rnn-feedback
+results_dir: /home/egeorgiou/experimental/mm/slp/audio-visual-feedback-mosei-nograd/audio-visual-rnn-feedback-nograd
 train: true
 test: true
 overfit_batch: false
@@ -85,5 +85,5 @@ trainer:
     patience: 10
     max_epochs: 100
     retain_graph: true
-    load_model: mosei-binary-audio-visual-feedback_checkpoint.best.pth
-    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-visual-rnn-feedback-mosei
+    load_model: mosei-binary-audio-visual-feedback-nograd_checkpoint.best.pth
+    checkpoint_dir: /home/egeorgiou/experimental/mm/slp/checkpoints-audio-visual-rnn-feedback-mosei-nograd
