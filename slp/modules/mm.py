@@ -28,36 +28,35 @@ class MultimodalDropout(nn.Module):
 
             if self.p > 0:
                 for m in range(len(mods)):
-                    keep_prob = 1 - (self.p / self.n_modalities)  # (1 - self.p) * (self.n_modalities - 1) / self.n_modalities
+                    keep_prob = 1 - (
+                        self.p / self.n_modalities
+                    )  # (1 - self.p) * (self.n_modalities - 1) / self.n_modalities
                     mods[m] = mods[m] * (1 / keep_prob)
 
         return mods
 
 
 class GatedMultimodalLayer(nn.Module):
-    """ 
-    Gated Multimodal Layer based on 
-    'Gated multimodal networks, 
-    Arevalo1 et al.' (https://arxiv.org/abs/1702.01992) 
     """
-    def __init__(self,
-                 size_in1,
-                 size_in2,
-                 size_in3,
-                 size_out=None):
+    Gated Multimodal Layer based on
+    'Gated multimodal networks,
+    Arevalo1 et al.' (https://arxiv.org/abs/1702.01992)
+    """
+
+    def __init__(self, size_in1, size_in2, size_in3, size_out=None):
         super(GatedMultimodalLayer, self).__init__()
-        self.size_in1, self.size_in2, self.size_in3 = \
-            size_in1, size_in2, size_in3
+        self.size_in1, self.size_in2, self.size_in3 = size_in1, size_in2, size_in3
         self.size_out = size_out
+
         if self.size_out is None:
             self.size_out = size_in1
 
         self.hidden1 = nn.Linear(size_in1, size_out, bias=False)
         self.hidden2 = nn.Linear(size_in2, size_out, bias=False)
         self.hidden3 = nn.Linear(size_in3, size_out, bias=False)
-        self.hidden_sigmoid1 = nn.Linear(size_out*3, 1, bias=False)
-        self.hidden_sigmoid2 = nn.Linear(size_out*3, 1, bias=False)
-        self.hidden_sigmoid3 = nn.Linear(size_out*3, 1, bias=False)
+        self.hidden_sigmoid1 = nn.Linear(size_out * 3, 1, bias=False)
+        self.hidden_sigmoid2 = nn.Linear(size_out * 3, 1, bias=False)
+        self.hidden_sigmoid3 = nn.Linear(size_out * 3, 1, bias=False)
 
         # Activation functions
         self.tanh_f = nn.Tanh()
@@ -73,7 +72,12 @@ class GatedMultimodalLayer(nn.Module):
         z3 = self.sigmoid_f(self.hidden_sigmoid3(x))
 
         # return z.view(z.size()[0],1)*h1 + (1-z).view(z.size()[0],1)*h2
-        return z1.view(z1.size()[0],1)*h1 + z2.view(z2.size()[0],1)*h2 + z3.view(z3.size()[0],1)*h3
+
+        return (
+            z1.view(z1.size()[0], 1) * h1
+            + z2.view(z2.size()[0], 1) * h2
+            + z3.view(z3.size()[0], 1) * h3
+        )
 
 
 class BiFeedbackUnit(nn.Module):
@@ -85,7 +89,7 @@ class BiFeedbackUnit(nn.Module):
         mask_type="sigmoid",
         dropout=0.1,
         device="cpu",
-        use_gmu=False
+        use_gmu=False,
     ):
         super(BiFeedbackUnit, self).__init__()
         self.use_self = use_self
@@ -101,14 +105,14 @@ class BiFeedbackUnit(nn.Module):
             if self.use_gmu:
                 pass
                 # self.gmu = GatedMultimodalLayer()
+
             if use_self:
-                self.mask_self = RNN(
-                    hidden_dim, mod_sz, dropout=dropout, device=device
-                )
+                self.mask_self = RNN(hidden_dim, mod_sz, dropout=dropout, device=device)
         elif mask_type == "attention":
             self.mask = Attention(
                 attention_size=mod_sz, query_size=hidden_dim, dropout=dropout
             )
+
             if use_self:
                 self.mask_self = Attention(
                     attention_size=mod_sz, query_size=hidden_dim, dropout=dropout
@@ -160,6 +164,7 @@ class BiFeedbackUnit(nn.Module):
         #     lg = (torch.sigmoid(oy) + torch.sigmoid(oz)) * 0.5
 
         lg = torch.sigmoid(oy)
+
         if self.use_self:
             ox, _, _ = self.mask_self(x_high, lengths)
             lg = lg + torch.sigmoid(ox)
@@ -172,7 +177,7 @@ class BiFeedbackUnit(nn.Module):
         oy, _, _ = self.mask(y, lengths)
         # oz, _, _ = self.mask2(z, lengths)
 
-        lg = oy #+ oz
+        lg = oy  # + oz
 
         if self.use_self:
             ox, _, _ = self.mask_self(x_high, lengths)
@@ -186,7 +191,7 @@ class BiFeedbackUnit(nn.Module):
         y = self.mask(y)
         # z = self.mask2(z)
 
-        lg = y #+ z
+        lg = y  # + z
 
         if self.use_self:
             m = self.mask_self(x_high)
@@ -200,7 +205,7 @@ class BiFeedbackUnit(nn.Module):
         y = self.mask(y)
         # z = self.mask2(z)
 
-        lg = y #+ z
+        lg = y  # + z
 
         if self.use_self:
             m = self.mask_self(x_high)
@@ -310,6 +315,7 @@ class Feedback(nn.Module):
         z = self.f3(low_z, hi_x, hi_y, x_high=hi_z, lengths=lengths)
 
         return x, y, z
+
 
 class BiFeedback(nn.Module):
     def __init__(
@@ -613,7 +619,7 @@ class AttentionFuser(nn.Module):
         return_hidden=True,
         all_modalities=False,
         mmdrop=0,
-        device="cpu"
+        device="cpu",
     ):
         super(AttentionFuser, self).__init__()
         self.return_hidden = return_hidden
@@ -652,7 +658,7 @@ class AttentionFuser(nn.Module):
             dropout=0.1,
         )
 
-        self.out_size = a_hidden + v_hidden + t_hidden + 4*proj_sz
+        self.out_size = a_hidden + v_hidden + t_hidden + 4 * proj_sz
 
         if self.all_modalities:
             self.atv = Attention(
@@ -669,10 +675,9 @@ class AttentionFuser(nn.Module):
                 dropout=0.1,
             )
 
-            self.out_size = a_hidden + v_hidden + t_hidden + 6*proj_sz
+            self.out_size = a_hidden + v_hidden + t_hidden + 6 * proj_sz
 
         self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
-
 
     def forward(self, txt, au, vi):
         txt, au, vi = self.mmdrop(txt, au, vi)
@@ -686,6 +691,7 @@ class AttentionFuser(nn.Module):
         ta = ta + at
 
         tav, _ = self.tav(txt, queries=av)
+
         if self.all_modalities:
             atv, _ = self.atv(au, queries=tv)
             vat, _ = self.vat(vi, queries=ta)
@@ -701,18 +707,19 @@ class AttentionFuser(nn.Module):
             av = av.sum(1)
             tv = tv.sum(1)
             tav = tav.sum(1)
+
             if self.all_modalities:
                 atv = atv.sum(1)
                 vat = vat.sum(1)
 
         # B x L x 7*D
+
         if self.all_modalities:
             fused = torch.cat([txt, au, vi, ta, tv, av, tav, atv, vat], dim=-1)
         else:
             fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
 
         return fused
-
 
 
 class BiAttentionFuser(nn.Module):
@@ -725,7 +732,7 @@ class BiAttentionFuser(nn.Module):
         return_hidden=True,
         all_modalities=False,
         mmdrop=0,
-        device="cpu"
+        device="cpu",
     ):
         super(BiAttentionFuser, self).__init__()
         self.return_hidden = return_hidden
@@ -741,9 +748,7 @@ class BiAttentionFuser(nn.Module):
 
         self.out_size = mod1_hidden + mod2_hidden + proj_sz
 
-        self.mmdrop = \
-            MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
-
+        self.mmdrop = MultimodalDropout(p=mmdrop, n_modalities=3, device=device)
 
     def forward(self, mod_1, mod_2):
         mod_1, mod_2 = self.mmdrop(mod_1, mod_2)
@@ -793,6 +798,7 @@ class BilinearFuser(nn.Module):
         # print("hello3")
         tav = self.tav(txt, av)
         # print("hello4")
+
         if not self.return_hidden:
             txt = txt.sum(1)
             au = au.sum(1)
@@ -850,7 +856,7 @@ class AttRnnFuser(nn.Module):
         mmdrop=0,
         device="cpu",
         return_hidden=False,
-        all_modalities=False
+        all_modalities=False,
     ):
         super(AttRnnFuser, self).__init__()
         self.att_fuser = AttentionFuser(
@@ -884,7 +890,6 @@ class AttRnnFuser(nn.Module):
         return out
 
 
-
 class BiAttRnnFuser(nn.Module):
     def __init__(
         self,
@@ -896,7 +901,7 @@ class BiAttRnnFuser(nn.Module):
         mmdrop=0,
         device="cpu",
         return_hidden=False,
-        all_modalities=False
+        all_modalities=False,
     ):
         super(BiAttRnnFuser, self).__init__()
         self.att_fuser = BiAttentionFuser(
@@ -1052,13 +1057,12 @@ class GloveEncoder(nn.Module):
 
 
 class GloveClassifier(nn.Module):
-    def __init__(self, cfg,
-                 num_classes=1,
-                 project=False,
-                 projection_size=300,
-                 device="cpu"):
+    def __init__(
+        self, cfg, num_classes=1, project=False, projection_size=300, device="cpu"
+    ):
         super(GloveClassifier, self).__init__()
         self.proj = None
+
         if (cfg["hidden_size"] != projection_size) and project:
             self.proj = nn.Linear(cfg["input_size"], projection_size)
         self.encoder = GloveEncoder(cfg, device=device)
@@ -1068,16 +1072,17 @@ class GloveClassifier(nn.Module):
         if self.proj is not None:
             x = self.proj(x)
         x = self.encoder(x, lengths)
+
         return self.classifier(x)
 
+
 class AudioClassifier(nn.Module):
-    def __init__(self, cfg,
-                 num_classes=1,
-                 project=False,
-                 projection_size=300,
-                 device="cpu"):
+    def __init__(
+        self, cfg, num_classes=1, project=False, projection_size=300, device="cpu"
+    ):
         super(AudioClassifier, self).__init__()
         self.proj = None
+
         if (cfg["hidden_size"] != projection_size) and project:
             self.proj = nn.Linear(cfg["input_size"], projection_size)
         self.encoder = AudioEncoder(cfg, device=device)
@@ -1087,16 +1092,17 @@ class AudioClassifier(nn.Module):
         if self.proj is not None:
             x = self.proj(x)
         x = self.encoder(x, lengths)
+
         return self.classifier(x)
 
+
 class VisualClassifier(nn.Module):
-    def __init__(self, cfg,
-                 num_classes=1,
-                 project=False,
-                 projection_size=300,
-                 device="cpu"):
+    def __init__(
+        self, cfg, num_classes=1, project=False, projection_size=300, device="cpu"
+    ):
         super(VisualClassifier, self).__init__()
         self.proj = None
+
         if (cfg["hidden_size"] != projection_size) and project:
             self.proj = nn.Linear(cfg["input_size"], projection_size)
         self.encoder = VisualEncoder(cfg, device=device)
@@ -1106,6 +1112,7 @@ class VisualClassifier(nn.Module):
         if self.proj is not None:
             x = self.proj(x)
         x = self.encoder(x, lengths)
+
         return self.classifier(x)
 
 
@@ -1172,6 +1179,11 @@ class AudioVisualTextEncoder(nn.Module):
         self.audio = AudioEncoder(audio_cfg, device=device)
 
         self.visual = VisualEncoder(visual_cfg, device=device)
+
+        try:
+            self.use_feedback_grad = fuse_cfg["feedback_grad"]
+        except:
+            self.use_feedback_grad = True
 
         if fuse_cfg["method"] == "cat":
             self.fuser = CatFuser(
@@ -1289,12 +1301,15 @@ class AudioVisualTextEncoder(nn.Module):
 
     def forward(self, txt, au, vi, lengths):
         if self.feedback:
-            for _ in range(1):
+            if self.use_feedback_grad:
                 txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
+            else:
+                with torch.no_grad():
+                    txt1, au1, vi1 = self._encode(txt, au, vi, lengths)
                 # print(f"audio size is {au1.size()}")
                 # print(f"text size is {txt1.size()}")
                 # print(f"video size is {vi1.size()}")
-                txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
+            txt, au, vi = self.fm(txt, au, vi, txt1, au1, vi1, lengths=lengths)
 
         txt, au, vi = self._encode(txt, au, vi, lengths)
         # print(f"audio size is {au.size()}")
@@ -1315,15 +1330,14 @@ class AudioVisualEncoder(nn.Module):
         super(AudioVisualEncoder, self).__init__()
         # For now model dim == text dim (the largest). In the future this can be done
         # with individual projection layers for each modality
-        assert (
-            audio_cfg["attention"] and visual_cfg["attention"]
-        ), "Use attention pls."
+        assert audio_cfg["attention"] and visual_cfg["attention"], "Use attention pls."
 
         self.feedback = feedback
         audio_cfg["orig_size"] = audio_cfg.get("orig_size", audio_cfg["input_size"])
         visual_cfg["orig_size"] = visual_cfg.get("orig_size", visual_cfg["input_size"])
 
         self.proj = None
+
         if self.proj is not None:
             audio_cfg["input_size"] = fuse_cfg["model_dim"]
             visual_cfg["input_size"] = fuse_cfg["model_dim"]
@@ -1418,6 +1432,11 @@ class AudioVisualEncoder(nn.Module):
 
         self.out_size = self.fuser.out_size
 
+        try:
+            self.use_feedback_grad = fuse_cfg["feedback_grad"]
+        except:
+            self.use_feedback_grad = True
+
         if feedback:
             self.fm = BiFeedback(
                 mod1_sz=audio_cfg["orig_size"],
@@ -1451,12 +1470,15 @@ class AudioVisualEncoder(nn.Module):
 
     def forward(self, au, vi, lengths):
         if self.feedback:
-            for _ in range(1):
+            if self.use_feedback_grad:
                 au1, vi1 = self._encode(au, vi, lengths)
+            else:
+                with torch.no_grad():
+                    au1, vi1 = self._encode(au, vi, lengths)
                 # print(f"audio size is {au1.size()}")
                 # print(f"text size is {txt1.size()}")
                 # print(f"video size is {vi1.size()}")
-                au, vi = self.fm(au, vi, au1, vi1, lengths=lengths)
+            au, vi = self.fm(au, vi, au1, vi1, lengths=lengths)
 
         au, vi = self._encode(au, vi, lengths)
         # print(f"audio size is {au.size()}")
@@ -1480,9 +1502,7 @@ class AudioTextEncoder(nn.Module):
         super(AudioTextEncoder, self).__init__()
         # For now model dim == text dim (the largest). In the future this can be done
         # with individual projection layers for each modality
-        assert (
-            text_cfg["attention"] and audio_cfg["attention"]
-        ), "Use attention pls."
+        assert text_cfg["attention"] and audio_cfg["attention"], "Use attention pls."
 
         self.feedback = feedback
         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
@@ -1599,6 +1619,11 @@ class AudioTextEncoder(nn.Module):
 
         self.out_size = self.fuser.out_size
 
+        try:
+            self.use_feedback_grad = fuse_cfg["feedback_grad"]
+        except:
+            self.use_feedback_grad = True
+
         if feedback:
             self.fm = BiFeedback(
                 mod1_sz=audio_cfg["orig_size"],
@@ -1632,12 +1657,15 @@ class AudioTextEncoder(nn.Module):
 
     def forward(self, au, txt, lengths):
         if self.feedback:
-            for _ in range(1):
+            if self.use_feedback_grad:
                 au1, txt1 = self._encode(au, txt, lengths)
-                # print(f"audio size is {au1.size()}")
-                # print(f"text size is {txt1.size()}")
-                # print(f"video size is {vi1.size()}")
-                au, txt = self.fm(au, txt, au1, txt1, lengths=lengths)
+            else:
+                with torch.no_grad():
+                    au1, txt1 = self._encode(au, txt, lengths)
+            # print(f"audio size is {au1.size()}")
+            # print(f"text size is {txt1.size()}")
+            # print(f"video size is {vi1.size()}")
+            au, txt = self.fm(au, txt, au1, txt1, lengths=lengths)
 
         au, txt = self._encode(au, txt, lengths)
         # print(f"audio size is {au.size()}")
@@ -1661,9 +1689,7 @@ class VisualTextEncoder(nn.Module):
         super(VisualTextEncoder, self).__init__()
         # For now model dim == text dim (the largest). In the future this can be done
         # with individual projection layers for each modality
-        assert (
-            text_cfg["attention"] and visual_cfg["attention"]
-        ), "Use attention pls."
+        assert text_cfg["attention"] and visual_cfg["attention"], "Use attention pls."
 
         self.feedback = feedback
         text_cfg["orig_size"] = text_cfg.get("orig_size", text_cfg["input_size"])
@@ -1780,6 +1806,11 @@ class VisualTextEncoder(nn.Module):
 
         self.out_size = self.fuser.out_size
 
+        try:
+            self.use_feedback_grad = fuse_cfg["feedback_grad"]
+        except:
+            self.use_feedback_grad = True
+
         if feedback:
             self.fm = BiFeedback(
                 mod1_sz=visual_cfg["orig_size"],
@@ -1813,12 +1844,15 @@ class VisualTextEncoder(nn.Module):
 
     def forward(self, vi, txt, lengths):
         if self.feedback:
-            for _ in range(1):
+            if self.use_feedback_grad:
                 vi1, txt1 = self._encode(vi, txt, lengths)
-                # print(f"audio size is {au1.size()}")
-                # print(f"text size is {txt1.size()}")
-                # print(f"video size is {vi1.size()}")
-                vi, txt = self.fm(vi, txt, vi1, txt1, lengths=lengths)
+            else:
+                with torch.no_grad():
+                    vi1, txt1 = self._encode(vi, txt, lengths)
+            # print(f"audio size is {au1.size()}")
+            # print(f"text size is {txt1.size()}")
+            # print(f"video size is {vi1.size()}")
+            vi, txt = self.fm(vi, txt, vi1, txt1, lengths=lengths)
 
         vi, txt = self._encode(vi, txt, lengths)
         # print(f"audio size is {au.size()}")

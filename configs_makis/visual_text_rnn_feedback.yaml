@@ -62,6 +62,7 @@ fuse:
     residual: 1
     mmdrop: !!float 0.0
     self_feedback: false
+    feedback_grad: false
     feedback_type: sum_rnn
     all_modalities: false
     layers: 1

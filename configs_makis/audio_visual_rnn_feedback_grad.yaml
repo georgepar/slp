@@ -59,7 +59,7 @@ fuse:
     use_mask: false
     model_dim: 100
     projection_type: null
-    feedback_grad: false
+    feedback_grad: true
     residual: 1
     mmdrop: !!float 0.0
     self_feedback: false
