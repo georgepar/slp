@@ -154,8 +154,7 @@ class Trainer(object):
                    engine: Engine,
                    batch: List[torch.Tensor]) -> float:
         self.model.train()
-       # import pdb; pdb.set_trace()
-
+        #import pdb; pdb.set_trace()
         y_pred, targets = self.get_predictions_and_targets(batch)
         loss = self.loss_fn(y_pred, targets.long())  # type: ignore
         if self.parallel:
@@ -174,7 +173,6 @@ class Trainer(object):
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
         self.model.eval()
         with torch.no_grad():
-            #import pdb; pdb.set_trace()
             y_pred, targets = self.get_predictions_and_targets(batch)
             return y_pred, targets
 
@@ -277,7 +275,6 @@ class AutoencoderTrainer(Trainer):
         return inputs, inputs
 
 
-
 class SequentialTrainer(Trainer):
     def parse_batch(
             self,
@@ -286,84 +283,27 @@ class SequentialTrainer(Trainer):
                            device=self.device,
                            non_blocking=self.non_blocking)
         titles = to_device(batch[1],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
+                           device=self.device,
+                           non_blocking=self.non_blocking)
         targets = to_device(batch[2],
                             device=self.device,
                             non_blocking=self.non_blocking)
-        len_inputs = to_device(batch[3],
+        lengths = to_device(batch[3],
                             device=self.device,
                             non_blocking=self.non_blocking)
-        len_titles = to_device(batch[4],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        return inputs, titles, targets, len_inputs, len_titles
+        title_lengths = to_device(batch[4],
+                                  device=self.device,
+                                  non_blocking=self.non_blocking)
+
+        return inputs, titles, targets, lengths, title_lengths
 
     def get_predictions_and_targets(
             self,
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs, titles, targets, len_inputs, len_titles = self.parse_batch(batch)
-        y_pred = self.model(inputs, len_inputs)
-        import pdb; pdb.set_trace()
+        inputs, titles, targets, lengths, title_lengths = self.parse_batch(batch)
+       # import pdb; pdb.set_trace()
+        y_pred = self.model(inputs, lengths, titles, title_lengths)
         return y_pred, targets
-
-
-class SequentialTrainerTitle(Trainer):
-    def parse_batch(
-            self,
-            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs = to_device(batch[0],
-                           device=self.device,
-                           non_blocking=self.non_blocking)
-        titles = to_device(batch[1],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        targets = to_device(batch[2],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        len_inputs = to_device(batch[3],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        len_titles = to_device(batch[4],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        return inputs, titles, targets, len_inputs, len_titles
-
-    def get_predictions_and_targets(
-            self,
-            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs, titles, targets, len_inputs, len_titles = self.parse_batch(batch)
-        y_pred = self.model(inputs, len_inputs)
-        import pdb; pdb.set_trace()
-        return y_pred, targets
-
-
-class BertTrainer(Trainer):
-    def parse_batch(
-            self,
-            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs = to_device(batch[0],
-                           device=self.device,
-                           non_blocking=self.non_blocking)
-        targets = to_device(batch[1],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        masks = to_device(batch[2],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        segments = to_device(batch[3],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        return inputs, targets, masks, segments
-
-    def get_predictions_and_targets(
-            self,
-            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs, targets, masks, segments = self.parse_batch(batch)
-        #import pdb; pdb.set_trace()
-        logits = self.model(inputs, token_type_ids=segments, attention_mask=masks)
-        
-        return logits, targets
 
 
 class Seq2seqTrainer(SequentialTrainer):

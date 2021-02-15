@@ -1,10 +1,9 @@
 import torch
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
+from torch.nn.utils.rnn import pack_padded_sequence , pad_sequence
 
 from slp.modules.util import pad_mask, subsequent_mask
 from slp.util import mktensor
-from slp.data.transforms import ToTensor
-
+from slp.data.therapy_title import pad_sequence as pad_sequence1
 
 class SequenceClassificationCollator(object):
     def __init__(self, pad_indx=0, device='cpu'):
@@ -12,62 +11,30 @@ class SequenceClassificationCollator(object):
         self.device = device
 
     def __call__(self, batch):
-        inputs, titles, features, targets = map(list, zip(*batch))
+#        import pdb; pdb.set_trace()
+        padding_len=150
+        inputs, titles, targets = map(list, zip(*batch))
+        number_of_sentences = torch.tensor([len(s) for s in inputs], device=self.device)
+        length_of_sentences = ([torch.tensor([len(s) if len(s)<padding_len else padding_len for s in inp]) for inp in inputs])
 
-        lengths = torch.tensor([len(s) for s in inputs], device=self.device)
-        lengths_title = torch.tensor([len(t) for t in titles], device=self.device)
-        
+        inputs = [pad_sequence1(i, padding_len=150, batch_first=True, padding_value=0) for i in inputs]
+
+
         # Pad and convert to tensor
         inputs = (pad_sequence(inputs,
                                batch_first=True,
                                padding_value=self.pad_indx)
                   .to(self.device))
+        length_of_sentences = pad_sequence1(length_of_sentences, padding_len=inputs.shape[1], batch_first=True, padding_value=1)
+       
+        lengths_title = torch.tensor([len(t) for t in titles], device=self.device)
         titles = (pad_sequence(titles,
                                batch_first=True,
                                padding_value=self.pad_indx)
                   .to(self.device))
 
         targets = mktensor(targets, device=self.device, dtype=torch.long)
-        features = mktensor(features, device=self.device)
-        return inputs, titles, features.to(self.device), targets.to(self.device), lengths, lengths_title
-
-
-class BertCollator(object):
-    def __init__(self, pad_indx=0, device='cpu'):
-        self.pad_indx = pad_indx
-        self.device = device
-
-    def __call__(self, batch):
-#        import pdb; pdb.set_trace()
-        inputs, targets = map(list, zip(*batch))
-        # Pad and convert to tensor
-        inputs = (pad_sequence(inputs,
-                               batch_first=True,
-                               padding_value=self.pad_indx)
-                  .to(self.device))
-        targets = mktensor(targets, device=self.device, dtype=torch.long)
-
-        attention_masks = []
-        segments = []
-        for seq in inputs:
-            seq_mask = [float(i>0) for i in seq]
-            attention_masks.append(seq_mask)
-            segm = [0] * len(seq)
-            segments.append(segm)
-
-        masks = mktensor(attention_masks, device=self.device, dtype=torch.long)
-        segments = mktensor(segments, device=self.device, dtype=torch.long)
-
-        return inputs, targets.to(self.device), masks.to(self.device), segments.to(self.device)
-
-
-
-
-
-
-
-
-
+        return inputs, titles, targets.to(self.device), number_of_sentences, length_of_sentences, lengths_title
 
 
 class TransformerCollator(object):
