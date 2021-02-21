@@ -105,7 +105,9 @@ class WordRNN(nn.Module):
     def __init__(
         self,
         hidden_size,
-        embeddings,
+        vocab_size=None,
+        embeddings_dim=None,
+        embeddings=None,
         embeddings_dropout=0.1,
         finetune_embeddings=False,
         batch_first=True,
@@ -120,15 +122,27 @@ class WordRNN(nn.Module):
     ):
         super(WordRNN, self).__init__()
         self.device = device
+
+        if embeddings is None:
+            finetune_embeddings = True
+            assert (
+                vocab_size is not None
+            ), "You should either pass an embeddings matrix or vocab size"
+            assert (
+                embeddings_dim is not None
+            ), "You should either pass an embeddings matrix or embeddings_dim"
+        else:
+            vocab_size = embeddings.shape[0]
+            embeddings_dim = embeddings.shape[1]
         self.embed = Embed(
-            embeddings.shape[0],
-            embeddings.shape[1],
+            vocab_size,
+            embeddings_dim,
             embeddings=embeddings,
             dropout=embeddings_dropout,
             trainable=finetune_embeddings,
         )
         self.rnn = RNN(
-            embeddings.shape[1],
+            embeddings_dim,
             hidden_size,
             batch_first=batch_first,
             layers=layers,
@@ -141,7 +155,6 @@ class WordRNN(nn.Module):
         )
         self.out_size = (
             hidden_size
-
             if not (bidirectional and merge_bi == "cat")
             else 2 * hidden_size
         )
