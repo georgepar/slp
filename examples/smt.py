@@ -69,9 +69,9 @@ if __name__ == '__main__':
         smt_dataset(directory='../data/', train=True, dev=True))
 
     model = Classifier(
-        WordRNN(256, embeddings, bidirectional=True, merge_bi='cat',
-                packed_sequence=True, attention=False, device=DEVICE),
-        512, 3)
+        WordRNN(256, embeddings, bidirectional=True, merge_bi='sum',
+                packed_sequence=True, attention=True, device=DEVICE),
+        256, 3)
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad],
                      lr=1e-3)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
         'loss': Loss(criterion)
     }
     trainer = SequentialTrainer(model, optimizer,
-                                checkpoint_dir='../checkpoints',
+                                checkpoint_dir=None, #'../checkpoints',
                                 metrics=metrics,
                                 non_blocking=True,
                                 patience=5,
