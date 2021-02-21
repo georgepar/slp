@@ -5,6 +5,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint, EarlyStopping
 from torch.utils.data import DataLoader
 
+from loguru import logger
 from typing import Optional
 
 from slp.util import system
@@ -36,7 +37,6 @@ class EvaluationHandler(object):
                  validate_every: int = 1,
                  early_stopping: Optional[EarlyStopping] = None):
         self.validate_every = validate_every
-        self.print_fn = pbar.log_message if pbar is not None else print
         self.early_stopping = early_stopping
 
     def __call__(self, engine: Engine, evaluator: Engine,
@@ -44,23 +44,21 @@ class EvaluationHandler(object):
         if engine.state.epoch % self.validate_every != 0:
             return
         evaluator.run(dataloader)
-        system.print_separator(n=35, print_fn=self.print_fn)
+        system.print_separator(n=35, print_fn=logger.info)
         metrics = evaluator.state.metrics
         phase = 'Validation' if validation else 'Training'
-        self.print_fn('Epoch {} {} results'
-                      .format(engine.state.epoch, phase))
-        system.print_separator(symbol='-', n=35, print_fn=self.print_fn)
+        logger.info('Epoch {} {} results'.format(engine.state.epoch, phase))
+        system.print_separator(symbol='-', n=35, print_fn=logger.info)
         for name, value in metrics.items():
-            self.print_fn('{:<15} {:<15}'.format(name, value))
+            logger.info('{:<15} {:<15}'.format(name, value))
 
         if validation and self.early_stopping:
             loss = self.early_stopping.best_score
             patience = self.early_stopping.patience
             cntr = self.early_stopping.counter
-            self.print_fn('{:<15} {:<15}'.format('best loss', -loss))
-            self.print_fn('{:<15} {:<15}'.format('patience left',
-                                                 patience - cntr))
-            system.print_separator(n=35, print_fn=self.print_fn)
+            logger.info('{:<15} {:<15}'.format('best loss', -loss))
+            logger.info('{:<15} {:<15}'.format('patience left', patience - cntr))
+            system.print_separator(n=35, print_fn=logger.info)
 
     def attach(self, trainer: Engine, evaluator: Engine,
                dataloader: DataLoader, validation: bool = True):

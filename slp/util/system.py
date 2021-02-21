@@ -11,6 +11,7 @@ import validators
 from loguru import logger
 from typing import cast, Any, Callable, Optional, Tuple
 
+from datetime import datetime
 from slp.util import types
 
 ERROR_INVALID_NAME: int = 123
@@ -21,6 +22,17 @@ try:
 except ImportError:
     import json  # type: ignore
 
+
+def date_fname():
+    uniq_filename = (
+        str(datetime.now().date()) + "_" + str(datetime.now().time()).replace(":", ".")
+    )
+
+    return uniq_filename
+
+
+def log_to_file(fname_prefix):
+    logger.add(f"{fname_prefix}.{date_fname()}.log", colorize=False, level="DEBUG", enqueue=True)
 
 def print_separator(symbol: str = '*',
                     n: int = 10,

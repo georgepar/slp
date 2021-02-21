@@ -14,8 +14,13 @@ from slp.data.collators import SequenceClassificationCollator
 from slp.data.transforms import ToTensor
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
+from slp.util.system import log_to_file
 from slp.trainer import SequentialTrainer
 
+
+EXPERIMENT_NAME = "smt-sentiment-classification"
+
+log_to_file(f"logs/{EXPERIMENT_NAME}")
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -86,6 +91,7 @@ if __name__ == "__main__":
         model,
         optimizer,
         checkpoint_dir="./checkpoints",
+        experiment_name=EXPERIMENT_NAME,
         metrics=metrics,
         non_blocking=True,
         patience=5,

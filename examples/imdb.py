@@ -21,6 +21,10 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 collate_fn = SequenceClassificationCollator(device="cpu")
 
+EXPERIMENT_NAME = "imdb-sentiment-classification"
+
+log_to_file(f"logs/{EXPERIMENT_NAME}")
+
 
 if __name__ == "__main__":
     train, dev = smt_dataset(directory="../data/", train=True, dev=True)
@@ -91,6 +95,7 @@ if __name__ == "__main__":
     trainer = SequentialTrainer(
         model,
         optimizer,
+        experiment_name=EXPERIMENT_NAME,
         checkpoint_dir="./checkpoints",
         metrics=metrics,
         non_blocking=True,
