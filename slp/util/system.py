@@ -8,10 +8,9 @@ import time
 import urllib
 import urllib.request
 import validators
-
+from loguru import logger
 from typing import cast, Any, Callable, Optional, Tuple
 
-from slp.util import log
 from slp.util import types
 
 ERROR_INVALID_NAME: int = 123
@@ -55,7 +54,7 @@ def safe_mkdirs(path: str) -> None:
         try:
             os.makedirs(path)
         except Exception as e:
-            log.warning(e)
+            logger.warning(e)
             raise IOError(
                 (f"Failed to create recursive directories: {path}"))
 
@@ -73,7 +72,7 @@ def timethis(func: Callable) -> Callable:
         result = func(*args, **kwargs)
         te = time.time()
         elapsed = f'{te - ts}'
-        log.info(
+        logger.info(
             'BENCHMARK: {f}(*{a}, **{kw}) took: {t} sec'.format(
                 f=func.__name__, a=args, kw=kwargs, t=elapsed))
         return result

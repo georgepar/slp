@@ -25,6 +25,7 @@ sentencepiece = "^0.1.95"
 validators = "^0.18.2"
 en-core-web-md = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.0.0/en_core_web_md-3.0.0-py3-none-any.whl"}
 nltk = "^3.5"
+loguru = "^0.5.3"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

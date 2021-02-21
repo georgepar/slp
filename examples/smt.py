@@ -5,7 +5,7 @@ from ignite.metrics import Loss, Accuracy
 
 from torch.optim import Adam
 from torch.utils.data import Dataset, DataLoader
-
+from loguru import logger
 from torchnlp.datasets import smt_dataset  # type: ignore
 
 from slp.data.corpus import WordpieceCorpus

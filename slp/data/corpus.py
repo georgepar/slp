@@ -5,13 +5,13 @@ import errno
 import os
 
 import numpy as np
-
+from loguru import logger
 from enum import Enum
+
 from tqdm import tqdm
 from typing import cast, Any, Dict, Optional, List
 
 from slp.data.transforms import SpacyTokenizer, WordpieceTokenizer, ToTokenIds
-from slp.util import log
 from slp.util import system
 from slp.util import types
 from slp.config import SPECIAL_TOKENS
@@ -28,6 +28,7 @@ def create_vocab(corpus, vocab_size=-1, extra_tokens: Optional[List] = None):
     if vocab_size < 0:
         vocab_size = len(freq)
     take = min(vocab_size, len(freq))
+    logger.info(f"Keeping {vocab_size} most common tokens out of {len(freq)}")
     common_words = list(map(lambda x: x[0], freq.most_common(take)))
     common_words = list(set(common_words) - set(extra_tokens))
     words = extra_tokens + common_words
@@ -38,6 +39,9 @@ def create_vocab(corpus, vocab_size=-1, extra_tokens: Optional[List] = None):
         return 0 if t in extra_tokens else freq[t]
 
     vocab = dict(zip(words, map(token_freq, words)))
+    logger.info(f"Vocabulary created with {len(vocab)} tokens.")
+    logger.info(f"The 10 most common tokens are:\n{freq.most_common(10)}")
+
     return vocab
 
 
@@ -65,7 +69,7 @@ class EmbeddingsLoader(object):
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
         cache_name = os.path.join(head, f"{filename}.{len(self.vocab)}.p")
-        log.info(f"Cache: {cache_name}")
+        logger.info(f"Cache: {cache_name}")
         return cache_name
 
     def _dump_cache(self, data: types.Embeddings) -> None:
@@ -101,17 +105,18 @@ class EmbeddingsLoader(object):
         # in order to avoid this time consuming operation, cache the results
         try:
             cache = self._load_cache()
-            log.info("Loaded word embeddings from cache.")
+            logger.info("Loaded word embeddings from cache.")
             return cache
         except OSError:
-            log.warning(f"Didn't find embeddings cache file {self.embeddings_file}")
+            logger.warning(f"Didn't find embeddings cache file {self.embeddings_file}")
+            logger.warning("Loading embeddings from file.")
 
         # create the necessary dictionaries and the word embeddings matrix
         if not os.path.exists(self.embeddings_file):
-            log.critical(f"{self.embeddings_file} not found!")
+            logger.critical(f"{self.embeddings_file} not found!")
             raise OSError(errno.ENOENT, os.strerror(errno.ENOENT), self.embeddings_file)
 
-        log.info(f"Indexing file {self.embeddings_file} ...")
+        logger.info(f"Indexing file {self.embeddings_file} ...")
 
         # create the 2D array, which will be used for initializing
         # the Embedding layer of a NN.
@@ -122,6 +127,7 @@ class EmbeddingsLoader(object):
         )
 
         for token in self.extra_tokens:
+            logger.debug(f"Adding token {token.value} to embeddings matrix")
             if token == self.extra_tokens.PAD:
                 continue
             word2idx, idx2word, embeddings = self.augment_embeddings(
@@ -157,7 +163,7 @@ class EmbeddingsLoader(object):
                 embeddings.append(vector)
                 index += 1
 
-        log.info(f"Loaded {len(embeddings)} word vectors.")
+        logger.info(f"Loaded {len(embeddings)} word vectors.")
         embeddings = np.array(embeddings, dtype="float32")
 
         # write the data to a cache file
@@ -193,6 +199,8 @@ class WordCorpus(object):
             lang=lang,
         )
 
+        logger.info(f"Tokenizing corpus using spacy {lang}")
+
         self.tokenized_corpus_ = [
             self.tokenizer(s)
             for s in tqdm(self.corpus_, desc="Tokenizing corpus...", leave=False)
@@ -208,6 +216,9 @@ class WordCorpus(object):
         self.corpus_indices_ = self.tokenized_corpus_
 
         if embeddings_file is not None:
+            logger.info(
+                "Going to load {len(self.vocab_)} embeddings from {embeddings_file}"
+            )
             loader = EmbeddingsLoader(
                 embeddings_file,
                 embeddings_dim,
@@ -220,12 +231,14 @@ class WordCorpus(object):
             self.embeddings_ = embeddings
 
         if word2idx is not None:
+            logger.info("Word2idx was already provided. Going to used it.")
             self.word2idx_ = word2idx
 
         if idx2word is not None:
             self.idx2word_ = idx2word
 
         if self.word2idx_ is not None:
+            logger.info("Converting tokens to ids using word2idx.")
             self.to_token_ids = ToTokenIds(self.word2idx_, specials=SPECIAL_TOKENS)
             self.corpus_indices_ = [
                 self.to_token_ids(s)
@@ -236,10 +249,16 @@ class WordCorpus(object):
                 )
             ]
 
+            logger.info("Filtering corpus vocabulary.")
+
             updated_vocab = {}
             for k, v in self.vocab_.items():
                 if k in self.word2idx_:
                     updated_vocab[k] = v
+
+            logger.info(
+                "Out of {len(self.vocab_)} tokens {len(self.vocab_) - len(updated_vocab)} were not found in the pretrained embeddings."
+            )
 
             self.vocab_ = updated_vocab
 
@@ -301,6 +320,8 @@ class WordpieceCorpus(object):
         **kwargs,
     ):
         self.corpus_ = corpus
+
+        logger.info(f"Tokenizing corpus using wordpiece tokenizer from {bert_model}")
 
         self.tokenizer = WordpieceTokenizer(
             lower=lower,

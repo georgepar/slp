@@ -1,7 +1,7 @@
 import itertools
 import torch.nn as nn
 
-from slp.util import log
+from loguru import logger
 from slp.modules.norm import LayerNorm
 
 NON_LINEARITIES = {
@@ -65,8 +65,8 @@ class MultilayerFF(nn.Module):
             sizes = list(itertools.repeat(sizes, n_layers))  # [n] * l
         sizes = [input_dim] + sizes + [output_dim]
         if len(sizes) != n_layers + 2:
-            log.warn(f'n_layers={n_layers} does not match len of '
-                     'sizes={len(sizes)}. Using {len(sizes)} layers')
+            logger.warn(f'n_layers={n_layers} does not match len of '
+                         'sizes={len(sizes)}. Using {len(sizes)} layers')
         self.net = nn.Sequential(*[
             FF(nin, nout, activation=activation, dropout=dropout)
             for nin, nout in zip(sizes[:-1], sizes[1:])])

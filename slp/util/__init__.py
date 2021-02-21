@@ -1,9 +1,9 @@
 import torch
 
+from loguru import logger
 from typing import Optional
 
 from slp.util import system
-from slp.util import log
 from slp.util import types
 
 
@@ -108,7 +108,7 @@ def from_checkpoint(
         return obj
 
     if not system.is_file(checkpoint_file):
-        log.warn(
+        loggger.warn(
             f'The checkpoint {checkpoint_file} you are trying to load '
             'does not exist. Continuing without loading...')
         return obj

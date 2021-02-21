@@ -8,9 +8,8 @@ Useful only for experimental / test code where breakpoints
 should be switched on and off fast.
 '''
 import sys
-
+from loguru import logger
 import slp.config as config
-import slp.util.log as log
 
 
 if config.REMOTE_DEBUGGING:
@@ -19,8 +18,8 @@ if config.REMOTE_DEBUGGING:
     try:
         import rpdb as pdb
     except ImportError:
-        log.warning('rpdb is not installed.'
-                    'Remote debugging not available')
+        logger.warning('rpdb is not installed.'
+                       'Remote debugging not available')
 else:
     import pdb  # type: ignore
 

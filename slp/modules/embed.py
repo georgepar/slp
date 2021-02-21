@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
+from loguru import logger
 
 from slp.modules.regularization import GaussianNoise
-from slp.util import log
 
 
 class PositionalEncoding(nn.Module):
@@ -28,6 +28,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position_indices / freq_term[0::2])
         pe[:, 1::2] = torch.cos(position_indices / freq_term[1::2])
         # pe => (1, max_length, E)
+        logger.info("Creating positional embeddings. Model can support sequences with length up to {max_length}")
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
@@ -64,7 +65,11 @@ class Embed(nn.Module):
                                       embedding_dim=embedding_dim)
 
         if embeddings is not None:
-            log.info("Initializing Embedding layer with pre-trained weights!")
+            logger.info("Initializing Embedding layer with pre-trained weights.")
+            if trainable:
+                logger.info("Embeddings are going to be finetuned")
+            else:
+                logger.info("Embeddings are frozen")
             self.init_embeddings(embeddings, trainable)
 
         # the dropout "layer" for the word embeddings

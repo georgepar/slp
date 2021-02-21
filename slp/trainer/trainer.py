@@ -1,4 +1,5 @@
 import os
+from loguru import logger
 from typing import Union
 import torch
 import torch.nn as nn
@@ -18,7 +19,6 @@ from slp.util.parallel import DataParallelModel, DataParallelCriterion
 
 from slp.trainer.handlers import CheckpointHandler, EvaluationHandler
 from slp.util import from_checkpoint, to_device
-from slp.util import log
 from slp.util import system
 
 
@@ -97,7 +97,7 @@ class Trainer(object):
                                              validate_every=1,
                                              early_stopping=self.early_stop)
         self.attach()
-        log.info(
+        logger.info(
             f'Trainer configured to run {experiment_name}\n'
             f'\tpretrained model: {model_checkpoint} {optimizer_checkpoint}\n'
             f'\tcheckpoint directory: {checkpoint_dir}\n'
@@ -182,8 +182,8 @@ class Trainer(object):
             train_loader: DataLoader,
             val_loader: DataLoader,
             epochs: int = 50) -> State:
-        log.info(
-            'Trainer will run for\n'
+        logger.info(
+            f'Trainer will run for {epochs} epochs\n'
             f'model: {self.model}\n'
             f'optimizer: {self.optimizer}\n'
             f'loss: {self.loss_fn}')
@@ -245,7 +245,7 @@ class Trainer(object):
         def graceful_exit(engine, e):
             if isinstance(e, KeyboardInterrupt):
                 engine.terminate()
-                log.warn("CTRL-C caught. Exiting gracefully...")
+                logger.warning("CTRL-C caught. Exiting gracefully...")
             else:
                 raise(e)
 
