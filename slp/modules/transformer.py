@@ -184,8 +184,7 @@ class Transformer(nn.Module):
                  hidden_size=512,
                  num_heads=8,
                  inner_size=2048,
-                 dropout=0.1,
-                 device='cpu'):
+                 dropout=0.1):
         super(Transformer, self).__init__()
         self.embed = Embed(vocab_size,
                            hidden_size,
@@ -194,8 +193,7 @@ class Transformer(nn.Module):
                            trainable=True)
         self.pe = PositionalEncoding(
             max_length,
-            embedding_dim=hidden_size,
-            device=device)
+            embedding_dim=hidden_size)
         self.transformer_block = EncoderDecoder(
             num_layers=num_layers,
             hidden_size=hidden_size,

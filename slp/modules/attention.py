@@ -199,8 +199,8 @@ class MultiheadAttentionParallel(nn.Module):
         nn.init.xavier_uniform_(self.k.weight)
         nn.init.xavier_uniform_(self.q.weight)
         nn.init.xavier_uniform_(self.v.weight)
-        nn.init.xavier_uniform_(self.output.fc.weight)
-        nn.init.constant_(self.output.fc.bias, 0.0)
+        nn.init.xavier_uniform_(self.output.weight)
+        nn.init.constant_(self.output.bias, 0.0)
 
 
 MultiheadAttention = MultiheadAttentionParallel

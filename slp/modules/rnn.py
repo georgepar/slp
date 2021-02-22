@@ -19,11 +19,9 @@ class RNN(nn.Module):
         dropout=0,
         rnn_type="lstm",
         packed_sequence=True,
-        device="cpu",
     ):
 
         super(RNN, self).__init__()
-        self.device = device
         self.bidirectional = bidirectional
         self.hidden_size = hidden_size
         self.batch_first = batch_first
@@ -94,7 +92,7 @@ class RNN(nn.Module):
         if self.packed_sequence:
             out = self.unpack(out, lengths)
         out = self.drop(out)
-        lengths = lengths.to(self.device)
+        lengths = lengths.to(out.device)
 
         out, last_timestep = self._final_output(out, lengths)
 
@@ -118,10 +116,8 @@ class WordRNN(nn.Module):
         rnn_type="lstm",
         packed_sequence=True,
         attention=False,
-        device="cpu",
     ):
         super(WordRNN, self).__init__()
-        self.device = device
 
         if embeddings is None:
             finetune_embeddings = True
@@ -151,7 +147,6 @@ class WordRNN(nn.Module):
             dropout=dropout,
             rnn_type=rnn_type,
             packed_sequence=packed_sequence,
-            device=device,
         )
         self.out_size = (
             hidden_size
@@ -168,9 +163,7 @@ class WordRNN(nn.Module):
         out, last_hidden, _ = self.rnn(x, lengths)
 
         if self.attention is not None:
-            out, _ = self.attention(
-                out, attention_mask=pad_mask(lengths, device=self.device)
-            )
+            out, _ = self.attention(out, attention_mask=pad_mask(lengths))
             out = out.sum(1)
         else:
             out = last_hidden

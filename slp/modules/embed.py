@@ -11,17 +11,17 @@ class PositionalEncoding(nn.Module):
     PE(pos,2i)=sin(pos/10000^(2i/dmodel))
     PE(pos,2i+1)=cos(pos/10000^(2i/dmodel))
     """
-    def __init__(self, max_length, embedding_dim=512, device='cpu'):
+    def __init__(self, max_length, embedding_dim=512):
         super(PositionalEncoding, self).__init__()
         self.max_length = max_length
         self.embedding_dim = embedding_dim
         pe = torch.zeros(max_length, embedding_dim,
-                         dtype=torch.float, device=device)
+                         dtype=torch.float)
         embedding_indices = torch.arange(0, embedding_dim,
-                                         dtype=torch.float, device=device)
+                                         dtype=torch.float)
         position_indices = (torch
                             .arange(0, max_length,
-                                    dtype=torch.float, device=device)
+                                    dtype=torch.float)
                             .unsqueeze(-1))
         # freq => (E,)
         freq_term = 10000 ** (2 * embedding_indices / embedding_dim)
