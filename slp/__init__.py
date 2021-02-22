@@ -8,7 +8,6 @@ from tqdm import tqdm
 def configure_logger(logfile_prefix):
     from slp.util.system import log_to_file
 
-
     # Intercept standard logging logs in loguru. Should test this for distributed pytorch lightning
     class InterceptHandler(logging.Handler):
         def emit(self, record):
@@ -24,7 +23,9 @@ def configure_logger(logfile_prefix):
                 frame = frame.f_back
                 depth += 1
 
-            logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+            logger.opt(depth=depth, exception=record.exc_info).log(
+                level, record.getMessage()
+            )
 
     logger.debug("Intercepting standard logging logs in loguru")
     logger.debug("This is a side-effect")

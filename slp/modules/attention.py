@@ -92,7 +92,6 @@ class MultiheadAttentionSerial(nn.Module):
                 self.head_size,
                 dropout=dropout,
             )
-
             for _ in num_heads
         ]
 
@@ -105,7 +104,6 @@ class MultiheadAttentionSerial(nn.Module):
         # list of (B, L, A / H)
         out = [
             h(x, queries=queries, values=values, attention_mask=attention_mask)
-
             for h in self.heads
         ]
 

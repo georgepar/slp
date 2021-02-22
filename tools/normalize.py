@@ -31,19 +31,23 @@ for path in sys.argv[1:]:
 
 
 def _is_punctuation(char):
-  """Checks whether `chars` is a punctuation character."""
-  cp = ord(char)
-  # We treat all non-letter/number ASCII as punctuation.
-  # Characters such as "^", "$", and "`" are not in the Unicode
-  # Punctuation class but we treat them as punctuation anyways, for
-  # consistency.
-  if ((cp >= 33 and cp <= 47) or (cp >= 58 and cp <= 64) or
-      (cp >= 91 and cp <= 96) or (cp >= 123 and cp <= 126)):
-    return True
-  cat = unicodedata.category(char)
-  if cat.startswith("P"):
-    return True
-  return False
+    """Checks whether `chars` is a punctuation character."""
+    cp = ord(char)
+    # We treat all non-letter/number ASCII as punctuation.
+    # Characters such as "^", "$", and "`" are not in the Unicode
+    # Punctuation class but we treat them as punctuation anyways, for
+    # consistency.
+    if (
+        (cp >= 33 and cp <= 47)
+        or (cp >= 58 and cp <= 64)
+        or (cp >= 91 and cp <= 96)
+        or (cp >= 123 and cp <= 126)
+    ):
+        return True
+    cat = unicodedata.category(char)
+    if cat.startswith("P"):
+        return True
+    return False
 
 
 def _run_split_on_punc(text):
@@ -66,24 +70,27 @@ def _run_split_on_punc(text):
 
     return ["".join(x) for x in output]
 
+
 def strip_accents_and_lowercase(s):
-   return ''.join(c for c in unicodedata.normalize('NFD', s)
-                  if unicodedata.category(c) != 'Mn').lower()
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    ).lower()
+
 
 def normalize(filename):
-    output_file = open(filename + ".out", 'w', encoding='utf8')
-    with open(filename + ".encoded", encoding='utf8') as file:
+    output_file = open(filename + ".out", "w", encoding="utf8")
+    with open(filename + ".encoded", encoding="utf8") as file:
         for line in file.readlines():
             tokens = line.lower().split()
             splited_tokens = []
             for token in tokens:
                 splited_tokens.extend(_run_split_on_punc(token))
-            line = ' '.join(splited_tokens)
+            line = " ".join(splited_tokens)
             line = strip_accents_and_lowercase(line)
-            if line.endswith('\n'):
+            if line.endswith("\n"):
                 output_file.write(line)
             else:
-                output_file.write(line+'\n')
+                output_file.write(line + "\n")
     output_file.close()
 
 
@@ -93,21 +100,17 @@ def process_file(filename):
         for line in file.readlines():
             lines.append(line.encode("utf-8", "ignore").decode())
 
-    with open(filename + ".encoded", 'w') as file:
+    with open(filename + ".encoded", "w") as file:
         for line in lines:
-            if line.endswith('\n'):
-                line = line.strip('\n')
-            file.write(line + '\n')
+            if line.endswith("\n"):
+                line = line.strip("\n")
+            file.write(line + "\n")
 
 
-if __name__ == '__main__':
-    ProgressParallel(
-        n_jobs=n_jobs, total=len(filenames)
-    )(
+if __name__ == "__main__":
+    ProgressParallel(n_jobs=n_jobs, total=len(filenames))(
         delayed(process_file)(fname) for fname in filenames
     )
-    ProgressParallel(
-        n_jobs=n_jobs, total=len(filenames)
-    )(
+    ProgressParallel(n_jobs=n_jobs, total=len(filenames))(
         delayed(normalize)(fname) for fname in filenames
     )

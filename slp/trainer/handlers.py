@@ -20,49 +20,62 @@ class CheckpointHandler(ModelCheckpoint):
         engine (ignite.engine.Engine): The trainer engine
         to_save (dict): The objects to save
     """
+
     def __call__(self, engine: Engine, to_save: types.GenericDict) -> None:
         super(CheckpointHandler, self).__call__(engine, to_save)
         # Select model with best loss
         _, paths = self._saved[-1]
         for src in paths:
-            splitted = src.split('_')
+            splitted = src.split("_")
             fname_prefix = splitted[0]
             name = splitted[1]
-            dst = f'{fname_prefix}_{name}.best.pth'
+            dst = f"{fname_prefix}_{name}.best.pth"
             shutil.copy(src, dst)
 
 
 class EvaluationHandler(object):
-    def __init__(self, pbar: Optional[ProgressBar] = None,
-                 validate_every: int = 1,
-                 early_stopping: Optional[EarlyStopping] = None):
+    def __init__(
+        self,
+        pbar: Optional[ProgressBar] = None,
+        validate_every: int = 1,
+        early_stopping: Optional[EarlyStopping] = None,
+    ):
         self.validate_every = validate_every
         self.early_stopping = early_stopping
 
-    def __call__(self, engine: Engine, evaluator: Engine,
-                 dataloader: DataLoader, validation: bool = True):
+    def __call__(
+        self,
+        engine: Engine,
+        evaluator: Engine,
+        dataloader: DataLoader,
+        validation: bool = True,
+    ):
         if engine.state.epoch % self.validate_every != 0:
             return
         evaluator.run(dataloader)
         system.print_separator(n=35, print_fn=logger.info)
         metrics = evaluator.state.metrics
-        phase = 'Validation' if validation else 'Training'
-        logger.info('Epoch {} {} results'.format(engine.state.epoch, phase))
-        system.print_separator(symbol='-', n=35, print_fn=logger.info)
+        phase = "Validation" if validation else "Training"
+        logger.info("Epoch {} {} results".format(engine.state.epoch, phase))
+        system.print_separator(symbol="-", n=35, print_fn=logger.info)
         for name, value in metrics.items():
-            logger.info('{:<15} {:<15}'.format(name, value))
+            logger.info("{:<15} {:<15}".format(name, value))
 
         if validation and self.early_stopping:
             loss = self.early_stopping.best_score
             patience = self.early_stopping.patience
             cntr = self.early_stopping.counter
-            logger.info('{:<15} {:<15}'.format('best loss', -loss))
-            logger.info('{:<15} {:<15}'.format('patience left', patience - cntr))
+            logger.info("{:<15} {:<15}".format("best loss", -loss))
+            logger.info("{:<15} {:<15}".format("patience left", patience - cntr))
             system.print_separator(n=35, print_fn=logger.info)
 
-    def attach(self, trainer: Engine, evaluator: Engine,
-               dataloader: DataLoader, validation: bool = True):
+    def attach(
+        self,
+        trainer: Engine,
+        evaluator: Engine,
+        dataloader: DataLoader,
+        validation: bool = True,
+    ):
         trainer.add_event_handler(
-            Events.EPOCH_COMPLETED,
-            self, evaluator, dataloader,
-            validation=validation)
+            Events.EPOCH_COMPLETED, self, evaluator, dataloader, validation=validation
+        )
