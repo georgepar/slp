@@ -48,7 +48,7 @@ class LMDataset(Dataset):
         return datum
 
 
-class ClassificationCorpus(Dataset):
+class CorpusDataset(Dataset):
     def __init__(self, corpus, labels):
         self.corpus = corpus
         self.labels = labels

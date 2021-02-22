@@ -10,7 +10,7 @@ from torchnlp.datasets import imdb_dataset  # type: ignore
 
 from slp import configure_logger
 from slp.data.corpus import WordCorpus
-from slp.data.datasets import ClassificationCorpus
+from slp.data.datasets import CorpusDataset
 from slp.data.collators import SequenceClassificationCollator
 from slp.data.transforms import ToTensor
 from slp.modules.classifier import Classifier
@@ -58,8 +58,8 @@ if __name__ == "__main__":
 
     to_tensor = ToTensor(device="cpu")
 
-    dataset_train = ClassificationCorpus(corpus_train, labels_train).map(to_tensor)
-    dataset_dev = ClassificationCorpus(corpus_dev, labels_dev).map(to_tensor)
+    dataset_train = CorpusDataset(corpus_train, labels_train).map(to_tensor)
+    dataset_dev = CorpusDataset(corpus_dev, labels_dev).map(to_tensor)
 
     train_loader = DataLoader(
         dataset_train,

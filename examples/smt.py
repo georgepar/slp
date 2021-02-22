@@ -9,7 +9,7 @@ from loguru import logger
 from torchnlp.datasets import smt_dataset  # type: ignore
 
 from slp.data.corpus import WordpieceCorpus
-from slp.data.datasets import ClassificationCorpus
+from slp.data.datasets import CorpusDataset
 from slp.data.collators import SequenceClassificationCollator
 from slp.data.transforms import ToTensor
 from slp.modules.classifier import Classifier
@@ -50,8 +50,8 @@ if __name__ == "__main__":
 
     to_tensor = ToTensor(device="cpu")
 
-    dataset_train = ClassificationCorpus(corpus_train, labels_train).map(to_tensor)
-    dataset_dev = ClassificationCorpus(corpus_dev, labels_dev).map(to_tensor)
+    dataset_train = CorpusDataset(corpus_train, labels_train).map(to_tensor)
+    dataset_dev = CorpusDataset(corpus_dev, labels_dev).map(to_tensor)
 
     train_loader = DataLoader(
         dataset_train,

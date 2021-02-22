@@ -17,7 +17,9 @@ from slp.util import types
 from slp.config import SPECIAL_TOKENS
 
 
-def create_vocab(corpus: List, vocab_size:int = -1, special_tokens: Optional[SPECIAL_TOKENS] = None) -> Dict[str, int]:
+def create_vocab(
+    corpus: List, vocab_size: int = -1, special_tokens: Optional[SPECIAL_TOKENS] = None
+) -> Dict[str, int]:
     if isinstance(corpus[0], list):
         corpus = list(itertools.chain.from_iterable(corpus))
     freq = Counter(corpus)
@@ -29,7 +31,7 @@ def create_vocab(corpus: List, vocab_size:int = -1, special_tokens: Optional[SPE
         vocab_size = len(freq)
     take = min(vocab_size, len(freq))
     logger.info(f"Keeping {vocab_size} most common tokens out of {len(freq)}")
-    
+
     def take0(x: Tuple[Any, Any]) -> Any:
         return x[0]
 
@@ -225,7 +227,10 @@ class WordCorpus(object):
         self.word2idx_, self.idx2word_, self.embeddings_ = None, None, None
         self.corpus_indices_ = self.tokenized_corpus_
 
-        if embeddings_file is not None:
+        if word2idx is not None:
+            logger.info("Word2idx was already provided. Going to used it.")
+
+        if embeddings_file is not None and word2idx is None:
             logger.info(
                 f"Going to load {len(self.vocab_)} embeddings from {embeddings_file}"
             )
@@ -235,19 +240,17 @@ class WordCorpus(object):
                 vocab=self.vocab_,
                 extra_tokens=special_tokens,
             )
-            self.word2idx_, self.idx2word_, self.embeddings_ = loader.load()
+            word2idx, idx2word, embeddings = loader.load()
 
         if embeddings is not None:
             self.embeddings_ = embeddings
 
-        if word2idx is not None:
-            logger.info("Word2idx was already provided. Going to used it.")
-            self.word2idx_ = word2idx
-
         if idx2word is not None:
             self.idx2word_ = idx2word
 
-        if self.word2idx_ is not None:
+        if word2idx is not None:
+            self.word2idx_ = word2idx
+
             logger.info("Converting tokens to ids using word2idx.")
             self.to_token_ids = ToTokenIds(self.word2idx_, specials=SPECIAL_TOKENS)
             self.corpus_indices_ = [
