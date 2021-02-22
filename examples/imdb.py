@@ -85,7 +85,6 @@ if __name__ == "__main__":
         merge_bi="sum",
         packed_sequence=True,
         attention=True,
-        device=DEVICE,
     )
     model = Classifier(encoder, encoder.out_size, 3)
 

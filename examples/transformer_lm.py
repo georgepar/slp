@@ -1,14 +1,14 @@
+import itertools
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 from torch.utils.data import DataLoader
 from torchnlp.datasets import wikitext_2_dataset  # type: ignore
 
 from slp.config import SPECIAL_TOKENS
 from slp.data.datasets import LMDataset
 from slp.data.collators import TransformerCollator
-from slp.data.vocab import create_vocab
+from slp.data.corpus import create_vocab
 from slp.modules.transformer import Transformer
 from slp.data.transforms import ReplaceUnknownToken, ToTokenIds, ToTensor
 from slp.trainer import TransformerTrainer
@@ -33,7 +33,8 @@ if __name__ == "__main__":
 
     vocab = create_vocab(train + dev,
                          vocab_size=vocab_size,
-                         extra_tokens=SPECIAL_TOKENS.to_list())
+                         extra_tokens=SPECIAL_TOKENS)
+    vocab = dict(zip(vocab.keys(), itertools.count()))
     replace_unk = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(vocab)
     to_tensor = ToTensor(device='cpu')
@@ -60,8 +61,7 @@ if __name__ == "__main__":
                         num_layers=2,
                         hidden_size=128,
                         num_heads=4,
-                        inner_size=512,
-                        device=device)
+                        inner_size=512)
 
     optimizer = optim.Adam(
         [p for p in model.parameters() if p.requires_grad], lr=lr)

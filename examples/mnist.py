@@ -3,6 +3,8 @@ import copy
 import torch
 import torch.nn.functional as F
 
+from loguru import logger
+
 from torchvision.transforms import (  # type: ignore
     Compose, ToTensor, Normalize)
 from torchvision.datasets import MNIST  # type: ignore
@@ -12,10 +14,9 @@ from torch.optim import Adam
 from ignite.metrics import Loss, Accuracy
 
 from slp.trainer import Trainer
-from slp.util import log
 
 
-DEBUG = True
+DEBUG = False
 
 
 class Net(nn.Module):
@@ -71,10 +72,10 @@ if __name__ == '__main__':
                       patience=1,
                       loss_fn=criterion)
     if DEBUG:
-        log.info('Starting end to end test')
+        logger.info('Starting end to end test')
         print('--------------------------------------------------------------')
         trainer.fit_debug(train_loader, val_loader)
-        log.info('Overfitting single batch')
+        logger.info('Overfitting single batch')
         print('--------------------------------------------------------------')
         trainer.overfit_single_batch(train_loader)
     else:
