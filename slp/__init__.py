@@ -1,11 +1,12 @@
 import io
 import logging
 
+from typing import Optional, Any
 from loguru import logger
 from tqdm import tqdm
 
 
-def configure_logger(logfile_prefix):
+def configure_logger(logfile_prefix: Optional[str] = None) -> None:
     from slp.util.system import log_to_file
 
     # Intercept standard logging logs in loguru. Should test this for distributed pytorch lightning
@@ -27,13 +28,17 @@ def configure_logger(logfile_prefix):
                 level, record.getMessage()
             )
 
-    logger.debug("Intercepting standard logging logs in loguru")
-    logger.debug("This is a side-effect")
+    logger.info("Intercepting standard logging logs in loguru")
 
     # Make loguru play well with tqdm
     logger.remove()
-    logger.add(lambda msg: tqdm.write(msg, end=""), colorize=True)
 
-    logging.basicConfig(handlers=[InterceptHandler()], level=0)
+    def tqdm_write(msg: str) -> Any:
+        return tqdm.write(msg, end="")
 
-    log_to_file(logfile_prefix)
+    logger.add(tqdm_write, colorize=True)
+
+    logging.basicConfig(handlers=[InterceptHandler()], level=logging.INFO)
+
+    if logfile_prefix is not None:
+        log_to_file(logfile_prefix)

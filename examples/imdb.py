@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from torchnlp.datasets import imdb_dataset  # type: ignore
 
+from slp import configure_logger
 from slp.data.corpus import WordCorpus
 from slp.data.datasets import ClassificationCorpus
 from slp.data.collators import SequenceClassificationCollator
@@ -23,11 +24,11 @@ collate_fn = SequenceClassificationCollator(device="cpu")
 
 EXPERIMENT_NAME = "imdb-sentiment-classification"
 
-log_to_file(f"logs/{EXPERIMENT_NAME}")
+configure_logger(f"logs/{EXPERIMENT_NAME}")
 
 
 if __name__ == "__main__":
-    train, dev = smt_dataset(directory="../data/", train=True, dev=True)
+    train, dev = imdb_dataset(directory="../data/", train=True, test=True)
 
     raw_train = [d["text"] for d in train]
     labels_train = [d["sentiment"] for d in train]
@@ -80,10 +81,11 @@ if __name__ == "__main__":
 
     encoder = WordRNN(
         256,
-        corpus_train.embeddings,
+        embeddings=corpus_train.embeddings,
         bidirectional=True,
         merge_bi="sum",
         packed_sequence=True,
+        finetune_embeddings=False,
         attention=True,
     )
     model = Classifier(encoder, encoder.out_size, 3)

@@ -33,7 +33,7 @@ if __name__ == "__main__":
     )
 
     vocab = create_vocab(
-        train + dev, vocab_size=vocab_size, extra_tokens=SPECIAL_TOKENS
+        train + dev, vocab_size=vocab_size, special_tokens=SPECIAL_TOKENS
     )
     vocab = dict(zip(vocab.keys(), itertools.count()))
     replace_unk = ReplaceUnknownToken()

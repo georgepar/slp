@@ -64,7 +64,7 @@ class MultilayerFF(nn.Module):
             sizes = list(itertools.repeat(sizes, n_layers))  # [n] * l
         sizes = [input_dim] + sizes + [output_dim]
         if len(sizes) != n_layers + 2:
-            logger.warn(
+            logger.warning(
                 f"n_layers={n_layers} does not match len of "
                 "sizes={len(sizes)}. Using {len(sizes)} layers"
             )

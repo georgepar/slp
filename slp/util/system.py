@@ -23,7 +23,7 @@ except ImportError:
     import json  # type: ignore
 
 
-def date_fname():
+def date_fname() -> str:
     uniq_filename = (
         str(datetime.now().date()) + "_" + str(datetime.now().time()).replace(":", ".")
     )
@@ -31,7 +31,7 @@ def date_fname():
     return uniq_filename
 
 
-def log_to_file(fname_prefix):
+def log_to_file(fname_prefix: Optional[str]) -> None:
     logger.add(
         f"{fname_prefix}.{date_fname()}.log",
         colorize=False,
@@ -76,28 +76,39 @@ def safe_mkdirs(path: str) -> None:
             raise IOError((f"Failed to create recursive directories: {path}"))
 
 
-def timethis(func: Callable) -> Callable:
-    """
-    Decorator that measure the time it takes for a function to complete
-    Usage:
-      @slp.util.sys.timethis
-      def time_consuming_function(...):
-    """
+def timethis(method=False) -> Callable:
+    def timethis_inner(func: Callable) -> Callable:
+        """
+        Decorator that measure the time it takes for a function to complete
+        Usage:
+        @slp.util.sys.timethis
+        def time_consuming_function(...):
+        """
 
-    @functools.wraps(func)
-    def timed(*args: types.T, **kwargs: types.T):
-        ts = time.time()
-        result = func(*args, **kwargs)
-        te = time.time()
-        elapsed = f"{te - ts}"
-        logger.info(
-            "BENCHMARK: {f}(*{a}, **{kw}) took: {t} sec".format(
-                f=func.__name__, a=args, kw=kwargs, t=elapsed
-            )
-        )
-        return result
+        @functools.wraps(func)
+        def timed(*args: types.T, **kwargs: types.T):
+            ts = time.time()
+            result = func(*args, **kwargs)
+            te = time.time()
+            elapsed = f"{te - ts}"
+            if method:
 
-    return cast(Callable, timed)
+                logger.info(
+                    "BENCHMARK: {cls}.{f}(*{a}, **{kw}) took: {t} sec".format(
+                        f=func.__name__, cls=args[0], a=args[1:], kw=kwargs, t=elapsed
+                    )
+                )
+            else:
+                logger.info(
+                    "BENCHMARK: {f}(*{a}, **{kw}) took: {t} sec".format(
+                        f=func.__name__, a=args, kw=kwargs, t=elapsed
+                    )
+                )
+            return result
+
+        return cast(Callable, timed)
+
+    return timethis_inner
 
 
 def suppress_print(func: Callable) -> Callable:
@@ -120,8 +131,12 @@ def run_cmd(command: str) -> Tuple[int, str]:
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
 
-    stdout = "".join([line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")])
-    pipe.stdout.close()
+    stdout = ""
+    if pipe.stdout is not None:
+        stdout = "".join(
+            [line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")]
+        )
+        pipe.stdout.close()
     returncode = pipe.wait()
     return returncode, stdout
 

@@ -112,7 +112,7 @@ def from_checkpoint(
         return obj
 
     if not system.is_file(checkpoint_file):
-        loggger.warn(
+        logger.warning(
             f"The checkpoint {checkpoint_file} you are trying to load "
             "does not exist. Continuing without loading..."
         )

@@ -9,7 +9,7 @@ from loguru import logger
 from enum import Enum
 
 from tqdm import tqdm
-from typing import cast, Any, Dict, Optional, List
+from typing import cast, Any, Dict, Optional, List, Union, Iterator, Tuple
 
 from slp.data.transforms import SpacyTokenizer, WordpieceTokenizer, ToTokenIds
 from slp.util import system
@@ -17,19 +17,23 @@ from slp.util import types
 from slp.config import SPECIAL_TOKENS
 
 
-def create_vocab(corpus, vocab_size=-1, extra_tokens: Optional[List] = None):
+def create_vocab(corpus: List, vocab_size:int = -1, special_tokens: Optional[SPECIAL_TOKENS] = None) -> Dict[str, int]:
     if isinstance(corpus[0], list):
-        corpus = itertools.chain.from_iterable(corpus)
+        corpus = list(itertools.chain.from_iterable(corpus))
     freq = Counter(corpus)
-    if extra_tokens is None:
+    if special_tokens is None:
         extra_tokens = []
     else:
-        extra_tokens = extra_tokens.to_list()
+        extra_tokens = special_tokens.to_list()
     if vocab_size < 0:
         vocab_size = len(freq)
     take = min(vocab_size, len(freq))
     logger.info(f"Keeping {vocab_size} most common tokens out of {len(freq)}")
-    common_words = list(map(lambda x: x[0], freq.most_common(take)))
+    
+    def take0(x: Tuple[Any, Any]) -> Any:
+        return x[0]
+
+    common_words = list(map(take0, freq.most_common(take)))
     common_words = list(set(common_words) - set(extra_tokens))
     words = extra_tokens + common_words
     if len(words) > vocab_size:
@@ -59,6 +63,9 @@ class EmbeddingsLoader(object):
         self.dim_ = dim
         self.extra_tokens = extra_tokens
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.embeddings_file}, {self.dim_})"
+
     def in_accepted_vocab(self, word):
         if self.vocab is None:
             return True
@@ -68,7 +75,10 @@ class EmbeddingsLoader(object):
     def _get_cache_name(self) -> str:
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
-        cache_name = os.path.join(head, f"{filename}.{len(self.vocab)}.p")
+        if self.vocab is not None:
+            cache_name = os.path.join(head, f"{filename}.{len(self.vocab)}.p")
+        else:
+            cache_name = os.path.join(head, f"{filename}.p")
         logger.info(f"Cache: {cache_name}")
         return cache_name
 
@@ -82,10 +92,10 @@ class EmbeddingsLoader(object):
         self,
         word2idx: Dict[str, int],
         idx2word: Dict[int, str],
-        embeddings: np.ndarray,
+        embeddings: List[np.ndarray],
         token: str,
         emb: Optional[np.ndarray] = None,
-    ) -> types.Embeddings:
+    ) -> Tuple[Dict[str, int], Dict[int, str], List[np.ndarray]]:
         word2idx[token] = len(embeddings)
         idx2word[len(embeddings)] = token
         if emb is None:
@@ -93,7 +103,7 @@ class EmbeddingsLoader(object):
         embeddings.append(emb)
         return word2idx, idx2word, embeddings
 
-    @system.timethis
+    @system.timethis(method=True)
     def load(self) -> types.Embeddings:
         """
         Read the word vectors from a text file
@@ -164,11 +174,11 @@ class EmbeddingsLoader(object):
                 index += 1
 
         logger.info(f"Loaded {len(embeddings)} word vectors.")
-        embeddings = np.array(embeddings, dtype="float32")
+        embeddings_out = np.array(embeddings, dtype="float32")
 
         # write the data to a cache file
-        self._dump_cache((word2idx, idx2word, embeddings))
-        return word2idx, idx2word, embeddings
+        self._dump_cache((word2idx, idx2word, embeddings_out))
+        return word2idx, idx2word, embeddings_out
 
 
 class WordCorpus(object):
@@ -209,7 +219,7 @@ class WordCorpus(object):
         self.vocab_ = create_vocab(
             self.tokenized_corpus_,
             vocab_size=limit_vocab_size if word2idx is None else -1,
-            extra_tokens=special_tokens,
+            special_tokens=special_tokens,
         )
 
         self.word2idx_, self.idx2word_, self.embeddings_ = None, None, None
@@ -217,7 +227,7 @@ class WordCorpus(object):
 
         if embeddings_file is not None:
             logger.info(
-                "Going to load {len(self.vocab_)} embeddings from {embeddings_file}"
+                f"Going to load {len(self.vocab_)} embeddings from {embeddings_file}"
             )
             loader = EmbeddingsLoader(
                 embeddings_file,
@@ -257,7 +267,7 @@ class WordCorpus(object):
                     updated_vocab[k] = v
 
             logger.info(
-                "Out of {len(self.vocab_)} tokens {len(self.vocab_) - len(updated_vocab)} were not found in the pretrained embeddings."
+                f"Out of {len(self.vocab_)} tokens {len(self.vocab_) - len(updated_vocab)} were not found in the pretrained embeddings."
             )
 
             self.vocab_ = updated_vocab
@@ -340,7 +350,7 @@ class WordpieceCorpus(object):
         self.vocab_ = create_vocab(
             self.tokenized_corpus_,
             vocab_size=-1,
-            extra_tokens=special_tokens,
+            special_tokens=special_tokens,
         )
         self.corpus_indices_ = [
             self.tokenizer.to_ids(s)
@@ -409,7 +419,3 @@ if __name__ == "__main__":
     )
 
     wordpiece_corpus = WordpieceCorpus(corpus, prepend_cls=True)
-
-    import ipdb
-
-    ipdb.set_trace()
