@@ -27,6 +27,7 @@ en-core-web-md = {url = "https://github.com/explosion/spacy-models/releases/down
 nltk = "^3.5"
 loguru = "^0.5.3"
 pytorch-lightning = "^1.2.0"
+wandb = "^0.10.20"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

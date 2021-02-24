@@ -100,17 +100,26 @@ class SimplePLModule(pl.LightningModule):
         return metrics
 
     def _log_iteration(self, metrics):
-        def fmt(name):
-            return f"{name}::step"
+        def fmt(name, when):
+            return f"{name}::{when}"
 
         for k, v in metrics.items():
             self.log(
-                fmt(k),
+                fmt(k, "step"),
                 v,
                 on_step=True,
                 on_epoch=False,
                 logger=True,
                 prog_bar=False,
+            )
+
+            self.log(
+                fmt(k, "epoch"),
+                v,
+                on_step=False,
+                on_epoch=True,
+                logger=True,
+                prog_bar=True,
             )
 
     def training_step(self, batch, batch_idx):
@@ -121,23 +130,7 @@ class SimplePLModule(pl.LightningModule):
         )
         self._log_iteration(metrics)
 
-        return metrics
-
-    def aggregate_epoch_metrics(self, outputs):
-        def fmt(name):
-            return f"{name}::epoch"
-
-        keys = list(outputs[0].keys())
-        aggregated = {}
-        for k in keys:
-            aggregated[k] = torch.stack([x[k] for x in outputs]).mean()
-
-            self.log(fmt(k), aggregated[k], logger=True, prog_bar=True)
-
-        return aggregated
-
-    def training_epoch_end(self, outputs):
-        return self.aggregate_epoch_metrics(outputs)
+        return loss
 
     def validation_step(self, batch, batch_idx):
         y_hat, targets = self.predictor.get_predictions_and_targets(self, batch)
@@ -148,10 +141,7 @@ class SimplePLModule(pl.LightningModule):
         self._log_iteration(metrics)
         metrics["loss"] = loss
 
-        return metrics
-
-    def validation_epoch_end(self, outputs):
-        return self.aggregate_epoch_metrics(outputs)
+        return loss
 
     def test_step(self, batch, batch_idx):
         y_hat, targets = self.predictor.get_predictions_and_targets(self, batch)
@@ -161,10 +151,7 @@ class SimplePLModule(pl.LightningModule):
         )
         self._log_iteration(metrics)
 
-        return metrics
-
-    def test_epoch_end(self, outputs):
-        return self.aggregate_epoch_metrics(outputs)
+        return loss
 
 
 class PLModule(SimplePLModule):
