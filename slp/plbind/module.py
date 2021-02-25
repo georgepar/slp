@@ -3,11 +3,13 @@ import torch.nn as nn
 import torch.optim as optim
 import pytorch_lightning as pl
 
+from loguru import logger
 from pytorch_lightning.core.step_result import Result
 
 from typing import Optional, Dict
 
 from slp.util.types import LossType
+from slp.util.system import print_separator
 
 
 class _Classification(object):
@@ -92,35 +94,39 @@ class SimplePLModule(pl.LightningModule):
 
     def _compute_metrics(self, metrics, loss, y_hat, targets, mode="train"):
         def fmt(name):
-            return f"{mode}::{name}"
+            return f"{mode}_{name}"
 
         metrics = {fmt(k): v(y_hat, targets) for k, v in metrics.items()}
-        metrics[fmt("loss")] = loss
+        if mode == "train":
+            metrics["loss"] = loss
+        else:
+            metrics[fmt("loss")] = loss
 
         return metrics
 
-    def _log_iteration(self, metrics):
-        def fmt(name, when):
-            return f"{name}::{when}"
+    def log_to_console(self, metrics, mode="Training"):
+        logger.info("Epoch {} {} results".format(self.current_epoch, mode))
+        print_separator(symbol="-", n=38, print_fn=logger.info)
+        for name, value in metrics.items():
+            if name == "epoch":
+                continue
+            logger.info("{:<15} {:<15}".format(name, value))
 
-        for k, v in metrics.items():
-            self.log(
-                fmt(k, "step"),
-                v,
-                on_step=True,
-                on_epoch=False,
-                logger=True,
-                prog_bar=False,
-            )
+        print_separator(symbol="*", n=38, print_fn=logger.info)
+        if mode == "Validation":
+            print_separator(symbol="%", n=38, print_fn=logger.info)
 
-            self.log(
-                fmt(k, "epoch"),
-                v,
-                on_step=False,
-                on_epoch=True,
-                logger=True,
-                prog_bar=True,
-            )
+    def aggregate_epoch_metrics(self, outputs, mode="Training"):
+        def fmt(name):
+            return f"{name}" if name != "loss" else "train_loss"
+
+        keys = list(outputs[0].keys())
+        aggregated = {fmt(k): torch.stack([x[k] for x in outputs]).mean() for k in keys}
+        self.log_to_console(aggregated, mode=mode)
+        aggregated["epoch"] = self.current_epoch
+        self.log_dict(aggregated, logger=True, prog_bar=True, on_epoch=True)
+
+        return aggregated
 
     def training_step(self, batch, batch_idx):
         y_hat, targets = self.predictor.get_predictions_and_targets(self.model, batch)
@@ -128,9 +134,21 @@ class SimplePLModule(pl.LightningModule):
         metrics = self._compute_metrics(
             self.train_metrics, loss, y_hat, targets, mode="train"
         )
-        self._log_iteration(metrics)
 
-        return loss
+        self.log_dict(
+            {k: v for k, v in metrics.items()},
+            on_step=True,
+            on_epoch=False,
+            logger=True,
+            prog_bar=False,
+        )
+
+        metrics["loss"] = loss
+
+        return metrics
+
+    def training_epoch_end(self, outputs):
+        outputs = self.aggregate_epoch_metrics(outputs, mode="Training")
 
     def validation_step(self, batch, batch_idx):
         y_hat, targets = self.predictor.get_predictions_and_targets(self, batch)
@@ -138,10 +156,11 @@ class SimplePLModule(pl.LightningModule):
         metrics = self._compute_metrics(
             self.val_metrics, loss, y_hat, targets, mode="val"
         )
-        self._log_iteration(metrics)
-        metrics["loss"] = loss
 
-        return loss
+        return metrics
+
+    def validation_epoch_end(self, outputs):
+        outputs = self.aggregate_epoch_metrics(outputs, mode="Validation")
 
     def test_step(self, batch, batch_idx):
         y_hat, targets = self.predictor.get_predictions_and_targets(self, batch)
@@ -149,9 +168,11 @@ class SimplePLModule(pl.LightningModule):
         metrics = self._compute_metrics(
             self.test_metrics, loss, y_hat, targets, mode="test"
         )
-        self._log_iteration(metrics)
 
-        return loss
+        return metrics
+
+    def test_epoch_end(self, outputs):
+        outputs = self.aggregate_epoch_metrics(outputs, mode="Test")
 
 
 class PLModule(SimplePLModule):

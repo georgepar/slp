@@ -6,7 +6,7 @@ from torchnlp.datasets import smt_dataset  # type: ignore
 
 from slp.plbind.dm import PLDataModuleFromCorpus
 from slp.plbind.module import RnnPLModule
-from slp import configure_logger
+from slp import configure_logging
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
@@ -15,7 +15,7 @@ import pytorch_lightning as pl
 
 EXPERIMENT_NAME = "smt-words-sentiment-classification"
 
-configure_logger(f"logs/{EXPERIMENT_NAME}")
+configure_logging(f"logs/{EXPERIMENT_NAME}")
 
 collate_fn = SequenceClassificationCollator(device="cpu")
 

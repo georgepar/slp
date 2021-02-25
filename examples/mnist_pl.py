@@ -9,7 +9,7 @@ from torchvision.datasets import MNIST  # type: ignore
 
 from loguru import logger
 
-from slp import configure_logger
+from slp import configure_logging
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.module import PLModule
 
@@ -18,7 +18,7 @@ import pytorch_lightning as pl
 
 EXPERIMENT_NAME = "mnist-classification"
 
-configure_logger(f"logs/{EXPERIMENT_NAME}")
+configure_logging(f"logs/{EXPERIMENT_NAME}")
 
 
 class Net(nn.Module):

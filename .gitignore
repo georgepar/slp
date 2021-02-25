@@ -107,4 +107,7 @@ venv.bak/
 .mypy_cache/
 
 *.log
+logs/*
 data/*
+.vscode
+experiments/*

@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from torchnlp.datasets import imdb_dataset  # type: ignore
 
-from slp import configure_logger
+from slp import configure_logging
 from slp.data.corpus import WordCorpus
 from slp.data.datasets import CorpusDataset
 from slp.data.collators import SequenceClassificationCollator
@@ -24,7 +24,7 @@ collate_fn = SequenceClassificationCollator(device="cpu")
 
 EXPERIMENT_NAME = "imdb-sentiment-classification"
 
-configure_logger(f"logs/{EXPERIMENT_NAME}")
+configure_logging(f"logs/{EXPERIMENT_NAME}")
 
 
 if __name__ == "__main__":

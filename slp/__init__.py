@@ -6,7 +6,7 @@ from loguru import logger
 from tqdm import tqdm
 
 
-def configure_logger(logfile_prefix: Optional[str] = None) -> None:
+def configure_logging(logfile_prefix: Optional[str] = None) -> None:
     from slp.util.system import log_to_file
 
     # Intercept standard logging logs in loguru. Should test this for distributed pytorch lightning
