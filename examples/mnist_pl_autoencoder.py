@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import wandb
 from torch.optim import Adam
+
+import pytorch_lightning as pl
 
 from torchvision.transforms import Compose, ToTensor, Normalize  # type: ignore
 from torchvision.datasets import MNIST  # type: ignore
@@ -13,7 +14,6 @@ from slp import configure_logging
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.module import AutoEncoderPLModule
 from slp.plbind.trainer import make_trainer, watch_model
-import pytorch_lightning as pl
 
 
 class Net(nn.Module):

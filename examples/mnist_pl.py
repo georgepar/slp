@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.optim import Adam
+import pytorch_lightning as pl
 
 from torchvision.transforms import Compose, ToTensor, Normalize  # type: ignore
 from torchvision.datasets import MNIST  # type: ignore
@@ -12,13 +13,7 @@ from loguru import logger
 from slp import configure_logging
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.module import PLModule
-
-import pytorch_lightning as pl
-
-
-EXPERIMENT_NAME = "mnist-classification"
-
-configure_logging(f"logs/{EXPERIMENT_NAME}")
+from slp.plbind.trainer import make_trainer, watch_model
 
 
 class Net(nn.Module):
@@ -49,6 +44,10 @@ def get_data():
 
 
 if __name__ == "__main__":
+    EXPERIMENT_NAME = "mnist-classification"
+
+    configure_logging(f"logs/{EXPERIMENT_NAME}")
+
     train, test = get_data()
 
     ldm = PLDataModuleFromDatasets(
@@ -61,5 +60,7 @@ if __name__ == "__main__":
 
     lm = PLModule(model, optimizer, criterion)
 
-    trainer = pl.Trainer(gpus=1)
+    trainer = make_trainer(EXPERIMENT_NAME, max_epochs=100, gpus=1)
+    watch_model(trainer, model)
+
     trainer.fit(lm, datamodule=ldm)

@@ -48,19 +48,3 @@ class TransformerCollator(object):
         mask_targets = pad_m_targets.unsqueeze(-2) * sub_m
         mask_inputs = pad_m_inputs.unsqueeze(-2)
         return inputs, targets, mask_inputs, mask_targets
-
-
-class PackedSequenceCollator(object):
-    def __init__(self, pad_indx=0, device="cpu", batch_first=True):
-        self.seq_collator = SequenceClassificationCollator(
-            pad_indx=pad_indx, device=device
-        )
-        self.batch_first = batch_first
-        self.device = device
-
-    def __call__(self, batch):
-        inputs, targets, lengths = self.seq_collator(batch)
-        inputs = pack_padded_sequence(
-            inputs, lengths, batch_first=self.batch_first, enforce_sorted=False
-        )
-        return inputs, targets.to(self.device), lengths[inputs.sorted_indices]

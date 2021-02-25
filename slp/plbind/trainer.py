@@ -103,6 +103,11 @@ def make_trainer(
     logger.info(f"Logs will be saved in {logging_dir}")
     logger.info(f"Logs will be saved in {checkpoint_dir}")
 
+    if wandb_project is None:
+        wandb_project = experiment_name
+
+    connected = has_internet_connection()
+
     loggers = [
         pl.loggers.CSVLogger(logging_dir, name="csv_logs", version=run_id),
         WdbLogger(
@@ -113,7 +118,7 @@ def make_trainer(
             version=run_id,
             save_code=True,
             checkpoint_dir=checkpoint_dir,
-            offline=not has_internet_connection(),
+            offline=not connected,
             log_model=True,
             entity=wandb_user,
             group=experiment_group,
@@ -123,6 +128,21 @@ def make_trainer(
     ]
 
     logger.info(f"Configured wandb and CSV loggers.")
+    logger.info(
+        f"Wandb configured to run {experiment_name}/{run_id} in project {wandb_project}"
+    )
+    if connected:
+        logger.info(f"Results will be stored online.")
+    else:
+        logger.info(f"Results will be stored offline due to bad internet connection.")
+        logger.info(
+            f"If you want to upload your results later run\n\t wandb sync {logging_dir}/wandb/run-{run_id}"
+        )
+
+    if experiment_description is not None:
+        logger.info(
+            f"Experiment verbose description:\n{experiment_description}\n\nTags:{'n/a' if tags is None else tags}"
+        )
 
     callbacks = [
         pl.callbacks.EarlyStopping(

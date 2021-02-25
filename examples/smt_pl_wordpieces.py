@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import pytorch_lightning as pl
 
 from torch.optim import Adam
 from loguru import logger
@@ -11,19 +12,17 @@ from slp import configure_logging
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
+from slp.plbind.trainer import make_trainer, watch_model
 
-import pytorch_lightning as pl
-
-EXPERIMENT_NAME = "smt-sentiment-classification"
-
-configure_logging(f"logs/{EXPERIMENT_NAME}")
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 collate_fn = SequenceClassificationCollator(device="cpu")
 
 
 if __name__ == "__main__":
+    EXPERIMENT_NAME = "smt-sentiment-classification"
+
+    configure_logging(f"logs/{EXPERIMENT_NAME}")
+
     train, dev = smt_dataset(directory="../data/", train=True, dev=True)
 
     raw_train = [d["text"] for d in train]
@@ -65,5 +64,7 @@ if __name__ == "__main__":
 
     lm = RnnPLModule(model, optimizer, criterion)
 
-    trainer = pl.Trainer(gpus=1)
+    trainer = make_trainer(EXPERIMENT_NAME, max_epochs=100, gpus=1)
+    watch_model(trainer, model)
+
     trainer.fit(lm, datamodule=ldm)
