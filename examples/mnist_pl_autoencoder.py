@@ -72,3 +72,5 @@ if __name__ == "__main__":
     watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)
+
+    trainer.test(ckpt_path='best', test_dataloaders=ldm.test_dataloader())

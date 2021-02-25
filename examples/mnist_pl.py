@@ -14,7 +14,10 @@ from slp import configure_logging
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.module import PLModule
 from slp.plbind.trainer import make_trainer, watch_model
+from slp.plbind.helpers import FromLogits
 
+
+pl.utilities.seed.seed_everything(seed=42)
 
 class Net(nn.Module):
     def __init__(self):
@@ -32,7 +35,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x, dim=-1)
+        return x
 
 
 def get_data():
@@ -56,11 +59,18 @@ if __name__ == "__main__":
 
     model = Net()
     optimizer = Adam(model.parameters(), lr=1e-2)
-    criterion = nn.NLLLoss()
+    criterion = nn.CrossEntropyLoss()
 
-    lm = PLModule(model, optimizer, criterion)
+    lm = PLModule(
+        model,
+        optimizer,
+        criterion,
+        metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
+    )
 
     trainer = make_trainer(EXPERIMENT_NAME, max_epochs=100, gpus=1)
     watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)
+
+    trainer.test(ckpt_path='best', test_dataloaders=ldm.test_dataloader())

@@ -199,9 +199,11 @@ class WordCorpus(object):
         prepend_bos=False,
         append_eos=False,
         lang="en_core_web_md",
+        max_len=-1,
         **kwargs,
     ):
         self.corpus_ = corpus
+        self.max_len = max_len
         self.tokenizer = SpacyTokenizer(
             lower=lower,
             prepend_cls=prepend_cls,
@@ -317,7 +319,12 @@ class WordCorpus(object):
         return len(self.corpus_indices_)
 
     def __getitem__(self, idx):
-        return self.corpus_indices_[idx]
+        indices = self.corpus_indices_[idx]
+        return (
+            self.corpus_indices_[idx]
+            if self.max_len <= 0
+            else self.corpus_indices_[idx][: self.max_len]
+        )
 
 
 class WordpieceCorpus(object):
@@ -330,9 +337,11 @@ class WordpieceCorpus(object):
         prepend_bos=False,
         append_eos=False,
         special_tokens=SPECIAL_TOKENS,
+        max_len=-1,
         **kwargs,
     ):
         self.corpus_ = corpus
+        self.max_len = max_len
 
         logger.info(f"Tokenizing corpus using wordpiece tokenizer from {bert_model}")
 
@@ -400,7 +409,11 @@ class WordpieceCorpus(object):
         return len(self.corpus_indices_)
 
     def __getitem__(self, idx):
-        return self.corpus_indices_[idx]
+        return (
+            self.corpus_indices_[idx]
+            if self.max_len <= 0
+            else self.corpus_indices_[idx][: self.max_len]
+        )
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
 from slp.plbind.trainer import make_trainer, watch_model
+from slp.plbind.helpers import FromLogits
 
 
 collate_fn = SequenceClassificationCollator(device="cpu")
@@ -63,9 +64,21 @@ if __name__ == "__main__":
     optimizer = Adam([p for p in model.parameters() if p.requires_grad], lr=1e-3)
     criterion = nn.CrossEntropyLoss()
 
-    lm = RnnPLModule(model, optimizer, criterion)
+    lm = RnnPLModule(
+        model,
+        optimizer,
+        criterion,
+        metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
+    )
 
-    trainer = make_trainer(EXPERIMENT_NAME, max_epochs=100, gpus=1)
+    trainer = make_trainer(
+        EXPERIMENT_NAME,
+        max_epochs=100,
+        gpus=1,
+        save_top_k=1,
+    )
     watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)
+
+    trainer.test(ckpt_path='best', test_dataloaders=ldm.test_dataloader())

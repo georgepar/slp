@@ -1,61 +1,10 @@
 import os
 import pytorch_lightning as pl
-import wandb
 
-from typing import Optional
 from loguru import logger
 
-from pytorch_lightning.utilities import rank_zero_only
-
 from slp.util.system import safe_mkdirs, date_fname, has_internet_connection
-
-
-class WdbLogger(pl.loggers.WandbLogger):
-    def __init__(
-        self,
-        name: Optional[str] = None,
-        save_dir: Optional[str] = None,
-        offline: Optional[bool] = False,
-        id: Optional[str] = None,
-        anonymous: Optional[bool] = False,
-        version: Optional[str] = None,
-        project: Optional[str] = None,
-        log_model: Optional[bool] = False,
-        experiment=None,
-        prefix: Optional[str] = "",
-        sync_step: Optional[bool] = True,
-        checkpoint_dir: Optional[str] = None,
-        **kwargs,
-    ):
-        self._checkpoint_dir = checkpoint_dir
-        super(WdbLogger, self).__init__(
-            name=name,
-            save_dir=save_dir,
-            offline=offline,
-            id=id,
-            anonymous=anonymous,
-            version=version,
-            project=project,
-            log_model=log_model,
-            experiment=experiment,
-            prefix=prefix,
-            sync_step=sync_step,
-            **kwargs,
-        )
-
-    @rank_zero_only
-    def finalize(self, status: str) -> None:
-        # offset future training logged on same W&B run
-        if self._experiment is not None:
-            self._step_offset = self._experiment.step
-
-        checkpoint_dir = (
-            self._checkpoint_dir if self._checkpoint_dir is not None else self.save_dir
-        )
-
-        # upload all checkpoints from saving dir
-        if self._log_model:
-            wandb.save(os.path.join(checkpoint_dir, "*.ckpt"))
+from slp.plbind.helpers import FixedWandbLogger, EarlyStoppingWithLogs
 
 
 def make_trainer(
@@ -64,6 +13,7 @@ def make_trainer(
     run_id=None,
     experiment_group=None,
     experiments_folder="experiments",
+    save_top_k=3,
     patience=3,
     wandb_project=None,
     wandb_user=None,
@@ -110,7 +60,7 @@ def make_trainer(
 
     loggers = [
         pl.loggers.CSVLogger(logging_dir, name="csv_logs", version=run_id),
-        WdbLogger(
+        FixedWandbLogger(
             name=experiment_name,
             project=wandb_project,
             anonymous=False,
@@ -145,7 +95,7 @@ def make_trainer(
         )
 
     callbacks = [
-        pl.callbacks.EarlyStopping(
+        EarlyStoppingWithLogs(
             monitor="val_loss",
             mode="min",
             patience=patience,
@@ -155,7 +105,7 @@ def make_trainer(
             dirpath=checkpoint_dir,
             filename="{epoch}-{val_loss:.2f}",
             monitor="val_loss",
-            save_top_k=3,
+            save_top_k=save_top_k,
             mode="min",
         ),
         pl.callbacks.LearningRateMonitor(logging_interval="step"),
@@ -177,6 +127,7 @@ def make_trainer(
         precision=precision,
         truncated_bptt_steps=truncated_bptt_steps,
         terminate_on_nan=True,
+        progress_bar_refresh_rate=10,
     )
 
     return trainer

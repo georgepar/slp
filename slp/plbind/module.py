@@ -106,15 +106,13 @@ class SimplePLModule(pl.LightningModule):
 
     def log_to_console(self, metrics, mode="Training"):
         logger.info("Epoch {} {} results".format(self.current_epoch, mode))
-        print_separator(symbol="-", n=38, print_fn=logger.info)
+        print_separator(symbol="-", n=50, print_fn=logger.info)
         for name, value in metrics.items():
             if name == "epoch":
                 continue
             logger.info("{:<15} {:<15}".format(name, value))
 
-        print_separator(symbol="*", n=38, print_fn=logger.info)
-        if mode == "Validation":
-            print_separator(symbol="%", n=38, print_fn=logger.info)
+        print_separator(symbol="%", n=50, print_fn=logger.info)
 
     def aggregate_epoch_metrics(self, outputs, mode="Training"):
         def fmt(name):
@@ -177,35 +175,59 @@ class SimplePLModule(pl.LightningModule):
 
 class PLModule(SimplePLModule):
     def __init__(
-        self, model: nn.Module, optimizer: optim.Optimizer, criterion: LossType
+        self,
+        model: nn.Module,
+        optimizer: optim.Optimizer,
+        criterion: LossType,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
     ):
         super(PLModule, self).__init__(
-            model, optimizer, criterion, predictor_cls=_Classification
+            model, optimizer, criterion, predictor_cls=_Classification, metrics=metrics
         )
 
 
 class AutoEncoderPLModule(SimplePLModule):
     def __init__(
-        self, model: nn.Module, optimizer: optim.Optimizer, criterion: LossType
+        self,
+        model: nn.Module,
+        optimizer: optim.Optimizer,
+        criterion: LossType,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
     ):
         super(AutoEncoderPLModule, self).__init__(
-            model, optimizer, criterion, predictor_cls=_AutoEncoder
+            model, optimizer, criterion, predictor_cls=_AutoEncoder, metrics=metrics
         )
 
 
 class RnnPLModule(SimplePLModule):
     def __init__(
-        self, model: nn.Module, optimizer: optim.Optimizer, criterion: LossType
+        self,
+        model: nn.Module,
+        optimizer: optim.Optimizer,
+        criterion: LossType,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
     ):
         super(RnnPLModule, self).__init__(
-            model, optimizer, criterion, predictor_cls=_RnnClassification
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_RnnClassification,
+            metrics=metrics,
         )
 
 
 class TransformerPLModule(SimplePLModule):
     def __init__(
-        self, model: nn.Module, optimizer: optim.Optimizer, criterion: LossType
+        self,
+        model: nn.Module,
+        optimizer: optim.Optimizer,
+        criterion: LossType,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
     ):
         super(TransformerPLModule, self).__init__(
-            model, optimizer, criterion, predictor_cls=_TransformerClassification
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_TransformerClassification,
+            metrics=metrics,
         )
