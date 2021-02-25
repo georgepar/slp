@@ -9,12 +9,13 @@ engines:
 
 ratings:
   paths:
-    - "**.py"
+    - "slp/**.py"
+    - "examples/**.py"
 
 checks:
   argument-count:
     config:
       # We are writting ML code here.
       # large number of args in __init__ is the default
-      threshold: 20
+      threshold: 30
 
