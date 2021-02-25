@@ -66,7 +66,9 @@ if __name__ == "__main__":
 
     lm = AutoEncoderPLModule(model, optimizer, criterion)
 
-    trainer = make_trainer(EXPERIMENT_NAME, max_epochs=5, gpus=1)
+    trainer = make_trainer(
+        EXPERIMENT_NAME, max_epochs=5, gpus=1, wandb_project="testpl"
+    )
     watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)

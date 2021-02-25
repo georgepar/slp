@@ -9,8 +9,8 @@ engines:
 
 ratings:
   paths:
-    - "slp/**.py"
-    - "examples/**.py"
+    - "slp/"
+    - "examples/"
 
 checks:
   argument-count:
