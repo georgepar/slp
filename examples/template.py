@@ -1,54 +1,53 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-
-import sys
 
 import pytorch_lightning as pl
 from argparse import ArgumentParser
-from torchvision.transforms import Compose, ToTensor, Normalize  # type: ignore
-from torchvision.datasets import MNIST  # type: ignore
 
 from loguru import logger
 
-from slp import configure_logging
-from slp.config.omegaconf import OmegaConfExtended as OmegaConf
+from slp.config import parse_config, make_cli_parser
 from slp.plbind import (
     PLDataModuleFromDatasets,  # or PLDataModuleFromCorpus see slp/plbind/dm.py
     PLModule,  # or any other PLModule. See slp/plbind/module.py
     make_trainer,
     watch_model,
     FromLogits,
-    add_optimizer_args,
-    add_trainer_args,
 )
 
-# Could be read from yaml with OmegaConf.from_yaml
+
+class MyCoolNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x
+
+
 # Configuration format looks like this:
-CONFIG = {
-    "seed": None,
-    "debug": False,  # Perform a debugging run
-    "data": {
-        # Args for PLDataModuleFromDatasets or PLDataModuleFromCorpus
-    }
-    "model": {
-        # Model parameters to be passed when model is instantiated.
-    },
-    "optimizer": "Adam",  # Or any other optimizer from torch.optim
-    "optim": {
-        "lr": 1e-3,
-        "weight_decay": 1e-2,
-    },
-    "trainer": {
-        "experiment_name": "my-cool-experiment",
-        # Args for make_trainer
-    },
-    "lr_scheduler": True,  # Default support for ReduceLROnPlateau
-    "lr_schedule": {
-        # Args for ReduceLROnPlateau
-    },
-}
+# CONFIG_FORMAT = {
+#     "seed": None,
+#     "debug": False,  # Perform a debugging run
+#     "data": {
+#         # Args for PLDataModuleFromDatasets or PLDataModuleFromCorpus
+#     }
+#     "model": {
+#         # Model parameters to be passed when model is instantiated.
+#     },
+#     "optimizer": "Adam",  # Or any other optimizer from torch.optim
+#     "optim": {
+#         "lr": 1e-3,
+#         "weight_decay": 1e-2,
+#     },
+#     "trainer": {
+#         "experiment_name": "my-cool-experiment",
+#         # Args for make_trainer
+#     },
+#     "lr_scheduler": True,  # Default support for ReduceLROnPlateau
+#     "lr_schedule": {
+#         # Args for ReduceLROnPlateau
+#     },
+# }
 
 
 def get_parser():
@@ -76,41 +75,24 @@ def get_data():
 if __name__ == "__main__":
     # Make default argument parser
     parser = get_parser()
-    parser = add_optimizer_args(parser)
-    parser = add_trainer_args(parser)
-    parser = PLDataModuleFromDatasets.add_argparse_args(parser)  # or PLDataModuleFromCorpus.add_argparse_args(parser)
-
-    config_file = parser.parse_args().config  # Path to config file
-
-    # Merge Configurations Precedence: default kwarg values < default argparse values < config file values < user provided CLI args values
-    if config_file is not None:
-        dict_config = OmegaConf.from_yaml(config_file)
-    else:
-        # dict_config = OmegaConf.create(CONFIG)
-        dict_config = OmegaConf.create({})
-    user_cli, default_cli = OmegaConf.from_argparse(parser)
-
-    config = OmegaConf.merge(default_cli, dict_config, user_cli)
-
-    # Setup logging module.
-    EXPERIMENT_NAME = config.trainer.experiment_name
-    configure_logging(f"logs/{EXPERIMENT_NAME}")
-
-    logger.info("Running with the following configuration")
-    logger.info(f"\n{OmegaConf.to_yaml(config)}")
+    parser = make_cli_parser(parser)
+    # Add all default command line parsers and merge with yaml config file.
+    config = parse_config(parser, PLDataModuleFromDatasets)
 
     if config.seed is not None:
         logger.info("Seeding everything with seed={seed}")
         pl.utilities.seed.seed_everything(seed=config.seed)
 
+    # Get your data, preprocess, and create the LightningDataModule
     train, val, test = get_data()
+    ldm = PLDataModuleFromDatasets(
+        train, val=val, test=test, seed=config.seed, **config.data
+    )
 
-    ldm = PLDataModuleFromDatasets(train, val=val, test=test, seed=config.seed, **config.data)
-
+    # Create your model, optimizer, criterion and lr_scheduler.
     model = MyCoolNet(**config.model)
 
     optimizer = getattr(optim, config.optimizer)(model.parameters(), **config.optim)
-    criterion = nn.CrossEntropyLoss()  # for classification or nn.MSELoss() for regression
 
     lr_scheduler = None
     if config.lr_scheduler:
@@ -118,16 +100,23 @@ if __name__ == "__main__":
             optimizer, **config.lr_schedule
         )
 
+    criterion = (
+        nn.CrossEntropyLoss()
+    )  # for classification or nn.MSELoss() for regression
+
+    # Make your Lightning module. Note you can pass the metrics you need to monitor
     lm = PLModule(
         model,
         optimizer,
         criterion,
         lr_scheduler=lr_scheduler,
         metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
-        hparams=config,
+        hparams=config,  # This will automatically log configuration in wandb etc..
     )
 
     if config.debug:
+        # Debug run on a small dataset
+
         logger.info("Running in debug mode: Fast run on 5 batches")
         trainer = make_trainer(fast_dev_run=5)
         trainer.fit(lm, datamodule=ldm)
@@ -137,8 +126,11 @@ if __name__ == "__main__":
         trainer.fit(lm, datamodule=ldm)
 
     else:
+        # Train and evaluate the model
         trainer = make_trainer(**config.trainer)
-        watch_model(trainer, model)
+        watch_model(
+            trainer, model
+        )  # make wandb track gradients, parameters and model graph
 
         trainer.fit(lm, datamodule=ldm)
 

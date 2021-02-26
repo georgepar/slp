@@ -49,12 +49,14 @@ def date_fname() -> str:
 
 
 def log_to_file(fname_prefix: Optional[str]) -> None:
+    logfile = f"{fname_prefix}.{date_fname()}.log"
     logger.add(
-        f"{fname_prefix}.{date_fname()}.log",
+        logfile,
         colorize=False,
         level="DEBUG",
         enqueue=True,
     )
+    return logfile
 
 
 def print_separator(

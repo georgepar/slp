@@ -42,4 +42,6 @@ def configure_logging(logfile_prefix: Optional[str] = None) -> None:
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.INFO)
 
     if logfile_prefix is not None:
-        log_to_file(logfile_prefix)
+        logfile = log_to_file(logfile_prefix)
+
+    return logfile
