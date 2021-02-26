@@ -1,3 +1,4 @@
+import argparse
 import itertools
 from collections import Counter
 
@@ -202,6 +203,7 @@ class WordCorpus(object):
         max_len=-1,
         **kwargs,
     ):
+        # FIXME: Extract super class to avoid repetition
         self.corpus_ = corpus
         self.max_len = max_len
         self.tokenizer = SpacyTokenizer(
@@ -315,6 +317,34 @@ class WordCorpus(object):
     def raw(cls):
         return self.corpus_
 
+    @classmethod
+    def add_corpus_args(cls, parent_parser):
+        parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument("--limit-vocab", dest="data.limit_vocab_size", type=int)
+        parser.add_argument(
+            "--embeddings-file", dest="data.embeddings_file", type=types.dir_path
+        )
+        parser.add_argument("--embeddings-dim", dest="data.embeddings_dim", type=int)
+        parser.add_argument("--lower", dest="data.lower", action="store_true")
+        parser.add_argument("--upper", dest="data.lower", action="store_false")
+        parser.set_defaults(lower=True)
+        parser.add_argument(
+            "--prepend-cls", dest="data.prepend_cls", action="store_true"
+        )
+        parser.add_argument(
+            "--prepend-bos", dest="data.prepend_bos", action="store_true"
+        )
+        parser.add_argument(
+            "--prepend-eos", dest="data.prepend_eos", action="store_true"
+        )
+        parser.add_argument(
+            "--lang", dest="data.lang", type=str, default="en_core_web_md"
+        )
+        parser.add_argument(
+            "--max-sentence-length", dest="data.max_len", type=int, default=-1
+        )
+        return parser
+
     def __len__(self):
         return len(self.corpus_indices_)
 
@@ -404,6 +434,30 @@ class WordpieceCorpus(object):
     @property
     def raw(cls):
         return self.corpus_
+
+    @classmethod
+    def add_corpus_args(cls, parent_parser):
+        parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument("--wordpiece-model", dest="data.bert_model", type=str)
+        parser.add_argument("--lower", dest="data.lower", action="store_true")
+        parser.add_argument("--upper", dest="data.lower", action="store_false")
+        parser.set_defaults(lower=True)
+        parser.add_argument(
+            "--prepend-cls", dest="data.prepend_cls", action="store_true"
+        )
+        parser.add_argument(
+            "--prepend-bos", dest="data.prepend_bos", action="store_true"
+        )
+        parser.add_argument(
+            "--prepend-eos", dest="data.prepend_eos", action="store_true"
+        )
+        parser.add_argument(
+            "--lang", dest="data.lang", type=str, default="en_core_web_md"
+        )
+        parser.add_argument(
+            "--max-sentence-length", dest="data.max_len", type=int, default=-1
+        )
+        return parser
 
     def __len__(self):
         return len(self.corpus_indices_)

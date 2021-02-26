@@ -1,37 +1,250 @@
+import argparse
 import os
 import pytorch_lightning as pl
 
 from loguru import logger
+from typing import Optional, Sequence
 
+from slp.util.types import dir_path
 from slp.util.system import safe_mkdirs, date_fname, has_internet_connection
 from slp.plbind.helpers import FixedWandbLogger, EarlyStoppingWithLogs
 
 
+def add_trainer_args(parent_parser):
+    parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+    parser.add_argument(
+        "--seed",
+        dest="seed",
+        type=int,
+        default=None,
+        help="Seed for reproducibility",
+    )
+
+    parser.add_argument(
+        "--config",
+        dest="config",
+        type=dir_path,
+        default=None,
+        help="Path to YAML configuration file",
+    )
+
+    parser.add_argument(
+        "--experiment-name",
+        dest="trainer.experiment_name",
+        type=str,
+        help="Name of the running experiment",
+    )
+
+    parser.add_argument(
+        "--run-id",
+        dest="trainer.run_id",
+        type=str,
+        help="Unique identifier for the current run. If not provided it is inferred from datetime.now()",
+    )
+
+    parser.add_argument(
+        "--experiment-group",
+        dest="trainer.experiment_group",
+        type=str,
+        help="Group of current experiment. Useful when evaluating for different seeds / cross-validation etc.",
+    )
+
+    parser.add_argument(
+        "--experiments-folder",
+        dest="trainer.experiments_folder",
+        type=str,
+        default="experiments",
+        help="Top-level folder where experiment results & checkpoints are saved",
+    )
+
+    parser.add_argument(
+        "--save-top-k",
+        dest="trainer.save_top_k",
+        type=int,
+        help="Save checkpoints for top k models",
+    )
+
+    parser.add_argument(
+        "--patience",
+        dest="trainer.patience",
+        type=int,
+        help="Number of epochs to wait before early stopping",
+    )
+
+    parser.add_argument(
+        "--wandb-project",
+        dest="trainer.wandb_project",
+        type=str,
+        help="Wandb project under which results are saved",
+    )
+
+    parser.add_argument(
+        "--tags",
+        dest="trainer.tags",
+        type=str,
+        nargs="*",
+        help="Tags for current run to make results searchable.",
+    )
+
+    parser.add_argument(
+        "--stochastic_weight_avg",
+        dest="trainer.stochastic_weight_avg",
+        action="store_true",
+        help="Use Stochastic weight averaging.",
+    )
+
+    parser.add_argument(
+        "--gpus", dest="trainer.gpus", type=int, help="Number of GPUs to use"
+    )
+
+    parser.add_argument(
+        "--val-interval",
+        dest="trainer.check_val_every_n_epoch",
+        type=int,
+        default=1,
+        help="Run validation every n epochs",
+    )
+
+    parser.add_argument(
+        "--clip-grad-norm",
+        dest="trainer.gradient_clip_val",
+        type=float,
+        help="Clip gradients with ||grad(w)|| >= args.clip_grad_norm",
+    )
+
+    parser.add_argument(
+        "--epochs",
+        dest="trainer.max_epochs",
+        type=int,
+        help="Maximum number of training epochs",
+    )
+
+    parser.add_argument(
+        "--steps",
+        dest="trainer.max_steps",
+        type=int,
+        help="Maximum number of training steps",
+    )
+
+    parser.add_argument(
+        "--tbtt_steps",
+        dest="trainer.truncated_bptt_steps",
+        type=int,
+        help="Truncated Back-propagation-through-time steps.",
+    )
+
+    parser.add_argument(
+        "--debug",
+        dest="debug",
+        action="store_true",
+        help="If true, we run a full run on a small subset of the input data and overfit 10 training batches",
+    )
+
+    return parser
+
+
+def add_optimizer_args(parent_parser):
+    parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+    parser.add_argument(
+        "--optimizer",
+        dest="optimizer",
+        type=str,
+        choices=[
+            "Adam",
+            "AdamW",
+            "SGD",
+            "Adadelta",
+            "Adagrad",
+            "Adamax",
+            "ASGD",
+            "RMSprop",
+        ],
+        help="Which optimizer to use",
+    )
+
+    parser.add_argument(
+        "--lr",
+        dest="optim.lr",
+        type=float,
+        help="Learning rate",
+    )
+
+    parser.add_argument(
+        "--weight-decay",
+        dest="optim.weight_decay",
+        type=float,
+        help="Learning rate",
+    )
+
+    parser.add_argument(
+        "--lr-scheduler",
+        dest="lr_scheduler",
+        action="store_true",
+        # type=str,
+        # choices=["ReduceLROnPlateau"],
+        help="Use learning rate scheduling. Currently only ReduceLROnPlateau is supported out of the box",
+    )
+
+    parser.add_argument(
+        "--lr-factor",
+        dest="lr_schedule.factor",
+        type=float,
+        help="Multiplicative factor by which LR is reduced. Used if --lr-scheduler is provided.",
+    )
+
+    parser.add_argument(
+        "--lr-patience",
+        dest="lr_schedule.patience",
+        type=int,
+        help="Number of epochs with no improvement after which learning rate will be reduced. Used if --lr-scheduler is provided.",
+    )
+
+    parser.add_argument(
+        "--lr-cooldown",
+        dest="lr_schedule.cooldown",
+        type=int,
+        help="Number of epochs to wait before resuming normal operation after lr has been reduced. Used if --lr-scheduler is provided.",
+    )
+
+    parser.add_argument(
+        "--min-lr",
+        dest="lr_schedule.min_lr",
+        type=float,
+        help="Minimum lr for LR scheduling. Used if --lr-scheduler is provided.",
+    )
+
+    return parser
+
+
 def make_trainer(
-    experiment_name,
-    experiment_description=None,
-    run_id=None,
-    experiment_group=None,
-    experiments_folder="experiments",
-    save_top_k=3,
-    patience=3,
-    wandb_project=None,
-    wandb_user=None,
-    tags=None,
-    swa_epoch_start=None,
-    stochastic_weight_avg=False,
-    auto_scale_batch_size=False,
-    gpus=0,
-    check_val_every_n_epoch=1,
-    gradient_clip_val=0,
-    precision=32,
-    max_epochs=100,
-    max_steps=None,
-    truncated_bptt_steps=None,
-    debug=False,
+    experiment_name: str = "experiment",
+    experiment_description: Optional[str] = None,
+    run_id: Optional[str] = None,
+    experiment_group: Optional[str] = None,
+    experiments_folder: str = "experiments",
+    save_top_k: int = 3,
+    patience: int = 3,
+    wandb_project: Optional[str] = None,
+    wandb_user: Optional[str] = None,
+    tags: Optional[Sequence] = None,
+    stochastic_weight_avg: bool = False,
+    auto_scale_batch_size: bool = False,
+    gpus: int = 0,
+    check_val_every_n_epoch: int = 1,
+    gradient_clip_val: float = 0,
+    precision: int = 32,
+    max_epochs: Optional[int] = 100,
+    max_steps: Optional[int] = None,
+    truncated_bptt_steps: Optional[int] = None,
+    fast_dev_run: Optional[int] = None,
+    overfit_batches: Optional[int] = None,
 ):
-    if debug:
-        trainer = pl.Trainer(overfit_batches=0.01, fast_dev_run=5)
+    if overfit_batches is not None:
+        trainer = pl.Trainer(overfit_batches=overfit_batches, gpus=gpus)
+        return trainer
+
+    if fast_dev_run is not None:
+        trainer = pl.Trainer(fast_dev_run=fast_dev_run, gpus=gpus)
         return trainer
 
     logging_dir = os.path.join(experiments_folder, experiment_name)

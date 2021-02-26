@@ -1,9 +1,10 @@
+import os
 import numpy as np
 import torch
 import validators
+import argparse
 from torch.optim.optimizer import Optimizer
 from omegaconf import DictConfig
-from argparse import Namespace
 from typing import Dict, Union, List, TypeVar, Tuple, Callable, Any
 
 T = TypeVar("T")
@@ -25,4 +26,13 @@ ValidationResult = Union[validators.ValidationFailure, bool]
 
 GenericDict = Dict[K, V]
 
-Configuration = Union[DictConfig, Dict[str, Any], Namespace]
+Configuration = Union[DictConfig, Dict[str, Any], argparse.Namespace]
+
+
+def dir_path(path):
+    if os.path.isdir(path):
+        return path
+    else:
+        raise argparse.ArgumentTypeError(
+            f"You provided {path}, which is not a valid path"
+        )
