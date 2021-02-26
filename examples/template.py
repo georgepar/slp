@@ -64,6 +64,15 @@ def get_parser():
     return parser
 
 
+def get_config():
+    # Your config parsing goes here.
+    parser = get_parser()
+    parser = make_cli_parser(parser)
+    # Add all default command line parsers and merge with yaml config file.
+    config = parse_config(parser, PLDataModuleFromDatasets)
+    return config
+
+
 def get_data():
     # Download the original train, dev and test splits.
     # If a dev or test split is not provided, then it will be split randomly from the training set
@@ -72,23 +81,7 @@ def get_data():
     return train, val, test
 
 
-if __name__ == "__main__":
-    # Make default argument parser
-    parser = get_parser()
-    parser = make_cli_parser(parser)
-    # Add all default command line parsers and merge with yaml config file.
-    config = parse_config(parser, PLDataModuleFromDatasets)
-
-    if config.seed is not None:
-        logger.info("Seeding everything with seed={seed}")
-        pl.utilities.seed.seed_everything(seed=config.seed)
-
-    # Get your data, preprocess, and create the LightningDataModule
-    train, val, test = get_data()
-    ldm = PLDataModuleFromDatasets(
-        train, val=val, test=test, seed=config.seed, **config.data
-    )
-
+def get_lightning_module(config):
     # Create your model, optimizer, criterion and lr_scheduler.
     model = MyCoolNet(**config.model)
 
@@ -105,7 +98,7 @@ if __name__ == "__main__":
     )  # for classification or nn.MSELoss() for regression
 
     # Make your Lightning module. Note you can pass the metrics you need to monitor
-    lm = PLModule(
+    lm = PLModule(  # or RnnPLModule etc...
         model,
         optimizer,
         criterion,
@@ -113,6 +106,29 @@ if __name__ == "__main__":
         metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
         hparams=config,  # This will automatically log configuration in wandb etc..
     )
+
+    return lm
+
+
+def get_lightning_data_module(config):
+    # Get your data, preprocess, and create the LightningDataModule
+    train, val, test = get_data()
+    ldm = PLDataModuleFromDatasets(
+        train, val=val, test=test, seed=config.seed, **config.data
+    )
+    return ldm
+
+
+if __name__ == "__main__":
+    # Boilerplate: Implement get_config, get_data, get_lightning_data_module, get_lightning_module
+    config = get_config()
+
+    if config.seed is not None:
+        logger.info("Seeding everything with seed={seed}")
+        pl.utilities.seed.seed_everything(seed=config.seed)
+
+    ldm = get_lightning_data_module(config)
+    lm = get_lightning_module(config)
 
     if config.debug:
         # Debug run on a small dataset
