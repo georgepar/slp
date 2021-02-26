@@ -5,20 +5,39 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchnlp.datasets import wikitext_2_dataset  # type: ignore
 
+import pytorch_lightning as pl
+
+from slp import configure_logging
 from slp.config import SPECIAL_TOKENS
-from slp.data.datasets import LMDataset
-from slp.data.collators import TransformerCollator
-from slp.data.corpus import create_vocab
+from slp.data import (
+    LMDataset,
+    TransformerCollator,
+    create_vocab,
+    ReplaceUnknownToken,
+    ToTokenIds,
+    ToTensor,
+)
+
+
 from slp.modules.transformer import Transformer
-from slp.data.transforms import ReplaceUnknownToken, ToTokenIds, ToTensor
-from slp.trainer import TransformerTrainer
+from slp.plbind import (
+    PLDataModuleFromDatasets,
+    FromLogits,
+    TransformerPLModule,
+    make_trainer,
+    watch_model,
+)
+
 
 collate_fn = TransformerCollator(device="cpu")
 
 
 if __name__ == "__main__":
-    max_len = 64  # TODO: argparse this
-    vocab_size = 5000
+    EXPERIMENT_NAME = "transformer-wikitext2"
+    configure_logging(f"logs/{EXPERIMENT_NAME}")
+
+    max_len = 80  # TODO: argparse this
+    vocab_size = 20000
     lr = 1e-4
 
     train, dev, test = wikitext_2_dataset(
@@ -32,6 +51,10 @@ if __name__ == "__main__":
         eos_token=SPECIAL_TOKENS.EOS.value,
     )
 
+    train = train
+    dev = dev
+    test = test
+
     vocab = create_vocab(
         train + dev, vocab_size=vocab_size, special_tokens=SPECIAL_TOKENS
     )
@@ -40,50 +63,49 @@ if __name__ == "__main__":
     to_token_ids = ToTokenIds(vocab)
     to_tensor = ToTensor(device="cpu")
 
-    def create_dataloader(base):
-        wrapped = (
+    def create_dataset(base):
+        return (
             LMDataset(base, max_len=max_len)
             .map(replace_unk)
             .map(to_token_ids)
             .map(to_tensor)
             .apply_transforms()
         )
-        return DataLoader(
-            wrapped,
-            batch_size=128,
-            num_workers=1,
-            pin_memory=True,
-            collate_fn=collate_fn,
-        )
 
-    train_loader = create_dataloader(train[:1000])
-    dev_loader = create_dataloader(dev[:1000])
-    test_loader = create_dataloader(test[:1000])
+    train, dev, test = map(create_dataset, [train, dev, test])
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    ldm = PLDataModuleFromDatasets(
+        train,
+        val=dev,
+        test=test,
+        batch_size=64,
+        batch_size_eval=128,
+        drop_last=True,
+        collate_fn=collate_fn,
+    )
+
     model = Transformer(
-        vocab_size=vocab_size,
+        vocab_size=len(vocab),
         max_length=max_len,
         num_layers=2,
         hidden_size=128,
         num_heads=4,
-        inner_size=512,
+        inner_size=256,
     )
 
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr)
+    criterion = nn.CrossEntropyLoss()
 
-    trainer = TransformerTrainer(
+    lm = TransformerPLModule(
         model,
         optimizer,
-        checkpoint_dir="../../checkpoints",
-        experiment_name="transformer_lm",
-        metrics=None,
-        patience=4,
-        validate_every=1,
-        accumulation_steps=2,
-        loss_fn=nn.CrossEntropyLoss(),
-        non_blocking=True,
-        device=device,
+        criterion,
+        metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
     )
 
-    trainer.fit(train_loader, dev_loader, epochs=10)
+    trainer = make_trainer(EXPERIMENT_NAME, max_epochs=100, gpus=1)
+    watch_model(trainer, model)
+
+    trainer.fit(lm, datamodule=ldm)
+
+    trainer.test(ckpt_path="best", test_dataloaders=ldm.test_dataloader())

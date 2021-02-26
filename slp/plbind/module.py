@@ -1,15 +1,20 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import pytorch_lightning as pl
 
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
+
+from argparse import Namespace
+from omegaconf import DictConfig
 from loguru import logger
 from pytorch_lightning.core.step_result import Result
 
-from typing import Optional, Dict
+from typing import Optional, Dict, Union, List
 
-from slp.util.types import LossType
+from slp.util.types import LossType, Configuration
 from slp.util.system import print_separator
+from slp.config.omegaconf import OmegaConf
 
 
 class _Classification(object):
@@ -61,18 +66,41 @@ class _TransformerClassification(object):
         return y_pred, targets
 
 
+class _Transformer(object):
+    def parse_batch(self, batch):
+        inputs = batch[0]
+        targets = batch[1]
+        source_mask = batch[2]
+        target_mask = batch[3]
+        return inputs, targets, source_mask, target_mask
+
+    def get_predictions_and_targets(self, model, batch):
+        inputs, targets, source_mask, target_mask = self.parse_batch(batch)
+        y_pred = model(
+            inputs, targets, source_mask=source_mask, target_mask=target_mask
+        )
+
+        y_pred = y_pred.view(-1, y_pred.size(-1))
+        targets = targets.view(-1)
+
+        return y_pred, targets
+
+
 class SimplePLModule(pl.LightningModule):
     def __init__(
         self,
         model: nn.Module,
-        optimizer: optim.Optimizer,
+        optimizer: Union[Optimizer, List[Optimizer]],
         criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
         metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
         predictor_cls=_Classification,
     ):
         super(SimplePLModule, self).__init__()
         self.model = model
         self.optimizer = optimizer
+        self.lr_scheduler = lr_scheduler
         self.criterion = criterion
         if metrics is not None:
             self.train_metrics = nn.ModuleDict(metrics)
@@ -86,8 +114,21 @@ class SimplePLModule(pl.LightningModule):
             self.test_metrics = {}
         self.predictor = predictor_cls()
 
+        if hparams is not None:
+            if isinstance(hparams, Namespace):
+                dict_params = vars(hparams)
+            elif isinstance(hparams, DictConfig):
+                dict_params = OmegaConf.to_container(hparams)
+            else:
+                dict_params = hparams
+            self.hparams = dict_params
+            self.save_hyperparameters(dict_params)
+
     def configure_optimizers(self):
-        return self.optimizer
+        if self.lr_scheduler is not None:
+            return self.optimizer, self.lr_scheduler
+        else:
+            return self.optimizer
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -173,61 +214,33 @@ class SimplePLModule(pl.LightningModule):
         outputs = self.aggregate_epoch_metrics(outputs, mode="Test")
 
 
-class PLModule(SimplePLModule):
-    def __init__(
-        self,
-        model: nn.Module,
-        optimizer: optim.Optimizer,
-        criterion: LossType,
-        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
-    ):
-        super(PLModule, self).__init__(
-            model, optimizer, criterion, predictor_cls=_Classification, metrics=metrics
-        )
+def _make_specialized_pl_module(predictor_cls):
+    class Module(SimplePLModule):
+        def __init__(
+            self,
+            model: nn.Module,
+            optimizer: Union[Optimizer, List[Optimizer]],
+            criterion: LossType,
+            lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+            hparams: Configuration = None,
+            metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        ):
+            super(Module, self).__init__(
+                model,
+                optimizer,
+                criterion,
+                predictor_cls=predictor_cls,
+                metrics=metrics,
+                hparams=hparams,
+            )
+
+    return Module
 
 
-class AutoEncoderPLModule(SimplePLModule):
-    def __init__(
-        self,
-        model: nn.Module,
-        optimizer: optim.Optimizer,
-        criterion: LossType,
-        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
-    ):
-        super(AutoEncoderPLModule, self).__init__(
-            model, optimizer, criterion, predictor_cls=_AutoEncoder, metrics=metrics
-        )
-
-
-class RnnPLModule(SimplePLModule):
-    def __init__(
-        self,
-        model: nn.Module,
-        optimizer: optim.Optimizer,
-        criterion: LossType,
-        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
-    ):
-        super(RnnPLModule, self).__init__(
-            model,
-            optimizer,
-            criterion,
-            predictor_cls=_RnnClassification,
-            metrics=metrics,
-        )
-
-
-class TransformerPLModule(SimplePLModule):
-    def __init__(
-        self,
-        model: nn.Module,
-        optimizer: optim.Optimizer,
-        criterion: LossType,
-        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
-    ):
-        super(TransformerPLModule, self).__init__(
-            model,
-            optimizer,
-            criterion,
-            predictor_cls=_TransformerClassification,
-            metrics=metrics,
-        )
+PLModule = _make_specialized_pl_module(_Classification)
+AutoEncoderPLModule = _make_specialized_pl_module(_AutoEncoder)
+RnnPLModule = _make_specialized_pl_module(_RnnClassification)
+TransformerClassificationPLModule = _make_specialized_pl_module(
+    _TransformerClassification
+)
+TransformerPLModule = _make_specialized_pl_module(_Transformer)

@@ -2,8 +2,9 @@ import numpy as np
 import torch
 import validators
 from torch.optim.optimizer import Optimizer
-
-from typing import Dict, Union, List, TypeVar, Tuple, Callable
+from omegaconf import DictConfig
+from argparse import Namespace
+from typing import Dict, Union, List, TypeVar, Tuple, Callable, Any
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -23,3 +24,5 @@ Embeddings = Tuple[Dict[str, int], Dict[int, str], np.ndarray]
 ValidationResult = Union[validators.ValidationFailure, bool]
 
 GenericDict = Dict[K, V]
+
+Configuration = Union[DictConfig, Dict[str, Any], Namespace]

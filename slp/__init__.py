@@ -4,6 +4,7 @@ import logging
 from typing import Optional, Any
 from loguru import logger
 from tqdm import tqdm
+import slp.util.debug
 
 
 def configure_logging(logfile_prefix: Optional[str] = None) -> None:
