@@ -177,7 +177,7 @@ class Transformer(nn.Module):
             dropout=dropout,
             trainable=True,
         )
-        self.pe = PositionalEncoding(max_length, embedding_dim=hidden_size)
+        self.pe = PositionalEncoding(embedding_dim=hidden_size, max_len=max_length)
         self.transformer_block = EncoderDecoder(
             num_layers=num_layers,
             hidden_size=hidden_size,

@@ -19,4 +19,5 @@ class LayerNormTf(nn.Module):
         return self.weight * x + self.bias
 
 
+#LayerNorm = LayerNormTf
 LayerNorm = nn.LayerNorm
