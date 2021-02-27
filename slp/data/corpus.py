@@ -1,4 +1,3 @@
-import argparse
 import itertools
 from collections import Counter
 
@@ -317,34 +316,6 @@ class WordCorpus(object):
     def raw(cls):
         return self.corpus_
 
-    @classmethod
-    def add_corpus_args(cls, parent_parser):
-        parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--limit-vocab", dest="data.limit_vocab_size", type=int)
-        parser.add_argument(
-            "--embeddings-file", dest="data.embeddings_file", type=types.dir_path
-        )
-        parser.add_argument("--embeddings-dim", dest="data.embeddings_dim", type=int)
-        parser.add_argument("--lower", dest="data.lower", action="store_true")
-        parser.add_argument("--upper", dest="data.lower", action="store_false")
-        parser.set_defaults(lower=True)
-        parser.add_argument(
-            "--prepend-cls", dest="data.prepend_cls", action="store_true"
-        )
-        parser.add_argument(
-            "--prepend-bos", dest="data.prepend_bos", action="store_true"
-        )
-        parser.add_argument(
-            "--prepend-eos", dest="data.prepend_eos", action="store_true"
-        )
-        parser.add_argument(
-            "--lang", dest="data.lang", type=str, default="en_core_web_md"
-        )
-        parser.add_argument(
-            "--max-sentence-length", dest="data.max_len", type=int, default=-1
-        )
-        return parser
-
     def __len__(self):
         return len(self.corpus_indices_)
 
@@ -435,29 +406,110 @@ class WordpieceCorpus(object):
     def raw(cls):
         return self.corpus_
 
-    @classmethod
-    def add_corpus_args(cls, parent_parser):
-        parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--wordpiece-model", dest="data.bert_model", type=str)
-        parser.add_argument("--lower", dest="data.lower", action="store_true")
-        parser.add_argument("--upper", dest="data.lower", action="store_false")
-        parser.set_defaults(lower=True)
-        parser.add_argument(
-            "--prepend-cls", dest="data.prepend_cls", action="store_true"
+    def __len__(self):
+        return len(self.corpus_indices_)
+
+    def __getitem__(self, idx):
+        return (
+            self.corpus_indices_[idx]
+            if self.max_len <= 0
+            else self.corpus_indices_[idx][: self.max_len]
         )
-        parser.add_argument(
-            "--prepend-bos", dest="data.prepend_bos", action="store_true"
+
+
+class TokenizedCorpus(object):
+    def __init__(
+        self,
+        corpus,
+        word2idx=None,
+        prepend_cls=False,
+        prepend_bos=False,
+        append_eos=False,
+        special_tokens=SPECIAL_TOKENS,
+        max_len=-1,
+        **kwargs,
+    ):
+        self.corpus_ = corpus
+        self.max_len = max_len
+
+        self.pre_id = []
+        self.post_id = []
+        if prepend_cls and prepend_bos:
+            raise ValueError("prepend_bos and prepend_cls are" " mutually exclusive")
+        if prepend_cls:
+            logger.info("Prepending [CLS] token to each sentence")
+            self.pre_id.append(self.specials.CLS.value)
+        if prepend_bos:
+            logger.info("Prepending [BOS] token to each sentence")
+            self.pre_id.append(self.specials.BOS.value)
+        if append_eos:
+            logger.info("Appending [EOS] token to each sentence")
+            self.post_id.append(self.specials.EOS.value)
+
+        self.tokenized_corpus_ = [self.pre_id + x + self.post_id for x in self.corpus_]
+
+        self.vocab_ = create_vocab(
+            self.tokenized_corpus_,
+            vocab_size=-1,
+            special_tokens=special_tokens,
         )
-        parser.add_argument(
-            "--prepend-eos", dest="data.prepend_eos", action="store_true"
-        )
-        parser.add_argument(
-            "--lang", dest="data.lang", type=str, default="en_core_web_md"
-        )
-        parser.add_argument(
-            "--max-sentence-length", dest="data.max_len", type=int, default=-1
-        )
-        return parser
+
+        if word2idx is not None:
+            logger.info("Converting tokens to ids using word2idx.")
+            self.word2idx_ = word2idx
+        else:
+            logger.info(
+                "No word2idx provided. Will convert tokens to ids using an iterative counter."
+            )
+            self.word2idx_ = dict(zip(self.vocab_.keys(), itertools.count()))
+
+        self.idx2word_ = {v: k for k, v in self.word2idx_.items()}
+
+        self.to_token_ids = ToTokenIds(self.word2idx_, specials=SPECIAL_TOKENS)
+        self.corpus_indices_ = [
+            self.to_token_ids(s)
+            for s in tqdm(
+                self.tokenized_corpus_,
+                desc="Converting tokens to token ids...",
+                leave=False,
+            )
+        ]
+
+    @property
+    def vocab_size(cls):
+        return len(cls.vocab_)
+
+    @property
+    def frequencies(cls):
+        return cls.vocab_
+
+    @property
+    def vocab(cls):
+        return set(cls.vocab_.keys())
+
+    @property
+    def embeddings(cls):
+        return None
+
+    @property
+    def word2idx(cls):
+        return cls.word2idx_
+
+    @property
+    def idx2word(cls):
+        return cls.idx2word_
+
+    @property
+    def tokenized(cls):
+        return self.tokenized_corpus_
+
+    @property
+    def indices(cls):
+        return self.corpus_indices_
+
+    @property
+    def raw(cls):
+        return self.corpus_
 
     def __len__(self):
         return len(self.corpus_indices_)
