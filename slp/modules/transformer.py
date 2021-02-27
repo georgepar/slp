@@ -40,7 +40,9 @@ class Sublayer3(nn.Module):
         )
 
     def forward(self, x, y, attention_mask=None):
-        return self.lnorm(x + self.sublayer(x, values=y, attention_mask=attention_mask))
+        return self.lnorm(
+            x + self.sublayer(x, queries=y, values=x, attention_mask=attention_mask)
+        )
 
 
 class EncoderLayer(nn.Module):
@@ -95,9 +97,9 @@ class DecoderLayer(nn.Module):
             hidden_size=hidden_size, inner_size=inner_size, dropout=dropout
         )
 
-    def forward(self, x, encoded, source_mask=None, target_mask=None):
-        out = self.in_layer(x, attention_mask=target_mask)
-        out = self.fuse_layer(encoded, out, attention_mask=source_mask)
+    def forward(self, targets, encoded, source_mask=None, target_mask=None):
+        targets = self.in_layer(targets, attention_mask=target_mask)
+        out = self.fuse_layer(encoded, targets, attention_mask=source_mask)
         out = self.out_layer(out)
         return out
 
