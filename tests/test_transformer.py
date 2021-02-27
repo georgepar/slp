@@ -6,7 +6,7 @@ import torch.optim as optim
 
 from torch.utils.data import DataLoader, Dataset
 
-from slp.config import SPECIAL_TOKENS
+from slp.config.nlp import SPECIAL_TOKENS
 from slp.data.collators import TransformerCollator
 from slp.data.vocab import create_vocab
 from slp.modules.transformer import Transformer
