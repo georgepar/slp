@@ -1,6 +1,6 @@
 from loguru import logger
 
-from slp import configure_logging
+from slp.util.log import configure_logging
 from slp.config.omegaconf import OmegaConf
 from slp.plbind import add_trainer_args, add_optimizer_args
 
