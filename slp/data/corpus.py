@@ -12,9 +12,9 @@ from tqdm import tqdm
 from typing import cast, Any, Dict, Optional, List, Union, Iterator, Tuple
 
 from slp.data.transforms import SpacyTokenizer, WordpieceTokenizer, ToTokenIds
-from slp.util import system
-from slp.util import types
-from slp.config import SPECIAL_TOKENS
+import slp.util.system as system
+import slp.util.types as types
+from slp.config.nlp import SPECIAL_TOKENS
 
 
 def create_vocab(
@@ -422,31 +422,13 @@ class TokenizedCorpus(object):
         self,
         corpus,
         word2idx=None,
-        prepend_cls=False,
-        prepend_bos=False,
-        append_eos=False,
         special_tokens=SPECIAL_TOKENS,
         max_len=-1,
         **kwargs,
     ):
         self.corpus_ = corpus
+        self.tokenized_corpus_ = corpus
         self.max_len = max_len
-
-        self.pre_id = []
-        self.post_id = []
-        if prepend_cls and prepend_bos:
-            raise ValueError("prepend_bos and prepend_cls are" " mutually exclusive")
-        if prepend_cls:
-            logger.info("Prepending [CLS] token to each sentence")
-            self.pre_id.append(self.specials.CLS.value)
-        if prepend_bos:
-            logger.info("Prepending [BOS] token to each sentence")
-            self.pre_id.append(self.specials.BOS.value)
-        if append_eos:
-            logger.info("Appending [EOS] token to each sentence")
-            self.post_id.append(self.specials.EOS.value)
-
-        self.tokenized_corpus_ = [self.pre_id + x + self.post_id for x in self.corpus_]
 
         self.vocab_ = create_vocab(
             self.tokenized_corpus_,
@@ -466,14 +448,17 @@ class TokenizedCorpus(object):
         self.idx2word_ = {v: k for k, v in self.word2idx_.items()}
 
         self.to_token_ids = ToTokenIds(self.word2idx_, specials=SPECIAL_TOKENS)
-        self.corpus_indices_ = [
-            self.to_token_ids(s)
-            for s in tqdm(
-                self.tokenized_corpus_,
-                desc="Converting tokens to token ids...",
-                leave=False,
-            )
-        ]
+        if isinstance(self.tokenized_corpus_[0], list):
+            self.corpus_indices_ = [
+                self.to_token_ids(s)
+                for s in tqdm(
+                    self.tokenized_corpus_,
+                    desc="Converting tokens to token ids...",
+                    leave=False,
+                )
+            ]
+        else:
+            self.corpus_indices_ = self.to_token_ids(self.tokenized_corpus_)
 
     @property
     def vocab_size(cls):
@@ -541,3 +526,6 @@ if __name__ == "__main__":
     )
 
     wordpiece_corpus = WordpieceCorpus(corpus, prepend_cls=True)
+    import ipdb
+
+    ipdb.set_trace()
