@@ -8,7 +8,7 @@ from torchnlp.datasets import smt_dataset  # type: ignore
 
 from slp.plbind.dm import PLDataModuleFromCorpus
 from slp.plbind.module import RnnPLModule
-from slp import configure_logging
+from slp.util.log import configure_logging
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN

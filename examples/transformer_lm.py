@@ -7,21 +7,15 @@ from torchnlp.datasets import wikitext_2_dataset  # type: ignore
 
 import pytorch_lightning as pl
 
-from slp import configure_logging
-from slp.config import SPECIAL_TOKENS
-from slp.data import (
-    LMDataset,
-    TransformerCollator,
-    create_vocab,
-    ReplaceUnknownToken,
-    ToTokenIds,
-    ToTensor,
-)
+from torchnlp.samplers import BPTTBatchSampler
+from slp.util.log import configure_logging
+from slp.config.nlp import SPECIAL_TOKENS
+from slp.data import TransformerCollator
 
 
 from slp.modules.transformer import Transformer
 from slp.plbind import (
-    PLDataModuleFromDatasets,
+    PLDataModuleFromCorpus,
     FromLogits,
     TransformerPLModule,
     make_trainer,
@@ -36,8 +30,8 @@ if __name__ == "__main__":
     EXPERIMENT_NAME = "transformer-wikitext2"
     configure_logging(f"logs/{EXPERIMENT_NAME}")
 
-    max_len = 80  # TODO: argparse this
-    vocab_size = 20000
+    bptt = 35  # TODO: argparse this
+    vocab_size = -1
     lr = 1e-4
 
     train, dev, test = wikitext_2_dataset(
@@ -51,46 +45,34 @@ if __name__ == "__main__":
         eos_token=SPECIAL_TOKENS.EOS.value,
     )
 
-    train = train
-    dev = dev
-    test = test
+    # train = train[:1000]
+    # dev = dev[:1000]
+    # test = test[:1000]
 
-    vocab = create_vocab(
-        train + dev, vocab_size=vocab_size, special_tokens=SPECIAL_TOKENS
-    )
-    vocab = dict(zip(vocab.keys(), itertools.count()))
-    replace_unk = ReplaceUnknownToken()
-    to_token_ids = ToTokenIds(vocab)
-    to_tensor = ToTensor(device="cpu")
-
-    def create_dataset(base):
-        return (
-            LMDataset(base, max_len=max_len)
-            .map(replace_unk)
-            .map(to_token_ids)
-            .map(to_tensor)
-            .apply_transforms()
-        )
-
-    train, dev, test = map(create_dataset, [train, dev, test])
-
-    ldm = PLDataModuleFromDatasets(
+    ldm = PLDataModuleFromCorpus(
         train,
         val=dev,
         test=test,
-        batch_size=64,
-        batch_size_eval=128,
         drop_last=True,
+        max_len=-1,
+        batch_sampler_train=BPTTBatchSampler(train, bptt, 20, True),
+        batch_sampler_val=BPTTBatchSampler(dev, bptt, 10, True),
+        batch_sampler_test=BPTTBatchSampler(test, bptt, 10, True),
+        pin_memory=True,
+        num_workers=0,
+        language_model=True,
+        tokens="tokenized",
         collate_fn=collate_fn,
     )
 
     model = Transformer(
-        vocab_size=len(vocab),
-        max_length=max_len,
+        vocab_size=ldm.vocab_size,
+        max_length=bptt,
         num_layers=2,
-        hidden_size=128,
-        num_heads=4,
+        hidden_size=200,
+        num_heads=2,
         inner_size=256,
+        dropout=0.2,
     )
 
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr)
@@ -103,7 +85,9 @@ if __name__ == "__main__":
         metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
     )
 
-    trainer = make_trainer(EXPERIMENT_NAME, max_epochs=100, gpus=1)
+    trainer = make_trainer(
+        EXPERIMENT_NAME, max_epochs=100, gpus=1, gradient_clip_val=0.25
+    )
     watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)

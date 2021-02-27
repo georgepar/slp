@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 from loguru import logger
 
-from slp.config import parse_config, make_cli_parser
+from slp.config.config_parser import parse_config, make_cli_parser
 from slp.plbind import (
     PLDataModuleFromDatasets,  # or PLDataModuleFromCorpus see slp/plbind/dm.py
     PLModule,  # or any other PLModule. See slp/plbind/module.py

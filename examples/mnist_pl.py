@@ -12,7 +12,7 @@ from torchvision.datasets import MNIST  # type: ignore
 
 from loguru import logger
 
-from slp import configure_logging
+from slp.util.log import configure_logging
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import (
     PLDataModuleFromDatasets,

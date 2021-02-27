@@ -10,7 +10,7 @@ from torchvision.datasets import MNIST  # type: ignore
 
 from loguru import logger
 
-from slp import configure_logging
+from slp.util.log import configure_logging
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.module import AutoEncoderPLModule
 from slp.plbind.trainer import make_trainer, watch_model
