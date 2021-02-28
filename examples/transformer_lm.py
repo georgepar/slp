@@ -1,7 +1,9 @@
 import itertools
+import math
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchnlp.datasets import wikitext_2_dataset  # type: ignore
 
@@ -13,14 +15,61 @@ from slp.config.nlp import SPECIAL_TOKENS
 from slp.data import TransformerCollator
 
 
+from slp.modules.transformer import Encoder as TransformerEncoder 
+from slp.modules.embed import PositionalEncoding as PositionalEncoding
+
+
 from slp.modules.transformer import Transformer
 from slp.plbind import (
     PLDataModuleFromCorpus,
-    FromLogits,
     TransformerPLModule,
     make_trainer,
     watch_model,
 )
+
+
+class TransformerLM(nn.Module):
+    def __init__(
+        self,
+        vocab_size=30000,
+        num_layers=2,
+        hidden_size=200,
+        num_heads=2,
+        inner_size=256,
+        dropout=0.2,
+        tie_weights=True,
+    ):
+        super(TransformerLM, self).__init__()
+        self.pos_encoder = PositionalEncoding(hidden_size, max_len=5000)
+        self.transformer_encoder = TransformerEncoder(
+            num_layers=num_layers,
+            hidden_size=hidden_size,
+            num_heads=num_heads,
+            inner_size=inner_size,
+            dropout=dropout
+        )
+        self.hidden_size = hidden_size
+        self.encoder = nn.Embedding(vocab_size, hidden_size)
+        self.decoder = nn.Linear(hidden_size, vocab_size)
+        self.tie_weights = tie_weights
+        if tie_weights:
+            self.decoder.weight = self.encoder.weight
+
+        self.init_weights()
+
+    def init_weights(self):
+        initrange = 0.1
+        nn.init.uniform_(self.encoder.weight, -initrange, initrange)
+        if not self.tie_weights:
+            nn.init.zeros_(self.decoder.weight)
+            nn.init.uniform_(self.decoder.weight, -initrange, initrange)
+
+    def forward(self, src, targets, source_mask=None, target_mask=None):
+        src = self.encoder(src) * math.sqrt(self.hidden_size)
+        src = self.pos_encoder(src)
+        output = self.transformer_encoder(src, attention_mask=target_mask)
+        output = self.decoder(output)
+        return output
 
 
 collate_fn = TransformerCollator(device="cpu")
@@ -45,10 +94,6 @@ if __name__ == "__main__":
         eos_token=SPECIAL_TOKENS.EOS.value,
     )
 
-    # train = train[:1000]
-    # dev = dev[:1000]
-    # test = test[:1000]
-
     ldm = PLDataModuleFromCorpus(
         train,
         val=dev,
@@ -65,14 +110,14 @@ if __name__ == "__main__":
         collate_fn=collate_fn,
     )
 
-    model = Transformer(
+    model = TransformerLM(
         vocab_size=ldm.vocab_size,
-        max_length=bptt,
         num_layers=2,
         hidden_size=200,
         num_heads=2,
         inner_size=256,
         dropout=0.2,
+        tie_weights=True,
     )
 
     optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr)
@@ -82,7 +127,7 @@ if __name__ == "__main__":
         model,
         optimizer,
         criterion,
-        metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
+        calculate_perplexity=True,
     )
 
     trainer = make_trainer(

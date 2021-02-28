@@ -45,6 +45,33 @@ class FromLogits(pl.metrics.Metric):
         return self.metric.compute()
 
 
+class Perplexity(pl.metrics.Metric):
+    def __init__(
+        self,
+        compute_on_step=True,
+        dist_sync_on_step=False,
+        process_group=None,
+        dist_sync_fn=None
+    ):
+        super(Perplexity, self).__init__(
+            compute_on_step=compute_on_step,
+            dist_sync_on_step=dist_sync_on_step,
+            process_group=process_group,
+            dist_sync_fn=dist_sync_fn,
+        )
+        self.add_state("avg_xentropy", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+ 
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        self.avg_xentropy += F.cross_entropy(preds, target)
+        self.total += 1
+
+    def compute(self) -> torch.Tensor:
+        avg_xentropy = self.avg_xentropy / self.total
+        ppl = torch.exp(avg_xentropy)
+        return ppl
+
+
 class FixedWandbLogger(pl.loggers.WandbLogger):
     def __init__(
         self,

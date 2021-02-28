@@ -174,9 +174,11 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             drop_last=self.drop_last and (self.batch_sampler_val is None),
             sampler=self.sampler_val,
             batch_sampler=self.batch_sampler_val,
-            shuffle=self.shuffle_eval
-            and (self.batch_sampler_val is None)
-            and (self.sampler_val is None),
+            shuffle=(
+                self.shuffle_eval
+                and (self.batch_sampler_val is None)
+                and (self.sampler_val is None)
+            ),
             collate_fn=self.collate_fn,
         )
 
@@ -191,9 +193,11 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             drop_last=self.drop_last and (self.batch_sampler_test is None),
             sampler=self.sampler_test,
             batch_sampler=self.batch_sampler_test,
-            shuffle=self.shuffle_eval
-            and (self.batch_sampler_test is None)
-            and (self.sampler_test is None),
+            shuffle=(
+                self.shuffle_eval
+                and (self.batch_sampler_test is None)
+                and (self.sampler_test is None)
+            ),
             collate_fn=self.collate_fn,
         )
 
@@ -366,6 +370,8 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             logger.info(
                 "Forcing vocabulary from training set for validation and test sets."
             )
+        if tokens == "tokenized":
+            corpus_args["word2idx"] = self.train_corpus.word2idx
 
         self.val_corpus = corpus_cls(val_corpus, **corpus_args)
         self.test_corpus = corpus_cls(test_corpus, **corpus_args)
