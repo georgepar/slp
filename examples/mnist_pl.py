@@ -85,6 +85,7 @@ if __name__ == "__main__":
 
     config = OmegaConf.merge(default_cli, dict_config, user_cli)
 
+    import ipdb; ipdb.set_trace()
     logger.info("Running with the following configuration")
     logger.info(f"\n{OmegaConf.to_yaml(config)}")
 

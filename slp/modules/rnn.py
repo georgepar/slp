@@ -3,8 +3,7 @@ import torch.nn as nn
 
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
-from slp.modules.helpers import PackSequence, PadPackedSequence
-from slp.modules.util import pad_mask
+from slp.util.pytorch import pad_mask, PackSequence, PadPackedSequence
 
 
 class RNN(nn.Module):

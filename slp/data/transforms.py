@@ -6,7 +6,7 @@ from transformers import BertTokenizer
 from spacy.attrs import ORTH
 
 from slp.config.nlp import SPECIAL_TOKENS
-from slp.util import mktensor
+from slp.util.pytorch import mktensor
 
 
 class SentencepieceTokenizer(object):

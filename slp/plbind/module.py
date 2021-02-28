@@ -152,7 +152,7 @@ class SimplePLModule(pl.LightningModule):
         return metrics
 
     def log_to_console(self, metrics, mode="Training"):
-        logger.info("Epoch {} {} results".format(self.current_epoch, mode))
+        logger.info("Epoch {} {} results".format(self.current_epoch + 1, mode))
         print_separator(symbol="-", n=50, print_fn=logger.info)
         for name, value in metrics.items():
             if name == "epoch":
@@ -168,7 +168,7 @@ class SimplePLModule(pl.LightningModule):
         keys = list(outputs[0].keys())
         aggregated = {fmt(k): torch.stack([x[k] for x in outputs]).mean() for k in keys}
         self.log_to_console(aggregated, mode=mode)
-        aggregated["epoch"] = self.current_epoch
+        aggregated["epoch"] = self.current_epoch + 1
         self.log_dict(aggregated, logger=True, prog_bar=True, on_epoch=True)
 
         return aggregated

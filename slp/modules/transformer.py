@@ -6,7 +6,7 @@ from slp.modules.attention import MultiheadAttention
 from slp.modules.embed import PositionalEncoding, Embed
 from slp.modules.feedforward import PositionwiseFF
 from slp.modules.norm import LayerNorm
-from slp.modules.util import repeat_layer
+from slp.util.pytorch import repeat_layer
 
 
 class Sublayer1(nn.Module):

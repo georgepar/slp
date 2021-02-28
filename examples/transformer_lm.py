@@ -1,31 +1,18 @@
-import itertools
 import math
-import torch
+
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
 from torchnlp.datasets import wikitext_2_dataset  # type: ignore
-
-import pytorch_lightning as pl
-
 from torchnlp.samplers import BPTTBatchSampler
-from slp.util.log import configure_logging
+
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.data import TransformerCollator
-
-
-from slp.modules.transformer import Encoder as TransformerEncoder 
-from slp.modules.embed import PositionalEncoding as PositionalEncoding
-
-
+from slp.modules.embed import PositionalEncoding
+from slp.modules.transformer import Encoder as TransformerEncoder
 from slp.modules.transformer import Transformer
-from slp.plbind import (
-    PLDataModuleFromCorpus,
-    TransformerPLModule,
-    make_trainer,
-    watch_model,
-)
+from slp.plbind import (PLDataModuleFromCorpus, TransformerPLModule,
+                        make_trainer, watch_model)
+from slp.util.log import configure_logging
 
 
 class TransformerLM(nn.Module):
@@ -46,12 +33,13 @@ class TransformerLM(nn.Module):
             hidden_size=hidden_size,
             num_heads=num_heads,
             inner_size=inner_size,
-            dropout=dropout
+            dropout=dropout,
         )
         self.hidden_size = hidden_size
         self.encoder = nn.Embedding(vocab_size, hidden_size)
         self.decoder = nn.Linear(hidden_size, vocab_size)
         self.tie_weights = tie_weights
+
         if tie_weights:
             self.decoder.weight = self.encoder.weight
 
@@ -60,6 +48,7 @@ class TransformerLM(nn.Module):
     def init_weights(self):
         initrange = 0.1
         nn.init.uniform_(self.encoder.weight, -initrange, initrange)
+
         if not self.tie_weights:
             nn.init.zeros_(self.decoder.weight)
             nn.init.uniform_(self.decoder.weight, -initrange, initrange)
@@ -69,6 +58,7 @@ class TransformerLM(nn.Module):
         src = self.pos_encoder(src)
         output = self.transformer_encoder(src, attention_mask=target_mask)
         output = self.decoder(output)
+
         return output
 
 

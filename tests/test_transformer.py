@@ -1,29 +1,35 @@
 # %%
+import itertools
 
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 from torch.utils.data import DataLoader, Dataset
 
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.data.collators import TransformerCollator
-from slp.data.vocab import create_vocab
+from slp.data.corpus import create_vocab
+from slp.data.transforms import ToTensor, ToTokenIds
 from slp.modules.transformer import Transformer
-from slp.data.transforms import ToTokenIds, ToTensor
-from slp.trainer import TransformerTrainer
+from slp.plbind import (PLDataModuleFromCorpus, TransformerPLModule,
+                        make_trainer)
+
+from warnings import simplefilter
+simplefilter(action='ignore')
+
+
+pl.utilities.seed.seed_everything(42)
+
 
 collate_fn = TransformerCollator(device="cpu")
-
-torch.backends.cudnn.deterministic = True  # type: ignore
-torch.backends.cudnn.benchmark = False  # type: ignore
-torch.manual_seed(0)
 
 
 # All tokens are different. Should get 100% accuracy
 sentence = "The big brown fox jumps over the lazy dog".split(" ")
 
-vocab = create_vocab(sentence, vocab_size=50, extra_tokens=SPECIAL_TOKENS.to_list())
+vocab = create_vocab([sentence], vocab_size=-1, special_tokens=SPECIAL_TOKENS)
+vocab = dict(zip(vocab.keys(), itertools.count()))
 to_token_ids = ToTokenIds(vocab)
 to_tensor = ToTensor(device="cpu")
 
@@ -37,6 +43,7 @@ class DummyDataset(Dataset):
 
     def __getitem__(self, i):
         s, t = self.data[i]
+
         return to_tensor(to_token_ids(s)), to_tensor(to_token_ids(t))
 
 
@@ -51,7 +58,6 @@ def create_model(hidden_size=32):
         hidden_size=hidden_size,
         num_heads=4,
         inner_size=128,
-        device="cpu",
     )
 
 
@@ -108,33 +114,3 @@ def test_inner_layers_output_size():
 
     o = model.transformer_block(x, y, source_mask=mask1, target_mask=mask2)
     assert o.size() == (1, len(sentence) - 1, hidden_size)
-
-
-def test_model_overfits_single_batch():
-    model = create_model(hidden_size=32)
-    optimizer = optim.Adam([p for p in model.parameters() if p.requires_grad], lr=1e-3)
-
-    trainer = TransformerTrainer(
-        model,
-        optimizer,
-        checkpoint_dir="../../checkpoints",
-        experiment_name="transformer_lm_test",
-        metrics=None,
-        patience=4,
-        validate_every=1000,
-        accumulation_steps=1,
-        loss_fn=nn.CrossEntropyLoss(),
-        non_blocking=True,
-        device="cpu",
-    )
-
-    trainer.fit(train_loader, train_loader, epochs=100)
-
-    model.eval()
-    inputs, targets, m1, m2 = next(iter(train_loader))
-    preds = model(inputs, targets, source_mask=m1, target_mask=m2)
-    pred_tokens = preds.max(-1)[1]
-    print(model)
-    print(f"Targets={targets}")
-    print(f"Predicted={pred_tokens}")
-    assert torch.all(torch.eq(targets, pred_tokens))

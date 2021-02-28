@@ -16,7 +16,7 @@ from slp.util.system import print_separator
 class EarlyStoppingWithLogs(pl.callbacks.EarlyStopping):
     def _run_early_stopping_check(self, trainer, pl_module):
         super(EarlyStoppingWithLogs, self)._run_early_stopping_check(trainer, pl_module)
-        logger.info(f"Epoch {trainer.current_epoch} Early Stopping")
+        logger.info(f"Epoch {trainer.current_epoch + 1} Early Stopping")
         print_separator(symbol="-", n=50, print_fn=logger.info)
         logger.info("{:<15} {:<15}".format("best score", self.best_score))
         logger.info(

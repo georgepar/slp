@@ -73,7 +73,7 @@ if __name__ == "__main__":
     trainer = make_trainer(
         EXPERIMENT_NAME,
         max_epochs=100,
-        gpus=1,
+        gpus=0,
         save_top_k=1,
     )
     watch_model(trainer, model)

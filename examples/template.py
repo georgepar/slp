@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 
 from loguru import logger
 
+from slp.util.log import configure_logging
 from slp.config.config_parser import parse_config, make_cli_parser
 from slp.plbind import (
     PLDataModuleFromDatasets,  # or PLDataModuleFromCorpus see slp/plbind/dm.py
@@ -64,10 +65,11 @@ def get_parser():
     return parser
 
 
-def get_config():
+def setup():
     # Your config parsing goes here.
     parser = get_parser()
-    parser = make_cli_parser(parser)
+    parser = make_cli_parser(parser, parser.parse_args().config)
+    configure_logging(f"logs/{config.trainer.experiment_name}")
     # Add all default command line parsers and merge with yaml config file.
     config = parse_config(parser, PLDataModuleFromDatasets)
     return config
@@ -120,8 +122,8 @@ def get_lightning_data_module(config):
 
 
 if __name__ == "__main__":
-    # Boilerplate: Implement get_config, get_data, get_lightning_data_module, get_lightning_module
-    config = get_config()
+    # Boilerplate: Implement setup, get_data, get_lightning_data_module, get_lightning_module
+    config = setup()
 
     if config.seed is not None:
         logger.info("Seeding everything with seed={seed}")

@@ -16,21 +16,28 @@ from typing import cast, Any, Callable, Optional, Tuple
 from datetime import datetime
 from slp.util import types
 
-ERROR_INVALID_NAME: int = 123
-
-
 try:
     import ujson as json
 except ImportError:
     import json  # type: ignore
 
 
-def has_internet_connection(host="8.8.8.8", port=53, timeout=3):
-    """
+def has_internet_connection(timeout: int = 3) -> bool:
+    """has_internet_connection Check if you are connected to the internet
+
+    Check if internet connection exists by pinging Google DNS server
+
     Host: 8.8.8.8 (google-public-dns-a.google.com)
     OpenPort: 53/tcp
     Service: domain (DNS/TCP)
+
+    Args:
+        timeout (int): Seconds to wait before giving up
+
+    Returns:
+        bool: True if connection is established, False if we are not connected to the internet
     """
+    host, port = "8.8.8.8", 53
     try:
         socket.setdefaulttimeout(timeout)
         socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
@@ -41,43 +48,93 @@ def has_internet_connection(host="8.8.8.8", port=53, timeout=3):
 
 
 def date_fname() -> str:
-    uniq_filename = (
-        str(datetime.now().date()) + "_" + str(datetime.now().time()).replace(":", ".")
-    )
+    """date_fname Generate a filename based on datetime.now().
 
-    return uniq_filename
+    If multiple calls are made within the same second, the filename will not be unique.
+    We could add miliseconds etc. in the fname but that would hinder readability.
+    For practical purposes e.g. unique logs between different experiments this should be enough.
+    Either way if we need a truly unique descriptor, there is the uuid module.
 
+    Returns:
+        str: A filename, e.g. 20210228-211832
+    """
+    return datetime.now().strftime("%Y%m%d-%H%M%S")
 
-def log_to_file(fname_prefix: Optional[str]) -> None:
-    logfile = f"{fname_prefix}.{date_fname()}.log"
-    logger.add(
-        logfile,
-        colorize=False,
-        level="DEBUG",
-        enqueue=True,
-    )
-    return logfile
 
 
 def print_separator(
     symbol: str = "*", n: int = 10, print_fn: Callable[[str], None] = print
 ):
+    """print_separator Print a repeated symbol as a separator
+
+    *********************************************************
+
+    Args:
+        symbol (str): Symbol to print
+        n (int): Number of times to print the symbol
+        print_fn (Callable[[str], None]): Print function to use, e.g. print or logger.info
+
+    Examples:
+        >>> print_separator(symbol="-", n=2)
+        --
+    """
     print_fn(symbol * n)
 
 
 def is_url(inp: Optional[str]) -> types.ValidationResult:
+    """is_url Check if the provided string is a URL
+
+    Args:
+        inp (Optional[str]): A potential link or None
+
+    Returns:
+        types.ValidationResult: True if a valid url is provided, False if the string is not a url
+
+    Examples:
+        >>> is_url("Hello World")
+        ValidationFailure(func=url, args={'value': 'Hello World', 'public': False})
+        >>> is_url("http://google.com")
+        True
+    """
     if not inp:
         return False
     return validators.url(inp)
 
 
 def is_file(inp: Optional[str]) -> types.ValidationResult:
+    """is_file Check if the provided string is valid file in the system path
+
+    Args:
+        inp (Optional[str]): A potential file or None
+
+    Returns:
+        types.ValidationResult: True if a valid file is provided, False if the string is not a url
+
+    Examples:
+        >>> is_file("/bin/bash")
+        True
+        >>> is_file("/supercalifragilisticexpialidocious")  # This does not exist. I hope...
+        False
+    """
     if not inp:
         return False
     return os.path.isfile(inp)
 
 
 def is_subpath(child: str, parent: str) -> bool:
+    """is_subpath Check if child path is a subpath of parent
+
+    Args:
+        child (str): Child path
+        parent (str): parent path
+
+    Returns:
+        bool: True if child is a subpath of parent, false if not
+
+    Examples:
+        >>> is_subpath("/usr/bin/Xorg", "/usr")
+        True
+    """
     parent = os.path.abspath(parent)
     child = os.path.abspath(child)
     return cast(
@@ -86,7 +143,16 @@ def is_subpath(child: str, parent: str) -> bool:
 
 
 def safe_mkdirs(path: str) -> None:
-    """! Makes recursively all the directory in input path """
+    """safe_mkdirs Makes recursively all the directories in input path
+
+    Utility function similar to mkdir -p. Makes directories recursively, if given path does not exist
+
+    Args:
+        path (str): Path to mkdir -p
+
+    Examples:
+        >>> safe_mkdirs("super/cali/fragi/listic/expi/ali/docious")
+    """
     if not os.path.exists(path):
         try:
             os.makedirs(path)
@@ -97,11 +163,11 @@ def safe_mkdirs(path: str) -> None:
 
 def timethis(method=False) -> Callable:
     def timethis_inner(func: Callable) -> Callable:
-        """
-        Decorator that measure the time it takes for a function to complete
-        Usage:
-        @slp.util.sys.timethis
-        def time_consuming_function(...):
+        """timethis Decorator to measure the time it takes for a function to complete
+
+        Examples:
+            >>> @slp.util.system.timethis
+            >>> def time_consuming_function(...): ...
         """
 
         @functools.wraps(func)
@@ -131,6 +197,12 @@ def timethis(method=False) -> Callable:
 
 
 def suppress_print(func: Callable) -> Callable:
+    """suppress_print Decorator to supress stdout of decorated function
+
+    Examples:
+        >>> @slp.util.system.timethis
+        >>> def very_verbose_function(...): ...
+    """
     def func_wrapper(*args: types.T, **kwargs: types.T):
         with open("/dev/null", "w") as sys.stdout:
             ret = func(*args, **kwargs)
@@ -141,9 +213,17 @@ def suppress_print(func: Callable) -> Callable:
 
 
 def run_cmd(command: str) -> Tuple[int, str]:
-    """
-    Run given command locally
-    Return a tuple with the return code, stdout, and stderr of the command
+    """run_cmd Run given shell command
+
+    Args:
+        command (str): Shell command to run
+
+    Returns:
+        (int, str): Status code, stdout of shell command
+
+    Examples:
+        >>> run_cmd("ls /")
+        (0, 'bin\nboot\ndev\netc\nhome\ninit\nlib\nlib32\nlib64\nlibx32\nlost+found\nmedia\nmnt\nopt\nproc\nroot\nrun\nsbin\nsnap\nsrv\nsys\ntmp\nusr\nvar\n')
     """
     command = f'{os.getenv("SHELL")} -c "{command}"'
     pipe = subprocess.Popen(
@@ -161,12 +241,30 @@ def run_cmd(command: str) -> Tuple[int, str]:
 
 
 def run_cmd_silent(command: str) -> Tuple[int, str]:
+    """run_cmd_silent Run command without printing to console
+
+    Args:
+        command (str): Shell command to run
+
+    Returns:
+        (int, str): Status code, stdout of shell command
+
+    Examples:
+        >>> run_cmd("ls /")
+        (0, 'bin\nboot\ndev\netc\nhome\ninit\nlib\nlib32\nlib64\nlibx32\nlost+found\nmedia\nmnt\nopt\nproc\nroot\nrun\nsbin\nsnap\nsrv\nsys\ntmp\nusr\nvar\n')
+    """
     return cast(Tuple[int, str], suppress_print(run_cmd)(command))
 
 
 def download_url(url: str, dest_path: str) -> str:
-    """
-    Download a file to a destination path given a URL
+    """download_url Download a file to a destination path given a URL
+
+    Args:
+        url (str): A url pointing to the file we want to download
+        dest_path (str): The destination path to write the file
+
+    Returns:
+        (str): The filename where the downloaded file is written
     """
     name = url.rsplit("/")[-1]
     dest = os.path.join(dest_path, name)
@@ -178,24 +276,21 @@ def download_url(url: str, dest_path: str) -> str:
 
 
 def write_wav(byte_str: str, wav_file: str) -> None:
-    """
-    Write a hex string into a wav file
+    """write_wav Write a hex string into a wav file
 
     Args:
-        byte_str: The hex string containing the audio data
-        wav_file: The output wav file
-
-    Returns:
+        byte_str (str): The hex string containing the audio data
+        wav_file (str): The output wav file
     """
     with open(wav_file, "w") as fd:
         fd.write(byte_str)
 
 
 def read_wav(wav_sample: str) -> str:
-    """
-    Reads a wav clip into a string
-    and returns the hex string.
+    """read_wav Reads a wav clip into a string and returns the hex string.
+
     Args:
+        wav_sample (str): Path to wav file
 
     Returns:
         A hex string with the audio information.
@@ -206,22 +301,50 @@ def read_wav(wav_sample: str) -> str:
 
 
 def pickle_load(fname: str) -> Any:
+    """pickle_load Load data from pickle file
+
+    Args:
+        fname (str): file name of pickle file
+
+    Returns:
+        Any: Loaded data
+    """
     with open(fname, "rb") as fd:
         data = pickle.load(fd)
     return data
 
 
 def pickle_dump(data: Any, fname: str) -> None:
+    """pickle_dump Save data to pickle file
+
+    Args:
+        data (Any): Data to save
+        fname (str): Output pickle file
+    """
     with open(fname, "wb") as fd:
         pickle.dump(data, fd)
 
 
 def json_load(fname: str) -> types.GenericDict:
+    """json_load Load dict from a json file
+
+    Args:
+        fname (str): Json file to load
+
+    Returns:
+        types.GenericDict: Dict of loaded data
+    """
     with open(fname, "r") as fd:
         data = json.load(fd)
     return cast(types.GenericDict, data)
 
 
 def json_dump(data: types.GenericDict, fname: str) -> None:
+    """json_dump Save dict to a json file
+
+    Args:
+        data (types.GenericDict): Dict to save
+        fname (str): Output json file
+    """
     with open(fname, "w") as fd:
         json.dump(data, fd)
