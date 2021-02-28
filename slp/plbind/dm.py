@@ -7,8 +7,8 @@ from loguru import logger
 from sklearn.model_selection import train_test_split
 from torch.utils.data import random_split, DataLoader
 
-from slp.data.corpus import WordCorpus, WordpieceCorpus
-from slp.data.datasets import CorpusDataset
+from slp.data.corpus import WordCorpus, WordpieceCorpus, TokenizedCorpus
+from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import ToTensor
 
 
@@ -42,16 +42,48 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         test=None,
         val_percent=0.2,
         test_percent=0.2,
-        batch_size=64,
+        batch_size=1,
         batch_size_eval=None,
         seed=None,
         num_workers=1,
         pin_memory=True,
         drop_last=False,
+        sampler_train=None,
+        sampler_val=None,
+        sampler_test=None,
+        batch_sampler_train=None,
+        batch_sampler_val=None,
+        batch_sampler_test=None,
         shuffle_eval=False,
         collate_fn=None,
     ):
         super(PLDataModuleFromDatasets, self).__init__()
+
+        if batch_sampler_train is not None and sampler_train is not None:
+            raise ValueError(
+                "You provided both a sampler and a batch sampler for the train set. These are mutually exclusive"
+            )
+
+        if batch_sampler_val is not None and sampler_val is not None:
+            raise ValueError(
+                "You provided both a sampler and a batch sampler for the validation set. These are mutually exclusive"
+            )
+        if batch_sampler_test is not None and sampler_test is not None:
+            raise ValueError(
+                "You provided both a sampler and a batch sampler for the test set. These are mutually exclusive"
+            )
+        self.sampler_train = sampler_train
+        self.sampler_val = sampler_val
+        self.sampler_test = sampler_test
+        self.batch_sampler_train = batch_sampler_train
+        self.batch_sampler_val = batch_sampler_val
+        self.batch_sampler_test = batch_sampler_test
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+        self.drop_last = drop_last
+
+        self.shuffle_eval = shuffle_eval
+        self.collate_fn = collate_fn
 
         self.batch_size = batch_size
 
@@ -59,12 +91,6 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             batch_size_eval = self.batch_size
 
         self.batch_size_eval = batch_size_eval
-
-        self.num_workers = num_workers
-        self.pin_memory = pin_memory
-        self.drop_last = drop_last
-        self.shuffle_eval = shuffle_eval
-        self.collate_fn = collate_fn
 
         self.train = train
         self.val = val
@@ -129,33 +155,49 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
     def train_dataloader(self):
         return DataLoader(
             self.train,
-            batch_size=self.batch_size,
+            batch_size=self.batch_size if self.batch_sampler_train is None else 1,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            drop_last=self.drop_last,
-            shuffle=True,
+            drop_last=self.drop_last and (self.batch_sampler_train is None),
+            sampler=self.sampler_train,
+            batch_sampler=self.batch_sampler_train,
+            shuffle=(self.batch_sampler_train is None) and (self.sampler_train is None),
             collate_fn=self.collate_fn,
         )
 
     def val_dataloader(self):
-        return DataLoader(
+        val = DataLoader(
             self.val,
-            batch_size=self.batch_size_eval,
+            batch_size=self.batch_size_eval if self.batch_sampler_val is None else 1,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            drop_last=self.drop_last,
-            shuffle=self.shuffle_eval,
+            drop_last=self.drop_last and (self.batch_sampler_val is None),
+            sampler=self.sampler_val,
+            batch_sampler=self.batch_sampler_val,
+            shuffle=(
+                self.shuffle_eval
+                and (self.batch_sampler_val is None)
+                and (self.sampler_val is None)
+            ),
             collate_fn=self.collate_fn,
         )
+
+        return val
 
     def test_dataloader(self):
         return DataLoader(
             self.test,
-            batch_size=self.batch_size_eval,
+            batch_size=self.batch_size_eval if self.batch_sampler_test is None else 1,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
-            drop_last=self.drop_last,
-            shuffle=self.shuffle_eval,
+            drop_last=self.drop_last and (self.batch_sampler_test is None),
+            sampler=self.sampler_test,
+            batch_sampler=self.batch_sampler_test,
+            shuffle=(
+                self.shuffle_eval
+                and (self.batch_sampler_test is None)
+                and (self.sampler_test is None)
+            ),
             collate_fn=self.collate_fn,
         )
 
@@ -222,7 +264,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
     def __init__(
         self,
         train,
-        train_labels,
+        train_labels=None,
         val=None,
         val_labels=None,
         test=None,
@@ -236,10 +278,33 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         pin_memory=True,
         drop_last=False,
         shuffle_eval=False,
+        sampler_train=None,
+        sampler_val=None,
+        sampler_test=None,
+        batch_sampler_train=None,
+        batch_sampler_val=None,
+        batch_sampler_test=None,
+        language_model=False,
         collate_fn=None,
-        tokens="wordpieces",  # or "words"
+        tokens="wordpieces",  # or "words" or "tokenized"
         **corpus_args,
     ):
+        self.language_model = language_model
+        if not language_model and train_labels is None:
+            raise ValueError(
+                "You should provide train labels if not performing language modeling"
+            )
+
+        if language_model:
+            train_labels = train[1:]
+            train = train[0:-1]
+            if val is not None:
+                val_labels = val[1:]
+                val = val[0:-1]
+            if test is not None:
+                test_labels = test[1:]
+                test = test[0:-1]
+
         train_data = list(zip(train, train_labels))
         val_data = None
         if val is not None:
@@ -261,6 +326,12 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             pin_memory=pin_memory,
             drop_last=drop_last,
             shuffle_eval=shuffle_eval,
+            sampler_train=sampler_train,
+            sampler_val=sampler_val,
+            sampler_test=sampler_test,
+            batch_sampler_train=batch_sampler_train,
+            batch_sampler_val=batch_sampler_val,
+            batch_sampler_test=batch_sampler_test,
             collate_fn=collate_fn,
         )
 
@@ -268,7 +339,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         val_corpus, val_labels = zip(*self.val)
         test_corpus, test_labels = zip(*self.test)
 
-        accepted_token_types = ["words", "wordpieces"]
+        accepted_token_types = ["words", "wordpieces", "tokenized"]
         corpus_cls = None
         if tokens == "words":
             logger.info('Selecting WordCorpus because tokens="words" was provided')
@@ -278,6 +349,11 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
                 'Selecting WordpieceCorpus because tokens="wordpieces" was provided'
             )
             corpus_cls = WordpieceCorpus
+        elif tokens == "tokenized":
+            logger.info(
+                'Selecting TokenizedCorpus because tokens="tokenized" was provided'
+            )
+            corpus_cls = TokenizedCorpus
         else:
             raise ValueError(
                 f"tokens kwarg in {self.__class__.__name__} should be in {accepted_token_types}"
@@ -294,15 +370,22 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             logger.info(
                 "Forcing vocabulary from training set for validation and test sets."
             )
+        if tokens == "tokenized":
+            corpus_args["word2idx"] = self.train_corpus.word2idx
 
         self.val_corpus = corpus_cls(val_corpus, **corpus_args)
         self.test_corpus = corpus_cls(test_corpus, **corpus_args)
 
         to_tensor = ToTensor(device="cpu")
 
-        self.train = CorpusDataset(self.train_corpus, train_labels).map(to_tensor)
-        self.val = CorpusDataset(self.val_corpus, val_labels).map(to_tensor)
-        self.test = CorpusDataset(self.test_corpus, test_labels).map(to_tensor)
+        if self.language_model:
+            self.train = CorpusLMDataset(self.train_corpus).map(to_tensor)
+            self.val = CorpusLMDataset(self.val_corpus).map(to_tensor)
+            self.test = CorpusLMDataset(self.test_corpus).map(to_tensor)
+        else:
+            self.train = CorpusDataset(self.train_corpus, train_labels).map(to_tensor)
+            self.val = CorpusDataset(self.val_corpus, val_labels).map(to_tensor)
+            self.test = CorpusDataset(self.test_corpus, test_labels).map(to_tensor)
 
     @property
     def embeddings(self):

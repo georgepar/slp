@@ -7,7 +7,7 @@ from slp.plbind.module import (
     TransformerPLModule,
     SimplePLModule,
 )
-from slp.plbind.helpers import EarlyStoppingWithLogs, FromLogits, FixedWandbLogger
+from slp.plbind.helpers import EarlyStoppingWithLogs, FromLogits, FixedWandbLogger, Perplexity
 from slp.plbind.trainer import (
     add_optimizer_args,
     add_trainer_args,

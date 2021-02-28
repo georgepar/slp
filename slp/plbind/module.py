@@ -96,8 +96,10 @@ class SimplePLModule(pl.LightningModule):
         hparams: Configuration = None,
         metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
         predictor_cls=_Classification,
+        calculate_perplexity=False,  # for LM. Dirty but much more efficient
     ):
         super(SimplePLModule, self).__init__()
+        self.calculate_perplexity = calculate_perplexity
         self.model = model
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -138,10 +140,14 @@ class SimplePLModule(pl.LightningModule):
             return f"{mode}_{name}"
 
         metrics = {fmt(k): v(y_hat, targets) for k, v in metrics.items()}
+        
         if mode == "train":
             metrics["loss"] = loss
         else:
             metrics[fmt("loss")] = loss
+
+        if self.calculate_perplexity:
+            metrics[fmt("ppl")] = torch.exp(loss)
 
         return metrics
 
@@ -224,6 +230,7 @@ def _make_specialized_pl_module(predictor_cls):
             lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
             hparams: Configuration = None,
             metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+            calculate_perplexity=False,
         ):
             super(Module, self).__init__(
                 model,
@@ -232,6 +239,7 @@ def _make_specialized_pl_module(predictor_cls):
                 predictor_cls=predictor_cls,
                 metrics=metrics,
                 hparams=hparams,
+                calculate_perplexity=calculate_perplexity,
             )
 
     return Module
