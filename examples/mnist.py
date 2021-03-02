@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     if config.trainer.experiment_name == "experiment":
         config.trainer.experiment_name = "mnist-classification"
-        
+
     configure_logging(f"logs/{config.trainer.experiment_name}")
 
     if config.seed is not None:
