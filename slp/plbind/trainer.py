@@ -3,7 +3,7 @@ import os
 import pytorch_lightning as pl
 
 from loguru import logger
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 from slp.util.types import dir_path
 from slp.util.system import safe_mkdirs, date_fname, has_internet_connection
@@ -238,6 +238,8 @@ def make_trainer(
     truncated_bptt_steps: Optional[int] = None,
     fast_dev_run: Optional[int] = None,
     overfit_batches: Optional[int] = None,
+    terminate_on_nan: bool = False,  # Be careful this makes training very slow for large models
+    profiler: Optional[Union[pl.profiler.BaseProfiler, bool, str]] = "simple",
 ):
     if overfit_batches is not None:
         trainer = pl.Trainer(overfit_batches=overfit_batches, gpus=gpus)
@@ -339,18 +341,22 @@ def make_trainer(
         stochastic_weight_avg=stochastic_weight_avg,
         precision=precision,
         truncated_bptt_steps=truncated_bptt_steps,
-        terminate_on_nan=True,
+        terminate_on_nan=terminate_on_nan,
         progress_bar_refresh_rate=10,
+        profiler=profiler
     )
 
     return trainer
 
 
 def watch_model(trainer, model):
-    for log in trainer.logger.experiment:
-        try:
-            log.watch(model, log="all")
-            logger.info("Tracking model weights & gradients in wandb.")
-            break
-        except:
-            pass
+    try:
+        for log in trainer.logger.experiment:
+            try:
+                log.watch(model, log="all")
+                logger.info("Tracking model weights & gradients in wandb.")
+                break
+            except:
+                pass
+    except:
+        pass
