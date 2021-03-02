@@ -16,7 +16,7 @@ def run_typecheck(session):
 
 
 def run_tests(session):
-    session.run("pytest", "-s", "--cov", "slp", "tests")
+    session.run("pytest", "-s", "-p", "no:warnings", "--cov", "slp", "tests")
 
 
 @nox.session
