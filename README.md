@@ -16,4 +16,20 @@ The goal is to make common patterns fast, while still remaining extendable for m
 This is currently in alpha release under active development, so things may break and new features
 will be added.
 
-Docs: Coming soon
+## Tools
+
+We use [Pytorch](https://pytorch.org/) deep learning framework and the following libraries
+
+- [Pytorch Lightning](https://pytorch-lightning.readthedocs.io/en/stable/)
+- [huggingface/transformers](https://huggingface.co/transformers/)
+- [Wandb](https://wandb.ai/)
+
+**Note**: Wandb logging is enabled by default. You can either
+
+- Create an account and run `wandb login` when you clone the repo in a new machine to store the results in the online managed environment
+- Run `wandb offline` when you clone the repo to disable remote sync
+- Use one of their self-hosted solutions
+
+## Documentation
+
+Documentation can be found [here](https://georgepar.github.io/slp/)
