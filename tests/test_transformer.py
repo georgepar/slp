@@ -12,11 +12,11 @@ from slp.data.collators import TransformerCollator
 from slp.data.corpus import create_vocab
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.modules.transformer import Transformer
-from slp.plbind import (PLDataModuleFromCorpus, TransformerPLModule,
-                        make_trainer)
+from slp.plbind import PLDataModuleFromCorpus, TransformerPLModule, make_trainer
 
 from warnings import simplefilter
-simplefilter(action='ignore')
+
+simplefilter(action="ignore")
 
 
 pl.utilities.seed.seed_everything(42)
