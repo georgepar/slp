@@ -18,6 +18,7 @@ class SPECIAL_TOKENS(Enum):
     BOS = "[BOS]"
     EOS = "[EOS]"
     CLS = "[CLS]"
+    SEP = "[SEP]"
 
     @classmethod
     def has_token(cls, token):
