@@ -1,6 +1,6 @@
 # slp
 
-[![Build Status]](https://github.com/georgepar/slp/actions/workflows/ci.yml/badge.svg)
+![Build Status](https://github.com/georgepar/slp/actions/workflows/ci.yml/badge.svg)
 [![Maintainability](https://api.codeclimate.com/v1/badges/d3ad9729ad30aa158737/maintainability)](https://codeclimate.com/github/georgepar/slp/maintainability)
 
 
