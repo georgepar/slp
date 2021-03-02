@@ -15,3 +15,5 @@ The goal is to make common patterns fast, while still remaining extendable for m
 
 This is currently in alpha release under active development, so things may break and new features
 will be added.
+
+Docs: Coming soon
