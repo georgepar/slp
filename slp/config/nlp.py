@@ -12,6 +12,7 @@ class SPECIAL_TOKENS(Enum):
         - [EOS]: 4
         - [CLS]: 5
     """
+
     PAD = "[PAD]"
     MASK = "[MASK]"
     UNK = "[UNK]"

@@ -10,7 +10,9 @@ from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import add_trainer_args, add_optimizer_args
 
 
-def make_cli_parser(parser: argparse.ArgumentParser, datamodule_cls: pl.LightningDataModule):
+def make_cli_parser(
+    parser: argparse.ArgumentParser, datamodule_cls: pl.LightningDataModule
+):
     """make_cli_parser Augment an argument parser for slp with the default arguments
 
     Default arguments for training, logging, optimization etc. are added to the input {parser}.
@@ -112,7 +114,11 @@ def make_cli_parser(parser: argparse.ArgumentParser, datamodule_cls: pl.Lightnin
     return parser
 
 
-def parse_config(parser: argparse.ArgumentParser, config_file: Union[str, IO], args: Optional[List[str]] = None):
+def parse_config(
+    parser: argparse.ArgumentParser,
+    config_file: Union[str, IO],
+    args: Optional[List[str]] = None,
+):
     """parse_config Parse a provided YAML config file and command line args and merge them
 
     During experimentation we want ideally to have a configuration file with the model and training configuration,

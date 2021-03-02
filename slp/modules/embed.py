@@ -29,7 +29,8 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(max_len, embedding_dim)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, embedding_dim, 2).float() * (-math.log(10000.0) / embedding_dim)
+            torch.arange(0, embedding_dim, 2).float()
+            * (-math.log(10000.0) / embedding_dim)
         )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
@@ -48,6 +49,7 @@ class PositionalEncoding(nn.Module):
         """
         x = x + self.pe[:, : x.size(1), :]
         return x
+
 
 class Embed(nn.Module):
     def __init__(

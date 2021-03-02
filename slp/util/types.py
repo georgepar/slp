@@ -55,6 +55,4 @@ def dir_path(path):
     if os.path.isdir(path):
         return path
     else:
-        raise argparse.ArgumentTypeError(
-            f"User provided path '{path}' does not exist"
-        )
+        raise argparse.ArgumentTypeError(f"User provided path '{path}' does not exist")

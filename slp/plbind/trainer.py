@@ -345,7 +345,7 @@ def make_trainer(
         truncated_bptt_steps=truncated_bptt_steps,
         terminate_on_nan=terminate_on_nan,
         progress_bar_refresh_rate=10,
-        profiler=profiler
+        profiler=profiler,
     )
 
     return trainer

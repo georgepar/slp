@@ -61,7 +61,6 @@ def date_fname() -> str:
     return datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
-
 def print_separator(
     symbol: str = "*", n: int = 10, print_fn: Callable[[str], None] = print
 ):
@@ -203,6 +202,7 @@ def suppress_print(func: Callable) -> Callable:
         >>> @slp.util.system.timethis
         >>> def very_verbose_function(...): ...
     """
+
     def func_wrapper(*args: types.T, **kwargs: types.T):
         with open("/dev/null", "w") as sys.stdout:
             ret = func(*args, **kwargs)

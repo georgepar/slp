@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from slp.util.system import date_fname
 
+
 def log_to_file(fname_prefix: Optional[str]) -> str:
     """log_to_file Configure loguru to log to a logfile
 
