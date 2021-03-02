@@ -1,15 +1,14 @@
 language: python
 sudo: required
-dist: 'xenial'
+dist: 'focal'
 
 python:
+    - "3.8"
     - "3.7"
-    - "3.6"
 
 before_install:
-    - pip install -U pip==19.1
+    - pip install -U pip
     - pip install -r requirements.txt
-    - pip install -r dev-requirements.txt
     - pip install .
 script:
     - nox -s lintci typecheckci testsci
