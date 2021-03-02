@@ -1,0 +1,4 @@
+echo "You have updated poetry dependencies without exporting a new requirements.txt"
+echo "Exporting requirements.txt and adding it to the current commit."
+poetry export -f requirements.txt -o requirements.txt --without-hashes --dev
+git add requirements.txt
