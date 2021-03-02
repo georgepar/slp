@@ -1,0 +1,2 @@
+
+poetry run nox -s lintci typecheckci testsci
