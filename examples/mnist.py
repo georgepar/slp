@@ -1,3 +1,5 @@
+# python examples/mnist.py --bsz 128 --bsz-eval 256
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,16 +14,14 @@ from torchvision.datasets import MNIST  # type: ignore
 
 from loguru import logger
 
+from slp.config.config_parser import parse_config, make_cli_parser
 from slp.util.log import configure_logging
-from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import (
     PLDataModuleFromDatasets,
     PLModule,
     make_trainer,
     watch_model,
     FromLogits,
-    add_optimizer_args,
-    add_trainer_args,
 )
 
 # Could be read from yaml with OmegaConf.from_yaml
@@ -72,31 +72,27 @@ def get_data():
 
 
 if __name__ == "__main__":
-    EXPERIMENT_NAME = "mnist-classification"
-    configure_logging(f"logs/{EXPERIMENT_NAME}")
-
+    # SETUP ##################################################
     parser = get_parser()
-    parser = add_optimizer_args(parser)
-    parser = add_trainer_args(parser)
-    parser = PLDataModuleFromDatasets.add_argparse_args(parser)
+    parser = make_cli_parser(parser, PLDataModuleFromDatasets)
 
-    dict_config = OmegaConf.create(CONFIG)
-    user_cli, default_cli = OmegaConf.from_argparse(parser)
+    config = parse_config(parser, parser.parse_args().config)
 
-    config = OmegaConf.merge(default_cli, dict_config, user_cli)
-
-    import ipdb; ipdb.set_trace()
-    logger.info("Running with the following configuration")
-    logger.info(f"\n{OmegaConf.to_yaml(config)}")
+    if config.trainer.experiment_name == "experiment":
+        config.trainer.experiment_name = "mnist-classification"
+        
+    configure_logging(f"logs/{config.trainer.experiment_name}")
 
     if config.seed is not None:
         logger.info("Seeding everything with seed={seed}")
         pl.utilities.seed.seed_everything(seed=config.seed)
 
+    # Get data and make datamodule ##########################
     train, test = get_data()
 
     ldm = PLDataModuleFromDatasets(train, test=test, seed=config.seed, **config.data)
 
+    # Create model, optimizer, criterion, scheduler ###########
     model = Net(**config.model)
 
     optimizer = getattr(optim, config.optimizer)(model.parameters(), **config.optim)
@@ -108,6 +104,7 @@ if __name__ == "__main__":
             optimizer, **config.lr_schedule
         )
 
+    # Wrap in PLModule, & configure metrics ####################
     lm = PLModule(
         model,
         optimizer,
@@ -117,6 +114,7 @@ if __name__ == "__main__":
         hparams=config,
     )
 
+    # Run debugging session or fit & test the model ############
     if config.debug:
         logger.info("Running in debug mode: Fast run on 5 batches")
         trainer = make_trainer(fast_dev_run=5)
@@ -133,3 +131,5 @@ if __name__ == "__main__":
         trainer.fit(lm, datamodule=ldm)
 
         trainer.test(ckpt_path="best", test_dataloaders=ldm.test_dataloader())
+
+        logger.info("Run finished. Uploading files to wandb...")

@@ -10,8 +10,12 @@ from slp.data import TransformerCollator
 from slp.modules.embed import PositionalEncoding
 from slp.modules.transformer import Encoder as TransformerEncoder
 from slp.modules.transformer import Transformer
-from slp.plbind import (PLDataModuleFromCorpus, TransformerPLModule,
-                        make_trainer, watch_model)
+from slp.plbind import (
+    PLDataModuleFromCorpus,
+    TransformerPLModule,
+    make_trainer,
+    watch_model,
+)
 from slp.util.log import configure_logging
 
 
