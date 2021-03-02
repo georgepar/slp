@@ -1,12 +1,15 @@
+import os
 import spacy
 import torch
 
 import sentencepiece as spm
-from transformers import BertTokenizer
+from transformers import AutoTokenizer
 from spacy.attrs import ORTH
 
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.util.pytorch import mktensor
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 class SentencepieceTokenizer(object):
@@ -37,23 +40,23 @@ class SentencepieceTokenizer(object):
         return ids
 
 
-class WordpieceTokenizer(object):
+class HuggingFaceTokenizer(object):
     def __init__(
         self,
         lower=True,
-        bert_model="bert-base-uncased",
-        add_bert_tokens=True,
+        model="bert-base-uncased",
+        add_special_tokens=True,
     ):
-        self.tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case=lower)
+        self.tokenizer = AutoTokenizer.from_pretrained(model, do_lower_case=lower)
         self.tokenizer.max_len = 65536  # hack to suppress warnings
         self.vocab_size = len(self.tokenizer.vocab)
-        self.add_bert_tokens = add_bert_tokens
+        self.add_special_tokens = add_special_tokens
 
     def detokenize(self, x):
         return self.tokenizer.convert_ids_to_tokens(x)
 
     def __call__(self, x):
-        return self.tokenizer.encode(x, add_special_tokens=self.add_bert_tokens)
+        return self.tokenizer.encode(x, add_special_tokens=self.add_special_tokens)
 
 
 class SpacyTokenizer(object):

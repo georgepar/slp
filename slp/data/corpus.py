@@ -11,7 +11,7 @@ from enum import Enum
 from tqdm import tqdm
 from typing import cast, Any, Dict, Optional, List, Union, Iterator, Tuple
 
-from slp.data.transforms import SpacyTokenizer, WordpieceTokenizer, ToTokenIds
+from slp.data.transforms import SpacyTokenizer, HuggingFaceTokenizer, ToTokenIds
 import slp.util.system as system
 import slp.util.types as types
 from slp.config.nlp import SPECIAL_TOKENS
@@ -333,8 +333,8 @@ class WordpieceCorpus(object):
         self,
         corpus,
         lower=True,
-        bert_model="bert-base-uncased",
-        add_bert_tokens=True,
+        tokenizer_model="bert-base-uncased",
+        add_special_tokens=True,
         special_tokens=SPECIAL_TOKENS,
         max_len=-1,
         **kwargs,
@@ -342,17 +342,19 @@ class WordpieceCorpus(object):
         self.corpus_ = corpus
         self.max_len = max_len
 
-        logger.info(f"Tokenizing corpus using wordpiece tokenizer from {bert_model}")
+        logger.info(
+            f"Tokenizing corpus using wordpiece tokenizer from {tokenizer_model}"
+        )
 
-        self.tokenizer = WordpieceTokenizer(
-            lower=lower,
-            bert_model=bert_model,
-            add_bert_tokens=add_bert_tokens
+        self.tokenizer = HuggingFaceTokenizer(
+            lower=lower, model=tokenizer_model, add_special_tokens=add_special_tokens
         )
 
         self.corpus_indices_ = [
             self.tokenizer(s)
-            for s in tqdm(self.corpus_, desc="Converting tokens to indices...", leave=False)
+            for s in tqdm(
+                self.corpus_, desc="Converting tokens to indices...", leave=False
+            )
         ]
 
         self.tokenized_corpus_ = [

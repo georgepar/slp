@@ -3,6 +3,8 @@ import argparse
 import torch
 import pytorch_lightning as pl
 
+from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP
+
 from loguru import logger
 from sklearn.model_selection import train_test_split
 from torch.utils.data import random_split, DataLoader
@@ -10,6 +12,7 @@ from torch.utils.data import random_split, DataLoader
 from slp.data.corpus import WordCorpus, WordpieceCorpus, TokenizedCorpus
 from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import ToTensor
+from slp.util.types import dir_path
 
 
 def split_data(dataset, test_size=0.2, seed=None):
@@ -261,6 +264,10 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
 
 
 class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
+    accepted_tokenizers = ["tokenized", "spacy"] + list(
+        ALL_PRETRAINED_CONFIG_ARCHIVE_MAP.keys()
+    )
+
     def __init__(
         self,
         train,
@@ -286,7 +293,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         batch_sampler_test=None,
         language_model=False,
         collate_fn=None,
-        tokens="wordpieces",  # or "words" or "tokenized"
+        tokenizer="spacy",
         **corpus_args,
     ):
         self.language_model = language_model
@@ -339,39 +346,40 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         val_corpus, val_labels = zip(*self.val)
         test_corpus, test_labels = zip(*self.test)
 
-        accepted_token_types = ["words", "wordpieces", "tokenized"]
         corpus_cls = None
-        if tokens == "words":
-            logger.info('Selecting WordCorpus because tokens="words" was provided')
-            corpus_cls = WordCorpus
-        elif tokens == "wordpieces":
-            logger.info(
-                'Selecting WordpieceCorpus because tokens="wordpieces" was provided'
+        if tokenizer not in self.accepted_tokenizers:
+            raise ValueError(
+                f"tokenizer kwarg in {self.__class__.__name__} should be one of {accepted_tokenizers}"
             )
-            corpus_cls = WordpieceCorpus
-        elif tokens == "tokenized":
+
+        if tokenizer == "spacy":
+            logger.info('Selecting WordCorpus because tokenizer="spacy" was provided')
+            corpus_cls = WordCorpus
+        elif tokenizer == "tokenized":
             logger.info(
-                'Selecting TokenizedCorpus because tokens="tokenized" was provided'
+                'Selecting TokenizedCorpus because tokenizer="tokenized" was provided'
             )
             corpus_cls = TokenizedCorpus
         else:
-            raise ValueError(
-                f"tokens kwarg in {self.__class__.__name__} should be in {accepted_token_types}"
+            logger.info(
+                "Selecting WordpieceCorpus because a huggingface tokenizer was provided"
             )
+            corpus_cls = WordpieceCorpus
+            corpus_args["tokenizer_model"] = tokenizer
 
         self.train_corpus = corpus_cls(train_corpus, **corpus_args)
 
-        if tokens == "words":
+        if tokenizer == "spacy" or tokenizer == "tokenized":
             # Force train vocabulary on val & test
-            corpus_args["embeddings"] = self.train_corpus.embeddings
             corpus_args["word2idx"] = self.train_corpus.word2idx
-            corpus_args["idx2word"] = self.train_corpus.word2idx
+
+            if tokenizer == "spacy":
+                corpus_args["embeddings"] = self.train_corpus.embeddings
+                corpus_args["idx2word"] = self.train_corpus.word2idx
 
             logger.info(
                 "Forcing vocabulary from training set for validation and test sets."
             )
-        if tokens == "tokenized":
-            corpus_args["word2idx"] = self.train_corpus.word2idx
 
         self.val_corpus = corpus_cls(val_corpus, **corpus_args)
         self.test_corpus = corpus_cls(test_corpus, **corpus_args)
@@ -399,34 +407,35 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
     def add_argparse_args(cls, parent_parser):
         parser = super(PLDataModuleFromCorpus, cls).add_argparse_args(parent_parser)
         parser.add_argument(
-            "--tokens",
-            dest="data.tokens",
+            "--tokenizer",
+            dest="data.tokenizer",
             type=str.lower,
-            choices=["words", "wordpieces"],
+            # Corpus can already be tokenized, you can use spacy for word tokenization or any tokenizer from hugging face
+            choices=cls.accepted_tokenizers,
             help="Token type. The tokenization will happen at this level.",
         )
 
-        # Only when tokens == words
+        # Only when tokenizer == spacy
         parser.add_argument(
             "--limit-vocab",
             dest="data.limit_vocab_size",
             type=int,
             default=-1,
-            help="Limit vocab size. -1 means use the whole vocab. Applicable only when --tokens=words",
+            help="Limit vocab size. -1 means use the whole vocab. Applicable only when --tokenizer=spacy",
         )
 
         parser.add_argument(
             "--embeddings-file",
             dest="data.embeddings_file",
-            type=types.dir_path,
-            help="Path to file with pretrained embeddings. Applicable only when --tokens=words",
+            type=dir_path,
+            help="Path to file with pretrained embeddings. Applicable only when --tokenizer=spacy",
         )
 
         parser.add_argument(
             "--embeddings-dim",
             dest="data.embeddings_dim",
             type=int,
-            help="Embedding dim of pretrained embeddings. Applicable only when --tokens=words",
+            help="Embedding dim of pretrained embeddings. Applicable only when --tokenizer=spacy",
         )
 
         parser.add_argument(
@@ -434,15 +443,14 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             dest="data.lang",
             type=str,
             default="en_core_web_md",
-            help="Language for spacy tokenizer, e.g. en_core_web_md. Applicable only when --tokens=words",
+            help="Language for spacy tokenizer, e.g. en_core_web_md. Applicable only when --tokenizer=spacy",
         )
 
-        # Only when tokens == wordpieces
         parser.add_argument(
-            "--wordpiece-model",
-            dest="data.bert_model",
-            type=str,
-            help="Wordpiece tokenizer model from huggingface, e.g. bert-base-uncased. Applicable only when --tokens=wordpieces",
+            "--add-specials",
+            dest="data.add_special_tokens",
+            action="store_true",
+            help="Add special tokens for hugging face tokenizers",
         )
 
         # Generic args
@@ -452,14 +460,6 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             action="store_true",
             help="Convert to lowercase.",
         )
-
-        parser.add_argument(
-            "--no-lower",
-            dest="data.lower",
-            action="store_false",
-            help="Do not convert to lowercase.",
-        )
-        parser.set_defaults(lower=True)
 
         parser.add_argument(
             "--prepend-bos",
