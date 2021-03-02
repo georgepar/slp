@@ -159,6 +159,7 @@ def add_optimizer_args(parent_parser):
             "ASGD",
             "RMSprop",
         ],
+        default="Adam",
         help="Which optimizer to use",
     )
 
@@ -166,6 +167,7 @@ def add_optimizer_args(parent_parser):
         "--lr",
         dest="optim.lr",
         type=float,
+        default=1e-3,
         help="Learning rate",
     )
 
