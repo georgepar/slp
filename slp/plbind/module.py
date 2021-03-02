@@ -12,6 +12,7 @@ from pytorch_lightning.core.step_result import Result
 
 from typing import Optional, Dict, Union, List
 
+from slp.util.pytorch import pad_mask, subsequent_mask
 from slp.util.types import LossType, Configuration
 from slp.util.system import print_separator
 from slp.config.omegaconf import OmegaConf
@@ -85,6 +86,23 @@ class _Transformer(object):
 
         return y_pred, targets
 
+
+
+class _BertSequenceClassification(object):
+    def parse_batch(self, batch):
+        inputs = batch[0]
+        targets = batch[1]
+        lengths = batch[2]
+
+        attention_mask = pad_mask(lengths)
+        return inputs, targets, attention_mask
+
+    def get_predictions_and_targets(self, model, batch):
+        inputs, targets, attention_mask = self.parse_batch(batch)
+        out = model(input_ids=inputs, attention_mask=attention_mask, labels=None, return_dict=False)
+        y_pred = out[0].view(-1, out[0].size(-1))
+        targets = targets.view(-1)
+        return y_pred, targets
 
 class SimplePLModule(pl.LightningModule):
     def __init__(
@@ -252,3 +270,4 @@ TransformerClassificationPLModule = _make_specialized_pl_module(
     _TransformerClassification
 )
 TransformerPLModule = _make_specialized_pl_module(_Transformer)
+BertPLModule = _make_specialized_pl_module(_BertSequenceClassification)
