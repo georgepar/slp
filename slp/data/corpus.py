@@ -195,7 +195,6 @@ class WordCorpus(object):
         embeddings_dim=300,
         lower=True,
         special_tokens=SPECIAL_TOKENS,
-        prepend_cls=False,
         prepend_bos=False,
         append_eos=False,
         lang="en_core_web_md",
@@ -207,7 +206,6 @@ class WordCorpus(object):
         self.max_len = max_len
         self.tokenizer = SpacyTokenizer(
             lower=lower,
-            prepend_cls=prepend_cls,
             prepend_bos=prepend_bos,
             append_eos=append_eos,
             specials=special_tokens,
@@ -523,7 +521,7 @@ if __name__ == "__main__":
         append_eos=True,
     )
 
-    wordpiece_corpus = WordpieceCorpus(corpus, prepend_cls=True)
+    wordpiece_corpus = WordpieceCorpus(corpus)
     import ipdb
 
     ipdb.set_trace()
