@@ -1,0 +1,34 @@
+name: slp CI - Test linting, types and run tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  run-nox:
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: [3.8]
+    name: Check linting, types and unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Setup
+        run: |
+          pip install -U pip
+          pip intsall -r requirements.txt
+          pip install .
+      - name: Lint
+        run: nox -s lintci
+      - name: Typecheck
+        run: nox -s typecheckci
+      - name: Test
+        run: nox -s testci
