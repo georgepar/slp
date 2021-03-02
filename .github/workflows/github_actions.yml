@@ -24,7 +24,7 @@ jobs:
       - name: Setup
         run: |
           pip install -U pip
-          pip intsall -r requirements.txt
+          pip install -r requirements.txt
           pip install .
       - name: Lint
         run: nox -s lintci
