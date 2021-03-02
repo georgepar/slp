@@ -522,6 +522,3 @@ if __name__ == "__main__":
     )
 
     wordpiece_corpus = WordpieceCorpus(corpus)
-    import ipdb
-
-    ipdb.set_trace()

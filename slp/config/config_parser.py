@@ -159,7 +159,7 @@ def parse_config(parser: argparse.ArgumentParser, config_file: Union[str, IO], a
     """
     # Merge Configurations Precedence: default kwarg values < default argparse values < config file values < user provided CLI args values
     if config_file is not None:
-        dict_config = OmegaConf.from_yaml(config_file)
+        dict_config = OmegaConf.from_yaml(config_file)  # type: ignore
     else:
         dict_config = OmegaConf.create({})
 

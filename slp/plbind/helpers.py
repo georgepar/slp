@@ -1,15 +1,13 @@
 import os
-import pytorch_lightning as pl
-import wandb
-import torch
-import torch.nn.functional as F
-from loguru import logger
 from collections import OrderedDict
 from typing import Optional
+
+import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+import wandb
 from loguru import logger
-
 from pytorch_lightning.utilities import rank_zero_only
-
 from slp.util.system import print_separator
 
 
@@ -22,6 +20,7 @@ class EarlyStoppingWithLogs(pl.callbacks.EarlyStopping):
         logger.info(
             "{:<15} {:<15}".format("patience left", self.patience - self.wait_count)
         )
+
         if trainer.should_stop:
             logger.info("Stopping due to early stopping")
         print_separator(symbol="#", n=50, print_fn=logger.info)
@@ -37,39 +36,12 @@ class FromLogits(pl.metrics.Metric):
         )
         self.metric = metric
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
+    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:  # type: ignore
         preds = F.softmax(preds, dim=-1)
         self.metric.update(preds, target)
 
     def compute(self) -> torch.Tensor:
-        return self.metric.compute()
-
-
-class Perplexity(pl.metrics.Metric):
-    def __init__(
-        self,
-        compute_on_step=True,
-        dist_sync_on_step=False,
-        process_group=None,
-        dist_sync_fn=None
-    ):
-        super(Perplexity, self).__init__(
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
-        self.add_state("avg_xentropy", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
- 
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
-        self.avg_xentropy += F.cross_entropy(preds, target)
-        self.total += 1
-
-    def compute(self) -> torch.Tensor:
-        avg_xentropy = self.avg_xentropy / self.total
-        ppl = torch.exp(avg_xentropy)
-        return ppl
+        return self.metric.compute()  # type: ignore
 
 
 class FixedWandbLogger(pl.loggers.WandbLogger):
@@ -108,6 +80,7 @@ class FixedWandbLogger(pl.loggers.WandbLogger):
     @rank_zero_only
     def finalize(self, status: str) -> None:
         # offset future training logged on same W&B run
+
         if self._experiment is not None:
             self._step_offset = self._experiment.step
 
@@ -115,6 +88,16 @@ class FixedWandbLogger(pl.loggers.WandbLogger):
             self._checkpoint_dir if self._checkpoint_dir is not None else self.save_dir
         )
 
-        # upload all checkpoints from saving dir
-        if self._log_model:
-            wandb.save(os.path.join(checkpoint_dir, "*.ckpt"))
+        if checkpoint_dir is None:
+            logger.warning(
+                "Invalid checkpoint dir. Checkpoints will not be uploaded to Wandb."
+            )
+            logger.info(
+                "You can manually upload your checkpoints through the CLI interface."
+            )
+
+        else:
+            # upload all checkpoints from saving dir
+
+            if self._log_model:
+                wandb.save(os.path.join(checkpoint_dir, "*.ckpt"))

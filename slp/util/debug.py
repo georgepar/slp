@@ -1,5 +1,3 @@
-# flake8: noqa
-
 """
 Patch Python 3.7+ breakpoint to use ipdb instead of pdb, if ipdb is installed
 """
@@ -7,9 +5,9 @@ import sys
 from loguru import logger
 
 try:
-    import ipdb as pdb
+    import ipdb as pdb  # type: ignore
 except:
-    import pdb
+    import pdb  # type: ignore
 
 
 def set_trace():

@@ -1,13 +1,12 @@
 import argparse
 import sys
-
-from typing import Optional, List, Dict, Any
-from omegaconf import OmegaConf
-
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
+
+from omegaconf import DictConfig, OmegaConf
 
 
-def _nest(d: Dict[str, Any]):
+def _nest(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """_nest Recursive function to nest a dictionary on keys with . (dots)
 
     Parse documentation into a hierarchical dict. Keys should be separated by dots (e.g. "model.hidden") to go down into the hierarchy
@@ -22,16 +21,19 @@ def _nest(d: Dict[str, Any]):
         >>> _nest({{"model.hidden": 20, "optimizer.lr": 1e-3}})
         {"model": {"hidden": 20}, "optimizer": {"lr": 1e-3}}
     """
-    nested = defaultdict(dict)
+    nested: Dict[str, Any] = defaultdict(dict)
+
     for key, val in d.items():
         if "." in key:
             splitkeys = key.split(".")
             inner = _nest({".".join(splitkeys[1:]): val})
+
             if inner is not None:
                 nested[splitkeys[0]].update(inner)
         else:
             if val is not None:
                 nested[key] = val
+
     return dict(nested) if nested else None
 
 
@@ -41,8 +43,11 @@ class OmegaConfExtended(OmegaConf):
     Unfortunately the original authors are not interested into providing integration with argparse
     (https://github.com/omry/omegaconf/issues/569), so we have to get by with this extension
     """
+
     @staticmethod
-    def from_argparse(parser: argparse.ArgumentParser, args: Optional[List[str]] = None):
+    def from_argparse(
+        parser: argparse.ArgumentParser, args: Optional[List[str]] = None
+    ) -> Tuple[DictConfig, DictConfig]:
         """from_argparse Static method to convert argparse arguments into OmegaConf DictConfig objects
 
         We parse the command line arguments and separate the user provided values and the default values.
@@ -76,6 +81,7 @@ class OmegaConfExtended(OmegaConf):
         all_args = vars(parser.parse_args(args=args))
         provided_args = {}
         default_args = {}
+
         for k, v in all_args.items():
             if dest_to_arg[k] in sys.argv:
                 provided_args[k] = v
