@@ -6,7 +6,7 @@ from loguru import logger
 
 from typing import IO, Union, Optional, List
 
-from slp.config.omegaconf import OmegaConf
+from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import add_trainer_args, add_optimizer_args
 
 
