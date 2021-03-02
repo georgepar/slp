@@ -462,13 +462,6 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         parser.set_defaults(lower=True)
 
         parser.add_argument(
-            "--prepend-cls",
-            dest="data.prepend_cls",
-            action="store_true",
-            help="Prepend [CLS] token",
-        )
-
-        parser.add_argument(
             "--prepend-bos",
             dest="data.prepend_bos",
             action="store_true",
@@ -476,8 +469,8 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         )
 
         parser.add_argument(
-            "--prepend-eos",
-            dest="data.prepend_eos",
+            "--append-eos",
+            dest="data.append_eos",
             action="store_true",
             help="Append [EOS] token",
         )
