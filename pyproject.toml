@@ -30,7 +30,7 @@ pytorch-lightning = "^1.2.0"
 wandb = "^0.10.20"
 omegaconf = "^2.0.6"
 toml = "^0.10.2"
-aiohttp = "3.7.4"
+aiohttp = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
