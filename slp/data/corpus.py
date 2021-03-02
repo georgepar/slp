@@ -334,9 +334,7 @@ class WordpieceCorpus(object):
         corpus,
         lower=True,
         bert_model="bert-base-uncased",
-        prepend_cls=False,
-        prepend_bos=False,
-        append_eos=False,
+        add_bert_tokens=True,
         special_tokens=SPECIAL_TOKENS,
         max_len=-1,
         **kwargs,
@@ -349,15 +347,21 @@ class WordpieceCorpus(object):
         self.tokenizer = WordpieceTokenizer(
             lower=lower,
             bert_model=bert_model,
-            prepend_bos=prepend_bos,
-            prepend_cls=prepend_cls,
-            append_eos=append_eos,
-            specials=special_tokens,
+            add_bert_tokens=add_bert_tokens
         )
 
+        self.corpus_indices_ = [
+            self.tokenizer(s)
+            for s in tqdm(self.corpus_, desc="Converting tokens to indices...", leave=False)
+        ]
+
         self.tokenized_corpus_ = [
-            self.tokenizer.tokenize(s)
-            for s in tqdm(self.corpus_, desc="Tokenizing corpus...", leave=False)
+            self.tokenizer.detokenize(s)
+            for s in tqdm(
+                self.corpus_indices_,
+                desc="Mapping indices to tokens...",
+                leave=False,
+            )
         ]
 
         self.vocab_ = create_vocab(
@@ -365,14 +369,6 @@ class WordpieceCorpus(object):
             vocab_size=-1,
             special_tokens=special_tokens,
         )
-        self.corpus_indices_ = [
-            self.tokenizer.to_ids(s)
-            for s in tqdm(
-                self.tokenized_corpus_,
-                desc="Converting tokens to indices...",
-                leave=False,
-            )
-        ]
 
     @property
     def vocab_size(cls):

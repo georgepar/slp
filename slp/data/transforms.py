@@ -15,7 +15,6 @@ class SentencepieceTokenizer(object):
         lower=True,
         model=None,
         prepend_bos=False,
-        prepend_cls=False,
         append_eos=False,
         specials=SPECIAL_TOKENS,
     ):
@@ -24,12 +23,8 @@ class SentencepieceTokenizer(object):
         self.specials = specials
         self.lower = lower
         self.vocab_size = self.tokenizer.get_piece_size()
-        if prepend_cls and prepend_bos:
-            raise ValueError("prepend_bos and prepend_cls are" " mutually exclusive")
         self.pre_id = []
         self.post_id = []
-        if prepend_cls:
-            self.pre_id.append(self.tokenizer.piece_to_id(self.specials.CLS.value))
         if prepend_bos:
             self.pre_id.append(self.tokenizer.piece_to_id(self.specials.BOS.value))
         if append_eos:
@@ -47,43 +42,24 @@ class WordpieceTokenizer(object):
         self,
         lower=True,
         bert_model="bert-base-uncased",
-        prepend_cls=False,
-        prepend_bos=False,
-        append_eos=False,
-        specials=SPECIAL_TOKENS,
+        add_bert_tokens=True,
     ):
         self.tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case=lower)
         self.tokenizer.max_len = 65536  # hack to suppress warnings
-        self.specials = specials
         self.vocab_size = len(self.tokenizer.vocab)
-        self.pre_id = []
-        self.post_id = []
-        if prepend_cls and prepend_bos:
-            raise ValueError("prepend_bos and prepend_cls are" " mutually exclusive")
-        if prepend_cls:
-            self.pre_id.append(self.specials.CLS.value)
-        if prepend_bos:
-            self.pre_id.append(self.specials.BOS.value)
-        if append_eos:
-            self.post_id.append(self.specials.EOS.value)
+        self.add_bert_tokens = add_bert_tokens
 
-    def tokenize(self, x):
-        x = self.pre_id + self.tokenizer.tokenize(x) + self.post_id
-        return x
-
-    def to_ids(self, x):
-        return self.tokenizer.convert_tokens_to_ids(x)
+    def detokenize(self, x):
+        return self.tokenizer.convert_ids_to_tokens(x)
 
     def __call__(self, x):
-        x = self.tokenize(x)
-        return self.tokenizer.convert_tokens_to_ids(x)
+        return self.tokenizer.encode(x, add_special_tokens=self.add_bert_tokens)
 
 
 class SpacyTokenizer(object):
     def __init__(
         self,
         lower=True,
-        prepend_cls=False,
         prepend_bos=False,
         append_eos=False,
         specials=SPECIAL_TOKENS,
@@ -94,10 +70,6 @@ class SpacyTokenizer(object):
         self.lang = lang
         self.pre_id = []
         self.post_id = []
-        if prepend_cls and prepend_bos:
-            raise ValueError("prepend_bos and prepend_cls are" " mutually exclusive")
-        if prepend_cls:
-            self.pre_id.append(self.specials.CLS.value)
         if prepend_bos:
             self.pre_id.append(self.specials.BOS.value)
         if append_eos:
