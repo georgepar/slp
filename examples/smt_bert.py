@@ -2,10 +2,13 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 
+from argparse import ArgumentParser
+
 from torch.optim import Adam
 from loguru import logger
 from torchnlp.datasets import smt_dataset  # type: ignore
 
+from slp.config.config_parser import make_cli_parser, parse_config
 from slp.plbind.dm import PLDataModuleFromCorpus
 from slp.plbind.module import BertPLModule
 from slp.util.log import configure_logging
@@ -15,16 +18,72 @@ from slp.modules.rnn import WordRNN
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.plbind.helpers import FromLogits
 
+from transformers import BertForSequenceClassification, AdamW
+
 
 collate_fn = SequenceClassificationCollator(device="cpu")
 
 
+def get_parser():
+    parser = ArgumentParser("Bert finetuning for SST-2")
+    parser.add_argument(
+        "--binary",
+        dest="binary",
+        action="store_true",
+        help="Perform binary classification. If False performs fine-grained 5-class classification",
+    )
+    return parser
+
+
 if __name__ == "__main__":
-    EXPERIMENT_NAME = "smt-wordpieces-sentiment-classification"
+    # SETUP ##################################################
+    parser = get_parser()
+    parser = make_cli_parser(parser, PLDataModuleFromCorpus)
 
-    configure_logging(f"logs/{EXPERIMENT_NAME}")
+    args = parser.parse_args()
+    config_file = args.config
 
-    train, dev, test = smt_dataset(directory="../data/", train=True, dev=True, test=True, fine_grained=True)
+    config = parse_config(parser, config_file)
+    # Set these by default.
+    config.hugging_face_model = config.data.tokenizer
+    config.data.add_special_tokens = True
+    config.data.lower = "uncased" in config.hugging_face_model
+
+    if config.trainer.experiment_name == "experiment":
+        config.trainer.experiment_name = "finetune-bert-smt"
+
+    configure_logging(f"logs/{config.trainer.experiment_name}")
+
+    if config.seed is not None:
+        logger.info("Seeding everything with seed={seed}")
+        pl.utilities.seed.seed_everything(seed=config.seed)
+
+    train, dev, test = smt_dataset(
+        directory="../data/",
+        train=True,
+        dev=True,
+        test=True,
+        fine_grained=True,
+    )
+
+    def filter_neutrals(data, labels):
+        logger.info("Filtering neutral labels for binary task")
+
+        new_data, new_labels = [], []
+
+        for d, l in zip(data, labels):
+            # l positive or very positive
+            if "positive" in l:
+                new_data.append(d)
+                new_labels.append("positive")
+            # l negative or very negative
+            elif "negative" in l:
+                new_data.append(d)
+                new_labels.append("negative")
+            else:
+                continue
+
+        return new_data, new_labels
 
     raw_train = [d["text"] for d in train]
     labels_train = [d["label"] for d in train]
@@ -35,6 +94,12 @@ if __name__ == "__main__":
     raw_test = [d["text"] for d in dev]
     labels_test = [d["label"] for d in dev]
 
+    num_labels = 5
+    if config.binary:
+        raw_train, labels_train = filter_neutrals(raw_train, labels_train)
+        raw_dev, labels_dev = filter_neutrals(raw_dev, labels_dev)
+        raw_test, labels_test = filter_neutrals(raw_test, labels_test)
+        num_labels = 2
 
     ldm = PLDataModuleFromCorpus(
         raw_train,
@@ -43,33 +108,17 @@ if __name__ == "__main__":
         val_labels=labels_dev,
         test=raw_test,
         test_labels=labels_test,
-        batch_size=8,
-        batch_size_eval=32,
         collate_fn=collate_fn,
-        pin_memory=True,
-        num_workers=1,
-        tokens="wordpieces",
-        bert_model="bert-base-uncased",
-        add_bert_tokens=True,
-        lower=True,
+        **config.data,
     )
 
-    #encoder = WordRNN(
-    #    256,
-    #    vocab_size=ldm.vocab_size,
-    #    embeddings_dim=300,
-    #    bidirectional=True,
-    #    merge_bi="sum",
-    #    packed_sequence=True,
-    #    finetune_embeddings=True,
-    #    attention=True,
-    #)
+    model = BertForSequenceClassification.from_pretrained(
+        config.hugging_face_model, num_labels=num_labels
+    )
 
-    #model = Classifier(encoder, encoder.out_size, 3)
+    logger.info(model)
 
-    from transformers import BertForSequenceClassification, AdamW
-    model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=5)
-
+    # Leave this hardcoded for now.
     optimizer = AdamW([p for p in model.parameters() if p.requires_grad], lr=1e-5)
     criterion = nn.CrossEntropyLoss()
 
@@ -80,14 +129,9 @@ if __name__ == "__main__":
         metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
     )
 
-    trainer = make_trainer(
-        EXPERIMENT_NAME,
-        max_epochs=3,
-        gpus=1,
-        save_top_k=1,
-    )
-    #watch_model(trainer, model)
+    trainer = make_trainer(**config.trainer)
+    watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)
 
-    trainer.test(ckpt_path='best', test_dataloaders=ldm.test_dataloader())
+    trainer.test(ckpt_path="best", test_dataloaders=ldm.test_dataloader())
