@@ -3,9 +3,6 @@ import nox
 
 def install_reqs(session):
     session.install("--progress-bar", "off", "--no-cache-dir", "-r", "requirements.txt")
-    session.install(
-        "--progress-bar", "off", "--no-cache-dir", "-r", "dev-requirements.txt"
-    )
 
 
 def run_lint(session):
@@ -24,7 +21,7 @@ def run_tests(session):
 
 @nox.session
 def lint(session):
-    session.install("flake8")
+    session.install("black")
     run_lint(session)
 
 
