@@ -326,7 +326,7 @@ class WordCorpus(object):
         )
 
 
-class WordpieceCorpus(object):
+class HfCorpus(object):
     def __init__(
         self,
         corpus,
@@ -341,7 +341,7 @@ class WordpieceCorpus(object):
         self.max_len = max_len
 
         logger.info(
-            f"Tokenizing corpus using wordpiece tokenizer from {tokenizer_model}"
+            f"Tokenizing corpus using hugging face tokenizer from {tokenizer_model}"
         )
 
         self.tokenizer = HuggingFaceTokenizer(
@@ -521,4 +521,4 @@ if __name__ == "__main__":
         append_eos=True,
     )
 
-    wordpiece_corpus = WordpieceCorpus(corpus)
+    hugging_face_corpus = HfCorpus(corpus)

@@ -9,7 +9,7 @@ from loguru import logger
 from sklearn.model_selection import train_test_split
 from torch.utils.data import random_split, DataLoader
 
-from slp.data.corpus import WordCorpus, WordpieceCorpus, TokenizedCorpus
+from slp.data.corpus import WordCorpus, HfCorpus, TokenizedCorpus
 from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import ToTensor
 from slp.util.types import dir_path
@@ -362,9 +362,9 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             corpus_cls = TokenizedCorpus
         else:
             logger.info(
-                "Selecting WordpieceCorpus because a huggingface tokenizer was provided"
+                "Selecting HfCorpus because a huggingface tokenizer was provided"
             )
-            corpus_cls = WordpieceCorpus
+            corpus_cls = HfCorpus
             corpus_args["tokenizer_model"] = tokenizer
 
         self.train_corpus = corpus_cls(train_corpus, **corpus_args)

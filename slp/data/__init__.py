@@ -3,7 +3,7 @@ from slp.data.collators import (
     TransformerClassificationCollator,
     TransformerCollator,
 )
-from slp.data.corpus import WordCorpus, WordpieceCorpus, create_vocab
+from slp.data.corpus import WordCorpus, HfCorpus, create_vocab
 from slp.data.datasets import CorpusLMDataset, CorpusDataset
 from slp.data.transforms import (
     SentencepieceTokenizer,
