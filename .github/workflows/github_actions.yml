@@ -31,4 +31,4 @@ jobs:
       - name: Typecheck
         run: nox -s typecheckci
       - name: Test
-        run: nox -s testci
+        run: nox -s testsci
