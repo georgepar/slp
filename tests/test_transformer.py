@@ -8,11 +8,12 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 
 from slp.config.nlp import SPECIAL_TOKENS
-from slp.data.collators import TransformerCollator
+from slp.data.collators import Seq2SeqCollator
 from slp.data.corpus import create_vocab
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.modules.transformer import Transformer
 from slp.plbind import PLDataModuleFromCorpus, TransformerPLModule, make_trainer
+from slp.util.pytorch import pad_mask, subsequent_mask
 
 from warnings import simplefilter
 
@@ -22,7 +23,7 @@ simplefilter(action="ignore")
 pl.utilities.seed.seed_everything(42)
 
 
-collate_fn = TransformerCollator(device="cpu")
+collate_fn = Seq2SeqCollator(device="cpu")
 
 
 # All tokens are different. Should get 100% accuracy
@@ -63,7 +64,10 @@ def create_model(hidden_size=32):
 
 def test_transformer_output_size():
     model = create_model(hidden_size=32)
-    inputs, targets, mask1, mask2 = next(iter(train_loader))
+    inputs, targets, leni, lent = next(iter(train_loader))
+    mask1 = pad_mask(leni, max_length=torch.max(leni)).unsqueeze(-2)
+    mask2 = pad_mask(lent, max_length=torch.max(lent)).unsqueeze(-2)
+    mask2 = mask2 * subsequent_mask(torch.max(lent)).to(mask2.device)
     preds = model(inputs, targets, source_mask=mask1, target_mask=mask2)
     assert preds.size() == (1, len(sentence) - 1, len(vocab))
 
@@ -71,7 +75,10 @@ def test_transformer_output_size():
 def test_inner_layers_output_size():
     hidden_size = 32
     model = create_model(hidden_size=hidden_size)
-    inputs, targets, mask1, mask2 = next(iter(train_loader))
+    inputs, targets, leni, lent = next(iter(train_loader))
+    mask1 = pad_mask(leni, max_length=torch.max(leni)).unsqueeze(-2)
+    mask2 = pad_mask(lent, max_length=torch.max(lent)).unsqueeze(-2)
+    mask2 = mask2 * subsequent_mask(torch.max(lent)).to(mask2.device)
 
     x = model.embed(inputs)
     assert x.size() == (1, len(sentence) - 1, hidden_size)
