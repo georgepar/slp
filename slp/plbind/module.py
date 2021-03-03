@@ -61,7 +61,8 @@ class _TransformerClassification(object):
     def parse_batch(self, batch):
         inputs = batch[0]
         targets = batch[1]
-        attention_mask = batch[2]
+        lengths = batch[2]
+        attention_mask = pad_mask(lengths)
 
         return inputs, targets, attention_mask
 
@@ -76,10 +77,24 @@ class _Transformer(object):
     def parse_batch(self, batch):
         inputs = batch[0]
         targets = batch[1]
-        source_mask = batch[2]
-        target_mask = batch[3]
+        lengths_inputs = batch[2]
+        lengths_targets = batch[3]
 
-        return inputs, targets, source_mask, target_mask
+        max_length_inputs = torch.max(lengths_inputs)
+        max_length_targets = torch.max(lengths_targets)
+
+        pad_inputs = pad_mask(
+            lengths_inputs,
+            max_length=max_length_inputs,
+        ).unsqueeze(-2)
+        pad_targets = pad_mask(
+            lengths_targets,
+            max_length=max_length_targets,
+        ).unsqueeze(-2)
+        sub_m = subsequent_mask(max_length_targets)
+        pad_targets = pad_targets * sub_m.to(pad_targets.device)
+
+        return inputs, targets, pad_inputs, pad_targets
 
     def get_predictions_and_targets(self, model, batch):
         inputs, targets, source_mask, target_mask = self.parse_batch(batch)

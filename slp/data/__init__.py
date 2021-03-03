@@ -1,7 +1,6 @@
 from slp.data.collators import (
     SequenceClassificationCollator,
-    TransformerClassificationCollator,
-    TransformerCollator,
+    Seq2SeqCollator,
 )
 from slp.data.corpus import WordCorpus, HfCorpus, create_vocab
 from slp.data.datasets import CorpusLMDataset, CorpusDataset

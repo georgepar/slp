@@ -6,7 +6,7 @@ from torchnlp.datasets import wikitext_2_dataset  # type: ignore
 from torchnlp.samplers import BPTTBatchSampler
 
 from slp.config.nlp import SPECIAL_TOKENS
-from slp.data import TransformerCollator
+from slp.data import Seq2SeqCollator
 from slp.modules.embed import PositionalEncoding
 from slp.modules.transformer import Encoder as TransformerEncoder
 from slp.modules.transformer import Transformer
@@ -66,7 +66,7 @@ class TransformerLM(nn.Module):
         return output
 
 
-collate_fn = TransformerCollator(device="cpu")
+collate_fn = Seq2SeqCollator(device="cpu")
 
 
 if __name__ == "__main__":
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         pin_memory=True,
         num_workers=0,
         language_model=True,
-        tokens="tokenized",
+        tokenizer="tokenized",
         collate_fn=collate_fn,
     )
 

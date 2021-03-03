@@ -20,27 +20,29 @@ class SequenceClassificationCollator(object):
         return inputs, targets.to(self.device), lengths
 
 
-class TransformerClassificationCollator(object):
+class Seq2SeqCollator(object):
     def __init__(self, pad_indx=0, device="cpu"):
         self.pad_indx = pad_indx
         self.device = device
 
-    def pad_and_mask(self, tensors):
-        lengths = torch.tensor([len(s) for s in tensors], device=self.device)
-        max_length = torch.max(lengths)
-        pad_m = pad_mask(lengths, max_length=max_length)
-        tensors = pad_sequence(
-            tensors, batch_first=True, padding_value=self.pad_indx
-        ).to(self.device)
-        return tensors, pad_m
+    @staticmethod
+    def get_inputs_and_targets(batch):
+        return inputs, targets
 
     def __call__(self, batch):
         inputs, targets = map(list, zip(*batch))
-        lengths = torch.tensor([len(s) for s in inputs], device=self.device)
-        # Pad and convert to tensor
-        inputs, source_mask = pad_and_mask(inputs)
-        targets = mktensor(targets, device=self.device, dtype=torch.long)
-        return inputs, targets.to(self.device), source_mask
+        lengths_inputs = torch.tensor([len(s) for s in inputs], device=self.device)
+        lengths_targets = torch.tensor([len(s) for s in targets], device=self.device)
+
+        inputs = pad_sequence(inputs, batch_first=True, padding_value=self.pad_indx).to(
+            self.device
+        )
+
+        targets = pad_sequence(
+            targets, batch_first=True, padding_value=self.pad_indx
+        ).to(self.device)
+
+        return inputs, targets, lengths_inputs, lengths_targets
 
 
 class TransformerCollator(object):
