@@ -43,32 +43,3 @@ class Seq2SeqCollator(object):
         ).to(self.device)
 
         return inputs, targets, lengths_inputs, lengths_targets
-
-
-class TransformerCollator(object):
-    def __init__(self, pad_indx=0, device="cpu"):
-        self.pad_indx = pad_indx
-        self.device = device
-
-    def pad_and_mask(self, tensors):
-        lengths = torch.tensor([len(s) for s in tensors], device=self.device)
-        max_length = torch.max(lengths)
-        pad_m = pad_mask(lengths, max_length=max_length)
-        sub_m = subsequent_mask(max_length)
-        tensors = pad_sequence(
-            tensors, batch_first=True, padding_value=self.pad_indx
-        ).to(self.device)
-        return tensors, pad_m, sub_m
-
-    @staticmethod
-    def get_inputs_and_targets(batch):
-        inputs, targets = map(list, zip(*batch))
-        return inputs, targets
-
-    def __call__(self, batch):
-        inputs, targets = self.get_inputs_and_targets(batch)
-        inputs, pad_m_inputs, _ = self.pad_and_mask(inputs)
-        targets, pad_m_targets, sub_m = self.pad_and_mask(targets)
-        mask_targets = pad_m_targets.unsqueeze(-2) * sub_m
-        mask_inputs = pad_m_inputs.unsqueeze(-2)
-        return inputs, targets, mask_inputs, mask_targets
