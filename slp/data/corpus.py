@@ -1,6 +1,5 @@
 import itertools
 from collections import Counter
-
 import errno
 import os
 
@@ -18,8 +17,33 @@ from slp.config.nlp import SPECIAL_TOKENS
 
 
 def create_vocab(
-    corpus: List, vocab_size: int = -1, special_tokens: Optional[SPECIAL_TOKENS] = None
+    corpus: Union[List[str], List[List[str]]],
+    vocab_size: int = -1,
+    special_tokens: Optional[SPECIAL_TOKENS] = None,
 ) -> Dict[str, int]:
+    """Create the vocabulary based on tokenized input corpus
+
+    * Injects special tokens in the vocabulary
+    * Calculates the occurence count for each token
+    * Limits vocabulary to vocab_size most common tokens
+
+    Args:
+        corpus (Union[List[str], List[List[str]]]): The tokenized corpus as single stream or a list of tokenized sentences
+        vocab_size (int, optional): [description]. Limit vocabulary to vocab_size most common tokens.
+            Defaults to -1 which keeps all tokens.
+        special_tokens Optional[SPECIAL_TOKENS]: Special tokens to include in the vocabulary. Defaults to None.
+
+    Returns:
+        Dict[str, int]: Dictionary of all accepted tokens and their corresponding occurence counts
+
+    Examples:
+        >>> create_vocab(["in", "a", "galaxy", "far", "far", "away"])
+        {'far': 2, 'away': 1, 'galaxy': 1, 'a': 1, 'in': 1}
+        >>> create_vocab(["in", "a", "galaxy", "far", "far", "away"], vocab_size=3)
+        {'far': 2, 'a': 1, 'in': 1}
+        >>> create_vocab(["in", "a", "galaxy", "far", "far", "away"], vocab_size=3, special_tokens=slp.config.nlp.SPECIAL_TOKENS)
+        {'[PAD]': 0, '[MASK]': 0, '[UNK]': 0, '[BOS]': 0, '[EOS]': 0, '[CLS]': 0, '[SEP]': 0, 'far': 2, 'a': 1, 'in': 1}
+    """
     if isinstance(corpus[0], list):
         corpus = list(itertools.chain.from_iterable(corpus))
     freq = Counter(corpus)
@@ -57,8 +81,17 @@ class EmbeddingsLoader(object):
         embeddings_file: str,
         dim: int,
         vocab: Optional[Dict[str, int]] = None,
-        extra_tokens: Any = SPECIAL_TOKENS,
+        extra_tokens: Optional[SPECIAL_TOKENS] = None,
     ) -> None:
+        """Load word embeddings in text format
+
+        Args:
+            embeddings_file (str): File where embeddings are stored (e.g. glove.6B.50d.txt)
+            dim (int): Dimensionality of embeddings
+            vocab (Optional[Dict[str, int]]): Load only embeddings in vocab. Defaults to None.
+            extra_tokens (Optional[slp.config.nlp.SPECIAL_TOKENS]): Create random embeddings for these special tokens.
+                Defaults to None.
+        """
         self.embeddings_file = embeddings_file
         self.vocab = vocab
         self.cache_ = self._get_cache_name()
@@ -68,13 +101,29 @@ class EmbeddingsLoader(object):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.embeddings_file}, {self.dim_})"
 
-    def in_accepted_vocab(self, word):
+    def in_accepted_vocab(self, word: str) -> bool:
+        """Check if word exists in given vocabulary
+
+        Args:
+            word (str): word from embeddings file
+
+        Returns:
+            bool: Word exists
+        """
         if self.vocab is None:
             return True
         else:
             return word in self.vocab
 
     def _get_cache_name(self) -> str:
+        """Create a cache file name to avoid reloading the embeddings
+
+        Cache name is something like glove.6B.50d.1000.p,
+        where 1000 is the size of the vocab provided in __init__
+
+        Returns:
+            str: Cache file name
+        """
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
         if self.vocab is not None:
@@ -85,9 +134,21 @@ class EmbeddingsLoader(object):
         return cache_name
 
     def _dump_cache(self, data: types.Embeddings) -> None:
+        """Save loaded embeddings to cache as a pickle
+
+        Saves a tuple of (word2idx, idx2word, embeddings)
+
+        Args:
+            data (types.Embeddings): (word2idx, idx2word, embeddings) tuple
+        """
         system.pickle_dump(data, self.cache_)
 
     def _load_cache(self) -> types.Embeddings:
+        """Load Embeddings from cache
+
+        Returns:
+            types.Embeddings: (word2idx, idx2word, embeddings) tuple
+        """
         return cast(types.Embeddings, system.pickle_load(self.cache_))
 
     def augment_embeddings(
@@ -98,6 +159,19 @@ class EmbeddingsLoader(object):
         token: str,
         emb: Optional[np.ndarray] = None,
     ) -> Tuple[Dict[str, int], Dict[int, str], List[np.ndarray]]:
+        """Create a random embedding for a special token and append it to the embeddings array
+
+        Args:
+            word2idx (Dict[str, int]): Current word2idx map
+            idx2word (Dict[int, str]): Current idx2word map
+            embeddings (List[np.ndarray]): Embeddings array as list of embeddings
+            token (str): The special token (e.g. [PAD])
+            emb (Optional[np.ndarray]): Optional value for the embedding to be appended.
+                Defaults to None, where a random embedding is created.
+
+        Returns:
+            Tuple[Dict[str, int], Dict[int, str], List[np.ndarray]]: (word2idx, idx2word, embeddings) tuple
+        """
         word2idx[token] = len(embeddings)
         idx2word[len(embeddings)] = token
         if emb is None:
@@ -107,12 +181,14 @@ class EmbeddingsLoader(object):
 
     @system.timethis(method=True)
     def load(self) -> types.Embeddings:
-        """
-        Read the word vectors from a text file
+        """Read the word vectors from a text file
+
+        * Read embeddings
+        * Filter with given vocabulary
+        * Augment with special tokens
+
         Returns:
-            word2idx (dict): dictionary of words to ids
-            idx2word (dict): dictionary of ids to words
-            embeddings (numpy.ndarray): the word embeddings matrix
+            types.Embeddings: (word2idx, idx2word, embeddings) tuple
         """
         # in order to avoid this time consuming operation, cache the results
         try:
@@ -134,18 +210,26 @@ class EmbeddingsLoader(object):
         # the Embedding layer of a NN.
         # We reserve the first row (idx=0), as the word embedding,
         # which will be used for zero padding (word with id = 0).
-        word2idx, idx2word, embeddings = self.augment_embeddings(
-            {}, {}, [], self.extra_tokens.PAD.value, emb=np.zeros(self.dim_)
-        )
-
-        for token in self.extra_tokens:
-            logger.debug(f"Adding token {token.value} to embeddings matrix")
-            if token == self.extra_tokens.PAD:
-                continue
+        if self.extra_tokens is not None:
             word2idx, idx2word, embeddings = self.augment_embeddings(
-                word2idx, idx2word, embeddings, token.value
+                {},
+                {},
+                [],
+                self.extra_tokens.PAD.value,  # type: ignore
+                emb=np.zeros(self.dim_),
             )
 
+            for token in self.extra_tokens:  # type: ignore
+                logger.debug(f"Adding token {token.value} to embeddings matrix")
+                if token == self.extra_tokens.PAD:
+                    continue
+                word2idx, idx2word, embeddings = self.augment_embeddings(
+                    word2idx, idx2word, embeddings, token.value
+                )
+        else:
+            word2idx, idx2word, embeddings = self.augment_embeddings(
+                {}, {}, [], "[PAD]", emb=np.zeros(self.dim_)
+            )
         # read file, line by line
         with open(self.embeddings_file, "r") as f:
             num_lines = sum(1 for line in f)
@@ -186,19 +270,19 @@ class EmbeddingsLoader(object):
 class WordCorpus(object):
     def __init__(
         self,
-        corpus,
-        limit_vocab_size=30000,
-        word2idx=None,
-        idx2word=None,
-        embeddings=None,
-        embeddings_file=None,
-        embeddings_dim=300,
-        lower=True,
-        special_tokens=SPECIAL_TOKENS,
-        prepend_bos=False,
-        append_eos=False,
-        lang="en_core_web_md",
-        max_len=-1,
+        corpus: List[List[str]],
+        limit_vocab_size: int = 30000,
+        word2idx: Optional[Dict[str, int]] = None,
+        idx2word: Optional[Dict[int, str]] = None,
+        embeddings: Optional[np.ndarray] = None,
+        embeddings_file: Optional[str] = None,
+        embeddings_dim: int = 300,
+        lower: bool = True,
+        special_tokens: Optional[SPECIAL_TOKENS] = SPECIAL_TOKENS,  # type: ignore
+        prepend_bos: bool = False,
+        append_eos: bool = False,
+        lang: str = "en_core_web_md",
+        max_len: int = -1,
         **kwargs,
     ):
         # FIXME: Extract super class to avoid repetition
@@ -505,11 +589,13 @@ class TokenizedCorpus(object):
 
 if __name__ == "__main__":
     corpus = [
-        "the big",
-        "brown fox",
-        "jumps over",
-        "the lazy dog",
-        "supercalifragilisticexpialidocious",
+        [
+            "the big",
+            "brown fox",
+            "jumps over",
+            "the lazy dog",
+            "supercalifragilisticexpialidocious",
+        ]
     ]
 
     word_corpus = WordCorpus(

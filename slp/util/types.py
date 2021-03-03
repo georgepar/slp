@@ -12,6 +12,7 @@ K = TypeVar("K")
 V = TypeVar("V")
 
 NdTensor = Union[np.ndarray, torch.Tensor, List[T]]
+Label = Union[NdTensor, int]
 
 Device = Union[torch.device, str]
 
