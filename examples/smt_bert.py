@@ -35,29 +35,7 @@ def get_parser():
     return parser
 
 
-if __name__ == "__main__":
-    # SETUP ##################################################
-    parser = get_parser()
-    parser = make_cli_parser(parser, PLDataModuleFromCorpus)
-
-    args = parser.parse_args()
-    config_file = args.config
-
-    config = parse_config(parser, config_file)
-    # Set these by default.
-    config.hugging_face_model = config.data.tokenizer
-    config.data.add_special_tokens = True
-    config.data.lower = "uncased" in config.hugging_face_model
-
-    if config.trainer.experiment_name == "experiment":
-        config.trainer.experiment_name = "finetune-bert-smt"
-
-    configure_logging(f"logs/{config.trainer.experiment_name}")
-
-    if config.seed is not None:
-        logger.info("Seeding everything with seed={seed}")
-        pl.utilities.seed.seed_everything(seed=config.seed)
-
+def get_data(config):
     train, dev, test = smt_dataset(
         directory="../data/",
         train=True,
@@ -100,6 +78,49 @@ if __name__ == "__main__":
         raw_dev, labels_dev = filter_neutrals(raw_dev, labels_dev)
         raw_test, labels_test = filter_neutrals(raw_test, labels_test)
         num_labels = 2
+
+    return (
+        raw_train,
+        labels_train,
+        raw_dev,
+        labels_dev,
+        raw_test,
+        labels_test,
+        num_labels,
+    )
+
+
+if __name__ == "__main__":
+    parser = get_parser()
+    parser = make_cli_parser(parser, PLDataModuleFromCorpus)
+
+    args = parser.parse_args()
+    config_file = args.config
+
+    config = parse_config(parser, config_file)
+    # Set these by default.
+    config.hugging_face_model = config.data.tokenizer
+    config.data.add_special_tokens = True
+    config.data.lower = "uncased" in config.hugging_face_model
+
+    if config.trainer.experiment_name == "experiment":
+        config.trainer.experiment_name = "finetune-bert-smt"
+
+    configure_logging(f"logs/{config.trainer.experiment_name}")
+
+    if config.seed is not None:
+        logger.info("Seeding everything with seed={seed}")
+        pl.utilities.seed.seed_everything(seed=config.seed)
+
+    (
+        raw_train,
+        labels_train,
+        raw_dev,
+        labels_dev,
+        raw_test,
+        labels_test,
+        num_labels,
+    ) = get_data(config)
 
     ldm = PLDataModuleFromCorpus(
         raw_train,

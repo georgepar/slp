@@ -51,6 +51,14 @@ class Net(nn.Module):
         return x
 
 
+def get_data():
+    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
+    train = MNIST(download=True, root=".", transform=data_transform, train=True)
+
+    val = MNIST(download=False, root=".", transform=data_transform, train=False)
+    return train, val
+
+
 def get_parser():
     parser = ArgumentParser("MNIST classification example")
     parser.add_argument(
@@ -61,14 +69,6 @@ def get_parser():
         help="Intermediate hidden layers for linear module",
     )
     return parser
-
-
-def get_data():
-    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
-    train = MNIST(download=True, root=".", transform=data_transform, train=True)
-
-    val = MNIST(download=False, root=".", transform=data_transform, train=False)
-    return train, val
 
 
 if __name__ == "__main__":
