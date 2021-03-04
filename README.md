@@ -44,8 +44,21 @@ We use [Pytorch](https://pytorch.org/) (1.7) and the following libraries
 - [Wandb](https://wandb.ai/)
 - Python 3.8
 
+## Installation
 
-We use [poetry](https://python-poetry.org/) for dependency management and dependency freezing.
+You can use slp as an external library by installing from PyPI with
+
+```
+pip install slp
+```
+
+Or you can clone it from github
+
+```
+git clone git@github.com:georgepar/slp
+```
+
+We use [poetry](https://python-poetry.org/) for dependency management
 
 When you clone the repo run:
 
@@ -64,8 +77,7 @@ You can access it with `poetry shell`.
 - Use one of their self-hosted solutions
 
 
-
-## Contributions
+## Contributing
 
 You are welcome to open issues / PRs with improvements and bug fixes.
 
@@ -98,3 +110,13 @@ If you use this code for your research, please include the following citation
     url    = "https://github.com/georgepar/slp"
 }
 ```
+
+
+## Roadmap
+
+* Optuna integration for hyperparameter tuning
+* Add dataloaders for popular multimodal datasets
+* Add multimodal architectures
+* Add RIM, DNC and Kanerva machine implementations
+* Create cookiecutter template for new project scaffolding
+* Write unit tests
