@@ -1,4 +1,4 @@
-name: slp CI - Check linting, types and run tests
+name: slp CI
 
 on:
   pull_request:
