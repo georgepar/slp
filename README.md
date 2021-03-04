@@ -4,6 +4,9 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/d3ad9729ad30aa158737/maintainability)](https://codeclimate.com/github/georgepar/slp/maintainability)
 
 
+Project page: [https://github.com/georgepar/slp](https://github.com/georgepar/slp)
+
+
 slp is a framework for fast and reproducible development of multimodal models, with emphasis on
 NLP models.
 
@@ -53,7 +56,7 @@ You can access it with `poetry shell`.
 
 ## Documentation
 
-Documentation can be found [here](https://georgepar.github.io/slp/)
+Documentation can be found in [https://georgepar.github.io/slp/](https://georgepar.github.io/slp/)
 
 ## Contributions
 
