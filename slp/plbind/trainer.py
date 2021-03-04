@@ -1,5 +1,6 @@
 import argparse
 import os
+import torch.nn as nn
 import pytorch_lightning as pl
 
 from loguru import logger
@@ -10,7 +11,15 @@ from slp.util.system import safe_mkdirs, date_fname, has_internet_connection
 from slp.plbind.helpers import FixedWandbLogger, EarlyStoppingWithLogs
 
 
-def add_trainer_args(parent_parser):
+def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """Augment parser with trainer arguments
+
+    Args:
+        parent_parser (argparse.ArgumentParser): Parser created by the user
+
+    Returns:
+        argparse.ArgumentParser: Augmented parser
+    """
     parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
     parser.add_argument(
         "--seed",
@@ -143,7 +152,17 @@ def add_trainer_args(parent_parser):
     return parser
 
 
-def add_optimizer_args(parent_parser):
+def add_optimizer_args(
+    parent_parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
+    """Augment parser with optimizer arguments
+
+    Args:
+        parent_parser (argparse.ArgumentParser): Parser created by the user
+
+    Returns:
+        argparse.ArgumentParser: Augmented parser
+    """
     parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
     parser.add_argument(
         "--optimizer",
@@ -242,7 +261,47 @@ def make_trainer(
     overfit_batches: Optional[int] = None,
     terminate_on_nan: bool = False,  # Be careful this makes training very slow for large models
     profiler: Optional[Union[pl.profiler.BaseProfiler, bool, str]] = "simple",
-):
+) -> pl.Trainer:
+    """Configure trainer with preferred defaults
+
+    * Experiment folder and run_id configured (based on datetime.now())
+    * Wandb and CSV loggers run by default
+    * Wandb configured to save code and checkpoints
+    * Wandb configured in online mode except if no internet connection is available
+    * Early stopping on best validation loss is configured by default
+    * Checkpointing on best validation loss is configured by default
+    *
+
+    Args:
+        experiment_name (str, optional): Experiment name. Defaults to "experiment".
+        experiment_description (Optional[str], optional): Detailed description of the experiment. Defaults to None.
+        run_id (Optional[str], optional): Unique run_id. Defaults to datetime.now(). Defaults to None.
+        experiment_group (Optional[str], optional): Group experiments over multiple runs. Defaults to None.
+        experiments_folder (str, optional): Folder to save outputs. Defaults to "experiments".
+        save_top_k (int, optional): Save top k checkpoints. Defaults to 3.
+        patience (int, optional): Patience for early stopping. Defaults to 3.
+        wandb_project (Optional[str], optional): Wandb project to save the experiment. Defaults to None.
+        wandb_user (Optional[str], optional): Wandb username. Defaults to None.
+        tags (Optional[Sequence], optional): Additional tags to attach to the experiment. Defaults to None.
+        stochastic_weight_avg (bool, optional): Use stochastic weight averaging. Defaults to False.
+        auto_scale_batch_size (bool, optional): Find optimal batch size for the available resources when running
+                trainer.tune(). Defaults to False.
+        gpus (int, optional): number of GPUs to use. Defaults to 0.
+        check_val_every_n_epoch (int, optional): Run validation every n epochs. Defaults to 1.
+        gradient_clip_val (float, optional): Clip gradient norm value. Defaults to 0 (no clipping).
+        precision (int, optional): Floating point precision. Defaults to 32.
+        max_epochs (Optional[int], optional): Maximum number of epochs for training. Defaults to 100.
+        max_steps (Optional[int], optional): Maximum number of steps for training. Defaults to None.
+        truncated_bptt_steps (Optional[int], optional): Truncated back prop breaks performs backprop every k steps of much longer
+                sequence. Defaults to None.
+        fast_dev_run (Optional[int], optional): Run training on a small number of  batches for debugging. Defaults to None.
+        overfit_batches (Optional[int], optional): Try to overfit a small number of batches for debugging. Defaults to None.
+        terminate_on_nan (bool, optional): Terminate on NaN gradients. Warning this makes training slow. Defaults to False.
+        profiler (Optional[Union[pl.profiler.BaseProfiler, bool, str]]): Use profiler to track execution times of each function
+
+    Returns:
+        pl.Trainer: Configured trainer
+    """
     if overfit_batches is not None:
         trainer = pl.Trainer(overfit_batches=overfit_batches, gpus=gpus)
         return trainer
@@ -351,8 +410,14 @@ def make_trainer(
     return trainer
 
 
-def watch_model(trainer, model):
-    try:
+def watch_model(trainer: pl.Trainer, model: nn.Module) -> None:
+    """If wandb logger is configured track gradient and weight norms
+
+    Args:
+        trainer (pl.Trainer): Trainer
+        model (nn.Module): Module to watch
+    """
+    if isinstance(trainer.logger.experiment, list):
         for log in trainer.logger.experiment:
             try:
                 log.watch(model, log="all")
@@ -360,5 +425,9 @@ def watch_model(trainer, model):
                 break
             except:
                 pass
-    except:
-        pass
+    else:
+        try:
+            trainer.logger.experiment.watch(model, log="all")
+            logger.info("Tracking model weights & gradients in wandb.")
+        except:
+            pass

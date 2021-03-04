@@ -12,7 +12,7 @@ def log_to_file(fname_prefix: Optional[str]) -> str:
     """log_to_file Configure loguru to log to a logfile
 
     Args:
-        logfile_prefix (Optional[str], optional): Optional prefix to file where logs will be written.
+        logfile_prefix (Optional[str]): Optional prefix to file where logs will be written.
 
     Returns:
         str: The logfile where logs are written
@@ -37,7 +37,7 @@ def configure_logging(logfile_prefix: Optional[str] = None) -> str:
     logfile_prefix and datetime.now()
 
     Args:
-        logfile_prefix (Optional[str], optional): Optional prefix to file where logs will be written.
+        logfile_prefix (Optional[str]): Optional prefix to file where logs will be written.
 
     Returns:
         str: The logfile where logs are written

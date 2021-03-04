@@ -1,5 +1,5 @@
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -16,13 +16,34 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 
 class _Classification(object):
-    def parse_batch(self, batch):
+    def parse_batch(
+        self, batch: Tuple[torch.Tensor, torch.Tensor]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Parse incoming batch
+
+        Args:
+            batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, labels)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (inputs, labels)
+        """
         inputs = batch[0]
         targets = batch[1]
 
         return inputs, targets
 
-    def get_predictions_and_targets(self, model, batch):
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return logits and ground truths to be passed in loss function
+
+        Args:
+            model (nn.Module): Model to use for prediction
+            batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, labels)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, labels)
+        """
         inputs, targets = self.parse_batch(batch)
         y_pred = model(inputs)
 
@@ -30,12 +51,31 @@ class _Classification(object):
 
 
 class _AutoEncoder(object):
-    def parse_batch(self, batch):
+    def parse_batch(
+        self, batch: Tuple[torch.Tensor]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Parse incoming batch
+
+        Args:
+            batch (Tuple[torch.Tensor]): (inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (inputs, inputs)
+        """
         inputs = batch[0]
 
         return inputs, inputs
 
     def get_predictions_and_targets(self, model, batch):
+        """Return logits and ground truths to be passed in loss function
+
+        Args:
+            model (nn.Module): Model to use for prediction
+            batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, inputs)
+        """
         inputs, targets = self.parse_batch(batch)
         y_pred = model(inputs)
 
@@ -142,8 +182,25 @@ class SimplePLModule(pl.LightningModule):
         hparams: Configuration = None,
         metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
         predictor_cls=_Classification,
-        calculate_perplexity=False,  # for LM. Dirty but much more efficient
+        calculate_perplexity: bool = False,  # for LM. Dirty but much more efficient
     ):
+        """LightningModule wrapper for a (model, optimizer, criterion, lr_scheduler) tuple
+
+        Handles the boilerplate for metrics calculation and logging and defines the train_step / val_step / test_step
+        with use of the predictor helper classes (e.g. _Classification, _RnnClassification)
+
+        Args:
+            model (nn.Module): Module to use for prediction
+            optimizer (Union[Optimizer, List[Optimizer]]): Optimizers to use for training
+            criterion (LossType): Task loss
+            lr_scheduler (Union[_LRScheduler, List[_LRScheduler]], optional): Learning rate scheduler. Defaults to None.
+            hparams (Configuration, optional): Hyperparameter values. This ensures they are logged with trainer.loggers. Defaults to None.
+            metrics (Optional[Dict[str, pl.metrics.Metric]], optional): Metrics to track. Defaults to None.
+            predictor_cls ([type], optional): Class that defines a parse_batch and a
+                    get_predictions_and_targets method. Defaults to _Classification.
+            calculate_perplexity (bool, optional): Whether to calculate perplexity.
+                    Would be cleaner as a metric, but this is more efficient. Defaults to False.
+        """
         super(SimplePLModule, self).__init__()
         self.calculate_perplexity = calculate_perplexity
         self.model = model
@@ -174,6 +231,11 @@ class SimplePLModule(pl.LightningModule):
             self.save_hyperparameters(dict_params)
 
     def configure_optimizers(self):
+        """Return optimizers and learning rate schedulers
+
+        Returns:
+            Tuple[List[Optimizer], List[_LRScheduler]]: (optimizers, lr_schedulers)
+        """
         if self.lr_scheduler is not None:
             return self.optimizer, self.lr_scheduler
         else:
@@ -183,6 +245,16 @@ class SimplePLModule(pl.LightningModule):
         return self.model(*args, **kwargs)
 
     def _compute_metrics(self, metrics, loss, y_hat, targets, mode="train"):
+        """Compute all metrics and aggregate in a dict
+
+        Args:
+            metrics (Dict[str, pl.metrics.Metric]): metrics to compute
+            loss (torch.Tensor): Computed loss
+            y_hat (torch.Tensor): Logits
+            targets (torch.Tensor): Ground Truths
+            mode (str, optional): "train", "val" or "test". Defaults to "train".
+        """
+
         def fmt(name):
             return f"{mode}_{name}"
 
@@ -199,6 +271,12 @@ class SimplePLModule(pl.LightningModule):
         return metrics
 
     def log_to_console(self, metrics, mode="Training"):
+        """Log metrics to console
+
+        Args:
+            metrics (Dict[str, torch.Tensor]): Computed metrics
+            mode (str, optional): "Training", "Validation" or "Testing". Defaults to "Training".
+        """
         logger.info("Epoch {} {} results".format(self.current_epoch + 1, mode))
         print_separator(symbol="-", n=50, print_fn=logger.info)
 
@@ -210,6 +288,13 @@ class SimplePLModule(pl.LightningModule):
         print_separator(symbol="%", n=50, print_fn=logger.info)
 
     def aggregate_epoch_metrics(self, outputs, mode="Training"):
+        """Aggregate metrics over a whole epoch
+
+        Args:
+            outputs (List[Dict[str, torch.Tensor]]): Aggregated outputs from train_step, validation_step or test_step
+            mode (str, optional): "Training", "Validation" or "Testing". Defaults to "Training".
+        """
+
         def fmt(name):
             return f"{name}" if name != "loss" else "train_loss"
 
@@ -222,6 +307,15 @@ class SimplePLModule(pl.LightningModule):
         return aggregated
 
     def training_step(self, batch, batch_idx):
+        """Compute loss for a single training step and log metrics to loggers
+
+        Args:
+            batch (Tuple[torch.Tensor, ...]): Input batch
+            batch_idx (int): Index of batch
+
+        Returns:
+            Dict[str, torch.Tensor]: computed metrics
+        """
         y_hat, targets = self.predictor.get_predictions_and_targets(self.model, batch)
         loss = self.criterion(y_hat, targets)
         metrics = self._compute_metrics(
@@ -241,9 +335,23 @@ class SimplePLModule(pl.LightningModule):
         return metrics
 
     def training_epoch_end(self, outputs):
+        """Aggregate metrics of a training epoch
+
+        Args:
+            outputs (List[Dict[str, torch.Tensor]]): Aggregated outputs from train_step
+        """
         outputs = self.aggregate_epoch_metrics(outputs, mode="Training")
 
     def validation_step(self, batch, batch_idx):
+        """Compute loss for a single validation step and log metrics to loggers
+
+        Args:
+            batch (Tuple[torch.Tensor, ...]): Input batch
+            batch_idx (int): Index of batch
+
+        Returns:
+            Dict[str, torch.Tensor]: computed metrics
+        """
         y_hat, targets = self.predictor.get_predictions_and_targets(self, batch)
         loss = self.criterion(y_hat, targets)
         metrics = self._compute_metrics(
@@ -253,9 +361,23 @@ class SimplePLModule(pl.LightningModule):
         return metrics
 
     def validation_epoch_end(self, outputs):
+        """Aggregate metrics of a validation epoch
+
+        Args:
+            outputs (List[Dict[str, torch.Tensor]]): Aggregated outputs from validation_step
+        """
         outputs = self.aggregate_epoch_metrics(outputs, mode="Validation")
 
     def test_step(self, batch, batch_idx):
+        """Compute loss for a single test step and log metrics to loggers
+
+        Args:
+            batch (Tuple[torch.Tensor, ...]): Input batch
+            batch_idx (int): Index of batch
+
+        Returns:
+            Dict[str, torch.Tensor]: computed metrics
+        """
         y_hat, targets = self.predictor.get_predictions_and_targets(self, batch)
         loss = self.criterion(y_hat, targets)
         metrics = self._compute_metrics(
@@ -265,10 +387,24 @@ class SimplePLModule(pl.LightningModule):
         return metrics
 
     def test_epoch_end(self, outputs):
+        """Aggregate metrics of a test epoch
+
+        Args:
+            outputs (List[Dict[str, torch.Tensor]]): Aggregated outputs from test_step
+        """
         outputs = self.aggregate_epoch_metrics(outputs, mode="Test")
 
 
 def _make_specialized_pl_module(predictor_cls):
+    """Create a LightningModule wrapper using the provided predictor class
+
+    Args:
+        predictor_cls: Class that defines parse_batch and get_predictions_and_targets
+
+    Returns:
+        pl.LightningModule: Configured LightningModule
+    """
+
     class Module(SimplePLModule):
         def __init__(
             self,

@@ -1,30 +1,34 @@
 import math
+import numpy as np
 import torch
 import torch.nn as nn
+
+from typing import Optional
 from loguru import logger
 
 from slp.modules.regularization import GaussianNoise
 
 
 class PositionalEncoding(nn.Module):
-    r"""Implementation modified from pytorch/examples/word_language_model
-        Inject some information about the relative or absolute position of the tokens
-        in the sequence. The positional encodings have the same dimension as
+    def __init__(self, embedding_dim: int = 512, max_len: int = 5000):
+        """Inject some information about the relative or absolute position of the tokens in the sequence.
+
+        The positional encodings have the same dimension as
         the embeddings, so that the two can be summed. Here, we use sine and cosine
         functions of different frequencies.
-    .. math::
+
+        $$
         \text{PosEncoder}(pos, 2i) = sin(pos/10000^(2i/d_model))
         \text{PosEncoder}(pos, 2i+1) = cos(pos/10000^(2i/d_model))
         \text{where pos is the word position and i is the embed idx)
-    Args:
-        d_model: the embed dim (required).
-        dropout: the dropout value (default=0.1).
-        max_len: the max. length of the incoming sequence (default=5000).
-    Examples:
-        >>> pos_encoder = PositionalEncoding(d_model)
-    """
+        $$
 
-    def __init__(self, embedding_dim=512, max_len=5000):
+        Implementation modified from pytorch/examples/word_language_model.py
+
+        Args:
+            embedding_dim (int): Embedding / model dimension. Defaults to 512.
+            max_len (int): Maximum sequence length that can be encoded. Defaults to 5000.
+        """
         super(PositionalEncoding, self).__init__()
         pe = torch.zeros(max_len, embedding_dim)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
@@ -37,39 +41,46 @@ class PositionalEncoding(nn.Module):
         pe = pe.unsqueeze(0)
         self.register_buffer("pe", pe)
 
-    def forward(self, x):
-        r"""Inputs of forward function
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Calculate positional embeddings for input and add them to input tensor
+
+        $$out = x + PosEmbed(x)$$
+
+        x is assumed to be batch first
+
         Args:
-            x: the sequence fed to the positional encoder model (required).
-        Shape:
-            x: [batch size, sequence length, embed dim]
-            output: [batch size, sequence length, embed dim]
-        Examples:
-            >>> output = pos_encoder(x)
+            x (torch.Tensor): [B, L, D] input embeddings
+
+        Returns:
+            torch.Tensor: Embeddings + positional embeddings
         """
-        x = x + self.pe[:, : x.size(1), :]
+        x = x + self.pe[:, : x.size(1), :]  # type: ignore
         return x
 
 
 class Embed(nn.Module):
     def __init__(
         self,
-        num_embeddings,
-        embedding_dim,
-        embeddings=None,
-        noise=0.0,
-        dropout=0.0,
-        scale=1.0,
-        trainable=False,
+        num_embeddings: int,
+        embedding_dim: int,
+        embeddings: Optional[np.ndarray] = None,
+        noise: float = 0.0,
+        dropout: float = 0.0,
+        scale: float = 1.0,
+        trainable: bool = False,
     ):
         """
         Define the layer of the model and perform the initializations
         of the layers (wherever it is necessary)
+
         Args:
-            embeddings (numpy.ndarray): the 2D ndarray with the word vectors
-            noise (float):
-            dropout (float):
-            trainable (bool):
+            num_embeddings (int): Total number of embeddings.
+            embeddings_dim (int): Embedding dimension.
+            embeddings (numpy.ndarray): the 2D ndarray with the word vectors.
+            noise (float): Optional additive noise. Defaults to 0.0.
+            dropout (float): Embedding dropout probability. Defaults to 0.0.
+            scale (float): Scale word embeddings by a constant. Defaults to 1.0.
+            trainable (bool): Finetune embeddings. Defaults to False
         """
         super(Embed, self).__init__()
         self.scale = scale  # scale embeddings by value. Needed for transformer
@@ -97,13 +108,17 @@ class Embed(nn.Module):
             torch.from_numpy(weights), requires_grad=trainable
         )
 
-    def forward(self, x):
-        """
-        This is the heart of the model. This function, defines how the data
-        passes through the network.
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Embed input tokens
+
+        Assign embedding that corresponds to each token.
+        Optionally add Gaussian noise and embedding dropout and scale embeddings by a constant.
+
         Args:
-            x (): the input data (the sentences)
-        Returns: the logits for each class
+            x (torch.Tensor): [B, L] Input token ids.
+
+        Returns:
+            (torch.Tensor) -> [B, L, E] Embedded tokens.
         """
         embeddings = self.embedding(x)
 
@@ -113,4 +128,4 @@ class Embed(nn.Module):
         if self.dropout.p > 0:
             embeddings = self.dropout(embeddings)
 
-        return embeddings * self.scale
+        return embeddings * self.scale  # type: ignore

@@ -208,34 +208,3 @@ class Transformer(nn.Module):
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
-
-
-# IDEA: Instead of flat encoder / decoder create
-# hierarchical encoding / decoding layers
-# class TransformerBlock(nn.Module):
-#     """Some Information about TransformerBlock"""
-#     def __init__(self,
-#                  hidden_size=512,
-#                  num_heads=8,
-#                  inner_size=2048,
-#                  dropout=.1):
-#         super(TransformerBlock, self).__init__()
-#         self.enc = EncoderLayer(hidden_size=hidden_size,
-#                                 num_heads=num_heads,
-#                                 inner_size=inner_size,
-#                                 dropout=dropout)
-#         self.dec = DecoderLayer(hidden_size=hidden_size,
-#                                 num_heads=num_heads,
-#                                 inner_size=inner_size,
-#                                 dropout=dropout)
-#
-#     def forward(self,
-#                 source,
-#                 target,
-#                 source_mask=None,
-#                 target_mask=None):
-#         encoded = self.enc(source, attention_mask=source_mask)
-#         decoded = self.dec(target,
-#                            encoded,
-#                            attention_mask=target_mask)
-#         return decoded

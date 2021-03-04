@@ -2,7 +2,6 @@ from slp.modules.attention import (
     attention_scores,
     Attention,
     MultiheadAttention,
-    MultiheadAttentionSerial,
 )
 from slp.modules.classifier import Classifier
 from slp.modules.embed import PositionalEncoding, Embed

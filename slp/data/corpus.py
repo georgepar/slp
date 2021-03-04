@@ -8,7 +8,7 @@ from loguru import logger
 from enum import Enum
 
 from tqdm import tqdm
-from typing import cast, Any, Dict, Optional, List, Union, Iterator, Tuple
+from typing import cast, Any, Dict, Optional, List, Union, Iterator, Tuple, Set
 
 from slp.data.transforms import SpacyTokenizer, HuggingFaceTokenizer, ToTokenIds
 import slp.util.system as system
@@ -28,8 +28,8 @@ def create_vocab(
     * Limits vocabulary to vocab_size most common tokens
 
     Args:
-        corpus (Union[List[str], List[List[str]]]): The tokenized corpus as single stream or a list of tokenized sentences
-        vocab_size (int, optional): [description]. Limit vocabulary to vocab_size most common tokens.
+        corpus (Union[List[str], List[List[str]]]): The tokenized corpus as a list of sentences or a list of tokenized sentences
+        vocab_size (int): [description]. Limit vocabulary to vocab_size most common tokens.
             Defaults to -1 which keeps all tokens.
         special_tokens Optional[SPECIAL_TOKENS]: Special tokens to include in the vocabulary. Defaults to None.
 
@@ -270,7 +270,7 @@ class EmbeddingsLoader(object):
 class WordCorpus(object):
     def __init__(
         self,
-        corpus: List[List[str]],
+        corpus: List[str],
         limit_vocab_size: int = 30000,
         word2idx: Optional[Dict[str, int]] = None,
         idx2word: Optional[Dict[int, str]] = None,
@@ -285,6 +285,37 @@ class WordCorpus(object):
         max_len: int = -1,
         **kwargs,
     ):
+        """Load corpus embeddings, tokenize in words using spacy and convert to ids
+
+        This class handles the handling of a raw corpus. It handles:
+
+        * Tokenization into words (spacy)
+        * Loading of pretrained word embedding
+        * Calculation of word frequencies / corpus statistics
+        * Conversion to token ids
+
+        You can pass either:
+
+        * Pass an embeddings file to load pretrained embeddings and create the word2idx mapping
+        * Pass already loaded embeddings array and word2idx. This is useful for the dev / test splits
+          where we want to pass the train split embeddings / word2idx.
+
+        Args:
+            corpus (List[List[str]]): Corpus as a list of sentences
+            limit_vocab_size (int): Upper bound for number of most frequent tokens to keep. Defaults to 30000.
+            word2idx (Optional[Dict[str, int]]): Mapping of word to indices. Defaults to None.
+            idx2word (Optional[Dict[int, str]]): Mapping of indices to words. Defaults to None.
+            embeddings (Optional[np.ndarray]): Embeddings array. Defaults to None.
+            embeddings_file (Optional[str]): Embeddings file to read. Defaults to None.
+            embeddings_dim (int): Dimension of embeddings. Defaults to 300.
+            lower (bool): Convert strings to lower case. Defaults to True.
+            special_tokens (Optional[SPECIAL_TOKENS]): Special tokens to include in the vocabulary.
+                 Defaults to slp.config.nlp.SPECIAL_TOKENS.
+            prepend_bos (bool): Prepend Beginning of Sequence token for seq2seq tasks. Defaults to False.
+            append_eos (bool): Append End of Sequence token for seq2seq tasks. Defaults to False.
+            lang (str): Spacy language, e.g. el_core_web_sm, en_core_web_sm etc. Defaults to "en_core_web_md".
+            max_len (int): Crop sequences above this length. Defaults to -1 where sequences are left unaltered.
+        """
         # FIXME: Extract super class to avoid repetition
         self.corpus_ = corpus
         self.max_len = max_len
@@ -310,7 +341,7 @@ class WordCorpus(object):
         )
 
         self.word2idx_, self.idx2word_, self.embeddings_ = None, None, None
-        self.corpus_indices_ = self.tokenized_corpus_
+        # self.corpus_indices_ = self.tokenized_corpus_
 
         if word2idx is not None:
             logger.info("Word2idx was already provided. Going to used it.")
@@ -337,7 +368,11 @@ class WordCorpus(object):
             self.word2idx_ = word2idx
 
             logger.info("Converting tokens to ids using word2idx.")
-            self.to_token_ids = ToTokenIds(self.word2idx_, specials=SPECIAL_TOKENS)
+            self.to_token_ids = ToTokenIds(
+                self.word2idx_,
+                specials=SPECIAL_TOKENS,  # type: ignore
+            )
+
             self.corpus_indices_ = [
                 self.to_token_ids(s)
                 for s in tqdm(
@@ -361,66 +396,138 @@ class WordCorpus(object):
             self.vocab_ = updated_vocab
 
     @property
-    def vocab_size(cls):
+    def vocab_size(cls) -> int:
+        """Retrieve vocabulary size for corpus
+
+        Returns:
+            int: vocabulary size
+        """
         return (
             cls.embeddings.shape[0] if cls.embeddings is not None else len(cls.vocab_)
         )
 
     @property
-    def frequencies(cls):
+    def frequencies(cls) -> Dict[str, int]:
+        """Retrieve word occurence counts
+
+        Returns:
+            Dict[str, int]: word occurence counts
+        """
         return cls.vocab_
 
     @property
-    def vocab(cls):
+    def vocab(cls) -> Set[str]:
+        """Retrieve set of words in vocabulary
+
+        Returns:
+            Set[str]: set of words in vocabulary
+        """
         return set(cls.vocab_.keys())
 
     @property
-    def embeddings(cls):
-        return cls.embeddings_
+    def embeddings(cls) -> np.ndarray:
+        """Retrieve embeddings array
+
+        Returns:
+            np.ndarray: Array of pretrained word embeddings
+        """
+        return cast(np.ndarray, cls.embeddings_)
 
     @property
-    def word2idx(cls):
-        return cls.word2idx_
+    def word2idx(cls) -> Dict[str, int]:
+        """Retrieve word2idx mapping
+
+        Returns:
+            Dict[str, int]: word2idx mapping
+        """
+        return cast(Dict[str, int], cls.word2idx_)
 
     @property
-    def idx2word(cls):
-        return cls.idx2word_
+    def idx2word(cls) -> Dict[int, str]:
+        """Retrieve idx2word mapping
+
+        Returns:
+            Dict[str, int]: idx2word mapping
+        """
+        return cast(Dict[int, str], cls.idx2word_)
 
     @property
-    def tokenized(cls):
-        return self.tokenized_corpus_
+    def tokenized(cls) -> List[List[str]]:
+        """Retrieve tokenized corpus
+
+        Returns:
+            List[List[str]]: Tokenized corpus
+        """
+        return cls.tokenized_corpus_
 
     @property
-    def indices(cls):
-        return self.corpus_indices_
+    def indices(cls) -> List[List[int]]:
+        """Retrieve corpus as token indices
+
+        Returns:
+            List[List[int]]: Token indices for corpus
+        """
+        return cls.corpus_indices_
 
     @property
-    def raw(cls):
-        return self.corpus_
+    def raw(cls) -> List[str]:
+        """Retrieve raw corpus
 
-    def __len__(self):
+        Returns:
+            List[str]: Raw Corpus
+        """
+        return cls.corpus_
+
+    def __len__(self) -> int:
+        """Number of samples in corpus
+
+        Returns:
+            int: Corpus length
+        """
         return len(self.corpus_indices_)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> List[int]:
+        """Get ith element in corpus as token indices
+
+        Args:
+            idx (List[int]): index in corpus
+
+        Returns:
+            List[int]: List of token indices for sentence
+        """
         indices = self.corpus_indices_[idx]
-        return (
+        out: List[int] = (
             self.corpus_indices_[idx]
             if self.max_len <= 0
             else self.corpus_indices_[idx][: self.max_len]
         )
+        return out
 
 
 class HfCorpus(object):
     def __init__(
         self,
-        corpus,
-        lower=True,
-        tokenizer_model="bert-base-uncased",
-        add_special_tokens=True,
-        special_tokens=SPECIAL_TOKENS,
-        max_len=-1,
+        corpus: List[str],
+        lower: bool = True,
+        tokenizer_model: str = "bert-base-uncased",
+        add_special_tokens: bool = True,
+        special_tokens: Optional[SPECIAL_TOKENS] = SPECIAL_TOKENS,  # type: ignore
+        max_len: int = -1,
         **kwargs,
     ):
+        """Process a corpus using hugging face tokenizers
+
+        Select one of hugging face tokenizers and process corpus
+
+        Args:
+            corpus (List[str]): List of sentences
+            lower (bool): Convert strings to lower case. Defaults to True.
+            tokenizer_model (str): Hugging face model to use. Defaults to "bert-base-uncased".
+            add_special_tokens (bool): Add special tokens in sentence during tokenization. Defaults to True.
+            special_tokens (Optional[SPECIAL_TOKENS]): Special tokens to include in the vocabulary.
+                 Defaults to slp.config.nlp.SPECIAL_TOKENS.
+            max_len (int): Crop sequences above this length. Defaults to -1 where sequences are left unaltered.
+        """
         self.corpus_ = corpus
         self.max_len = max_len
 
@@ -455,41 +562,92 @@ class HfCorpus(object):
         )
 
     @property
-    def vocab_size(cls):
-        return cls.tokenizer.vocab_size
+    def vocab_size(cls) -> int:
+        """Retrieve vocabulary size
+
+        Returns:
+            int: Vocabulary size
+        """
+        sz: int = cls.tokenizer.vocab_size
+        return sz
 
     @property
-    def frequencies(cls):
+    def frequencies(cls) -> Dict[str, int]:
+        """Retrieve wordpieces occurence counts
+
+        Returns:
+            Dict[str, int]: wordpieces occurence counts
+        """
         return cls.vocab_
 
     @property
-    def embeddings(cls):
+    def vocab(cls) -> Set[str]:
+        """Retrieve set of words in vocabulary
+
+        Returns:
+            Set[str]: set of words in vocabulary
+        """
+        return set(cls.vocab_.keys())
+
+    @property
+    def embeddings(cls) -> None:
+        """Unused. Defined for compatibility"""
         return None
 
     @property
-    def word2idx(cls):
+    def word2idx(cls) -> None:
+        """Unused. Defined for compatibility"""
         return None
 
     @property
-    def idx2word(cls):
+    def idx2word(cls) -> None:
+        """Unused. Defined for compatibility"""
         return None
 
     @property
-    def tokenized(cls):
-        return self.tokenized_corpus_
+    def tokenized(cls) -> List[List[str]]:
+        """Retrieve tokenized corpus
+
+        Returns:
+            List[List[str]]: tokenized corpus
+        """
+        return cls.tokenized_corpus_
 
     @property
-    def indices(cls):
-        return self.corpus_indices_
+    def indices(cls) -> List[List[int]]:
+        """Retrieve corpus as token indices
+
+        Returns:
+            List[List[int]]: Token indices for corpus
+        """
+        return cls.corpus_indices_
 
     @property
-    def raw(cls):
-        return self.corpus_
+    def raw(cls) -> List[str]:
+        """Retrieve raw corpus
 
-    def __len__(self):
+        Returns:
+            List[str]: Raw Corpus
+        """
+        return cls.corpus_
+
+    def __len__(self) -> int:
+        """Number of samples in corpus
+
+        Returns:
+            int: Corpus length
+        """
         return len(self.corpus_indices_)
 
     def __getitem__(self, idx):
+        """Get ith element in corpus as token indices
+
+        Args:
+            idx (List[int]): index in corpus
+
+        Returns:
+            List[int]: List of token indices for sentence
+        """
         return (
             self.corpus_indices_[idx]
             if self.max_len <= 0
@@ -500,10 +658,10 @@ class HfCorpus(object):
 class TokenizedCorpus(object):
     def __init__(
         self,
-        corpus,
-        word2idx=None,
-        special_tokens=SPECIAL_TOKENS,
-        max_len=-1,
+        corpus: Union[List[str], List[List[str]]],
+        word2idx: Dict[str, int] = None,
+        special_tokens: Optional[SPECIAL_TOKENS] = SPECIAL_TOKENS,  # type: ignore
+        max_len: int = -1,
         **kwargs,
     ):
         self.corpus_ = corpus
@@ -527,7 +685,10 @@ class TokenizedCorpus(object):
 
         self.idx2word_ = {v: k for k, v in self.word2idx_.items()}
 
-        self.to_token_ids = ToTokenIds(self.word2idx_, specials=SPECIAL_TOKENS)
+        self.to_token_ids = ToTokenIds(
+            self.word2idx_,
+            specials=SPECIAL_TOKENS,  # type: ignore
+        )
         if isinstance(self.tokenized_corpus_[0], list):
             self.corpus_indices_ = [
                 self.to_token_ids(s)
@@ -538,64 +699,117 @@ class TokenizedCorpus(object):
                 )
             ]
         else:
-            self.corpus_indices_ = self.to_token_ids(self.tokenized_corpus_)
+            self.corpus_indices_ = self.to_token_ids(self.tokenized_corpus_)  # type: ignore
 
     @property
-    def vocab_size(cls):
+    def vocab_size(cls) -> int:
+        """Retrieve vocabulary size
+
+        Returns:
+            int: Vocabulary size
+        """
         return len(cls.vocab_)
 
     @property
-    def frequencies(cls):
+    def frequencies(cls) -> Dict[str, int]:
+        """Retrieve wordpieces occurence counts
+
+        Returns:
+            Dict[str, int]: wordpieces occurence counts
+        """
         return cls.vocab_
 
     @property
-    def vocab(cls):
+    def vocab(cls) -> Set[str]:
+        """Retrieve set of words in vocabulary
+
+        Returns:
+            Set[str]: set of words in vocabulary
+        """
         return set(cls.vocab_.keys())
 
     @property
-    def embeddings(cls):
+    def embeddings(cls) -> None:
+        """Unused. Kept for compatibility"""
         return None
 
     @property
-    def word2idx(cls):
+    def word2idx(cls) -> Dict[str, int]:
+        """Retrieve word2idx mapping
+
+        Returns:
+            Dict[str, int]: word2idx mapping
+        """
         return cls.word2idx_
 
     @property
-    def idx2word(cls):
+    def idx2word(cls) -> Dict[int, str]:
+        """Retrieve idx2word mapping
+
+        Returns:
+            Dict[str, int]: idx2word mapping
+        """
         return cls.idx2word_
 
     @property
-    def tokenized(cls):
-        return self.tokenized_corpus_
+    def tokenized(cls) -> Union[List[str], List[List[str]]]:
+        """Retrieve tokenized corpus
+
+        Returns:
+            List[List[str]]: Tokenized corpus
+        """
+        return cls.tokenized_corpus_
 
     @property
-    def indices(cls):
-        return self.corpus_indices_
+    def indices(cls) -> Union[List[int], List[List[int]]]:
+        """Retrieve corpus as token indices
+
+        Returns:
+            List[List[int]]: Token indices for corpus
+        """
+        return cls.corpus_indices_
 
     @property
-    def raw(cls):
-        return self.corpus_
+    def raw(cls) -> Union[List[str], List[List[str]]]:
+        """Retrieve raw corpus
 
-    def __len__(self):
+        Returns:
+            List[str]: Raw Corpus
+        """
+        return cls.corpus_
+
+    def __len__(self) -> int:
+        """Number of samples in corpus
+
+        Returns:
+            int: Corpus length
+        """
         return len(self.corpus_indices_)
 
-    def __getitem__(self, idx):
-        return (
+    def __getitem__(self, idx) -> List[int]:
+        """Get ith element in corpus as token indices
+
+        Args:
+            idx (List[int]): index in corpus
+
+        Returns:
+            List[int]: List of token indices for sentence
+        """
+        out: List[int] = (
             self.corpus_indices_[idx]
             if self.max_len <= 0
             else self.corpus_indices_[idx][: self.max_len]
         )
+        return out
 
 
 if __name__ == "__main__":
     corpus = [
-        [
-            "the big",
-            "brown fox",
-            "jumps over",
-            "the lazy dog",
-            "supercalifragilisticexpialidocious",
-        ]
+        "the big",
+        "brown fox",
+        "jumps over",
+        "the lazy dog",
+        "supercalifragilisticexpialidocious",
     ]
 
     word_corpus = WordCorpus(

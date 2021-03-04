@@ -15,8 +15,8 @@ class SequenceClassificationCollator(object):
         * Calculate sequence lengths
 
         Args:
-            pad_indx (int, optional): Pad token index. Defaults to 0.
-            device (str, optional): device of returned tensors. Leave this as "cpu".
+            pad_indx (int): Pad token index. Defaults to 0.
+            device (str): device of returned tensors. Leave this as "cpu".
                 The LightningModule will handle the Conversion.
 
         Examples:
@@ -57,8 +57,8 @@ class Seq2SeqCollator(object):
         * Calculate sequence lengths
 
         Args:
-            pad_indx (int, optional): Pad token index. Defaults to 0.
-            device (str, optional): device of returned tensors. Leave this as "cpu".
+            pad_indx (int): Pad token index. Defaults to 0.
+            device (str): device of returned tensors. Leave this as "cpu".
                 The LightningModule will handle the Conversion.
 
         Examples:
