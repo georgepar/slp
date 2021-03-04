@@ -77,6 +77,21 @@ You can access it with `poetry shell`.
 - Use one of their self-hosted solutions
 
 
+## Create a new project based on slp
+
+You can use the template at [https://github.com/georgepar/cookiecutter-pytorch-slp](https://github.com/georgepar/cookiecutter-pytorch-slp)
+to create a new project based on slp
+
+```
+pip install cookiecutter poetry
+cookiecutter gh:georgepar/cookiecutter-pytorch-slp
+# Follow the interactive configuration and a new folder with the project name you provided will appear
+cd $PROJECT_NAME
+poetry install  # Installs slp and all other dependencies
+```
+
+And you are good to go. Follow the instructions in the README of the new project you created. Happy coding
+
 ## Contributing
 
 You are welcome to open issues / PRs with improvements and bug fixes.
