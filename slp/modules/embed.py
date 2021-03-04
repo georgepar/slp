@@ -19,11 +19,11 @@ class PositionalEncoding(nn.Module):
 
         PE for even positions:
 
-        $$\\text{PosEncoder}(pos, 2i) = sin(pos/10000^(2i/d_model))$$
+        $$\\text{PosEncoder}(pos, 2i) = sin(\\frac{pos}{10000^{\\frac{2i}{d}}})$$
 
         PE for odd positions:
 
-        $$\\text{PosEncoder}(pos, 2i+1) = cos(pos/10000^(2i/d_model))$$
+        $$\\text{PosEncoder}(pos, 2i+1) = cos(\\frac{pos}{10000^{\\frac{2i}{d}}})$$
 
         where $pos$ is the word position and $i$ is the embedding idx
 

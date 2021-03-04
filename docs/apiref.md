@@ -25,7 +25,6 @@
 ::: slp.plbind.trainer
 
 
-::: slp.util.debug
 ::: slp.util.log
 ::: slp.util.pytorch
 ::: slp.util.system
