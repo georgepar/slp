@@ -1,10 +1,29 @@
 # slp
 
-![Build Status](https://github.com/georgepar/slp/actions/workflows/ci.yml/badge.svg)
-[![Maintainability](https://api.codeclimate.com/v1/badges/d3ad9729ad30aa158737/maintainability)](https://codeclimate.com/github/georgepar/slp/maintainability)
+![Build Status]()
+[![Maintainability]()]()
 
+<p align="center">
+    <a href="https://choosealicense.com/licenses/mit/" alt="License: MIT">
+        <img src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
+
+<img src="https://github.com/georgepar/slp/actions/workflows/ci.yml/badge.svg" />
+
+<a href="https://codeclimate.com/github/georgepar/slp/maintainability" alt="Maintainability">
+<img src="https://api.codeclimate.com/v1/badges/d3ad9729ad30aa158737/maintainability" />
+</a>
+
+    <a href="https://img.shields.io/pypi/pyversions/slp">
+        <img alt="Python Version" src="https://img.shields.io/pypi/pyversions/slp">
+    </a>
+
+    <a href="https://black.readthedocs.io/en/stable/" alt="Code Style: Black">
+        <img src="https://img.shields.io/badge/code%20style-black-000000.svg" />
+    </a>
+</p>
 
 Project page: [https://github.com/georgepar/slp](https://github.com/georgepar/slp)
+Documentation [https://georgepar.github.io/slp/](https://georgepar.github.io/slp/)
 
 
 slp is a framework for fast and reproducible development of multimodal models, with emphasis on
@@ -15,13 +34,13 @@ accordingly.
 
 As such, the framework is opinionated and it follows a convention over configuration approach.
 
-A heavy emphasis is put on:  
+A heavy emphasis is put on:
 
-- Enforcing best practices and reproducibility of experiments  
-- Making common things fast at the top-level and not having to go through extensive configuration options  
-- Remaining extendable. Extensions and modules for more use cases should be easy to add  
-- Out of the box extensive logging and experiment management  
-- Separating dirty / scratch code (at the script level) for quick changes and clean / polished code at the library level  
+- Enforcing best practices and reproducibility of experiments
+- Making common things fast at the top-level and not having to go through extensive configuration options
+- Remaining extendable. Extensions and modules for more use cases should be easy to add
+- Out of the box extensive logging and experiment management
+- Separating dirty / scratch code (at the script level) for quick changes and clean / polished code at the library level
 
 This is currently in alpha release under active development, so things may break and new features
 will be added.
@@ -54,9 +73,7 @@ You can access it with `poetry shell`.
 - Run `wandb offline` when you clone the repo to disable remote sync
 - Use one of their self-hosted solutions
 
-## Documentation
 
-Documentation can be found in [https://georgepar.github.io/slp/](https://georgepar.github.io/slp/)
 
 ## Contributions
 
@@ -73,7 +90,7 @@ cat <<EOT >> .git/hooks/pre-commit
 
 bash hooks/black-check
 bash hooks/export-requirements-txt
-bash hooks/checks   
+bash hooks/checks
 EOT
 
 chmod +x .git/hooks/pre-commit

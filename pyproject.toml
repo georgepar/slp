@@ -1,9 +1,27 @@
 [tool.poetry]
 name = "slp"
-version = "1.0.0"
+version = "1.0.1"
 description = "Speech, Language and Multimodal Processing models and utilities in PyTorch"
 authors = ["Giorgos Paraskevopoulos <geopar@central.ntua.gr>"]
 license = "MIT"
+readme = "README.md"
+homepage = "https://georgepar.github.io/slp"
+repository = "https://github.com/georgepar/slp"
+keywords = ["pytorch", "nlp", "multimodal"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+include = [ "LICENCSE", "docs/get-started.md" ]
+
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -23,7 +41,6 @@ torchvision = "^0.8.2"
 ujson = "^4.0.2"
 sentencepiece = "^0.1.95"
 validators = "^0.18.2"
-en-core-web-md = {url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.0.0/en_core_web_md-3.0.0-py3-none-any.whl"}
 nltk = "^3.5"
 loguru = "^0.5.3"
 pytorch-lightning = "^1.2.0"
