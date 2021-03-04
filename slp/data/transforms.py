@@ -101,7 +101,9 @@ class HuggingFaceTokenizer(object):
         Returns:
             List[int]: List of token ids
         """
-        out: List[int] = self.tokenizer.encode(x, add_special_tokens=self.add_special_tokens)
+        out: List[int] = self.tokenizer.encode(
+            x, add_special_tokens=self.add_special_tokens
+        )
         return out
 
 
@@ -165,7 +167,9 @@ class SpacyTokenizer(object):
         """
         if self.lower:
             x = x.lower()
-        out: List[str] = self.pre_id + [y.text for y in self.nlp.tokenizer(x)] + self.post_id
+        out: List[str] = (
+            self.pre_id + [y.text for y in self.nlp.tokenizer(x)] + self.post_id
+        )
         return out
 
 
@@ -194,9 +198,7 @@ class ToTokenIds(object):
             List[int]: List of token ids
         """
         return [
-            self.word2idx[w]
-            if w in self.word2idx
-            else self.word2idx[self.unk_value]
+            self.word2idx[w] if w in self.word2idx else self.word2idx[self.unk_value]
             for w in x
         ]
 
