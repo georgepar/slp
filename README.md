@@ -1,17 +1,15 @@
 # slp
 
-![Build Status]()
-[![Maintainability]()]()
-
 <p align="center">
     <a href="https://choosealicense.com/licenses/mit/" alt="License: MIT">
-        <img src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
+        <img src="https://img.shields.io/badge/license-MIT-green.svg" />
+    </a>
 
-<img src="https://github.com/georgepar/slp/actions/workflows/ci.yml/badge.svg" />
+    <img src="https://github.com/georgepar/slp/actions/workflows/ci.yml/badge.svg" />
 
-<a href="https://codeclimate.com/github/georgepar/slp/maintainability" alt="Maintainability">
-<img src="https://api.codeclimate.com/v1/badges/d3ad9729ad30aa158737/maintainability" />
-</a>
+    <a href="https://codeclimate.com/github/georgepar/slp/maintainability" alt="Maintainability">
+        <img src="https://api.codeclimate.com/v1/badges/d3ad9729ad30aa158737/maintainability" />
+    </a>
 
     <a href="https://img.shields.io/pypi/pyversions/slp">
         <img alt="Python Version" src="https://img.shields.io/pypi/pyversions/slp">
