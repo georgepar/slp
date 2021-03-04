@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slp"
-version = "1.0.2"
+version = "1.0.3"
 description = "Speech, Language and Multimodal Processing models and utilities in PyTorch"
 authors = ["Giorgos Paraskevopoulos <geopar@central.ntua.gr>"]
 license = "MIT"
@@ -20,7 +20,11 @@ classifiers = [
     "Topic :: Education",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-include = [ "LICENCSE", "docs/get-started.md" ]
+include = [
+    "LICENCSE",
+    "docs/",
+    "examples/"
+]
 
 
 [tool.poetry.dependencies]
