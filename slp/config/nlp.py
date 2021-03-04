@@ -5,12 +5,13 @@ class SPECIAL_TOKENS(Enum):
     """SPECIAL_TOKENS Special Tokens for NLP applications
 
     Default special tokens values and indices (compatible with BERT):
-        - [PAD]: 0
-        - [MASK]: 1
-        - [UNK]: 2
-        - [BOS]: 3
-        - [EOS]: 4
-        - [CLS]: 5
+
+        * [PAD]: 0
+        * [MASK]: 1
+        * [UNK]: 2
+        * [BOS]: 3
+        * [EOS]: 4
+        * [CLS]: 5
     """
 
     PAD = "[PAD]"

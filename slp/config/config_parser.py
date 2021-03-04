@@ -126,10 +126,12 @@ def parse_config(
     This function allows you to double dip, by overriding values in a YAML config file through user provided command line arguments.
 
     The precedence for merging is as follows
-       default cli args values < config file values < user provided cli args
-    E.g.
-       - if you don't include a value in your configuration it will take the default value from the argparse arguments
-       - if you provide a cli arg (e.g. run the script with --bsz 64) it will override the value in the config file
+       * default cli args values < config file values < user provided cli args
+
+    E.g.:
+
+       * if you don't include a value in your configuration it will take the default value from the argparse arguments
+       * if you provide a cli arg (e.g. run the script with --bsz 64) it will override the value in the config file
 
     Note we use an extended OmegaConf istance to achieve this (see slp.config.omegaconf.OmegaConf)
 

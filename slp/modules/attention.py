@@ -21,7 +21,7 @@ def attention_scores(
 ) -> torch.Tensor:
     """Calculate attention scores for scaled dot product attention
 
-    $$s = softmax(\frac{Q}{K^T}){\sqrt{d}})$$
+    $$s = softmax(\\frac{Q \cdot K^T}{\sqrt{d}})$$
 
     * B: Batch size
     * L: Keys Sequence length
@@ -89,7 +89,7 @@ class Attention(nn.Module):
 
         Outputs the values, where features for each sequence element are weighted by their respective attention scores
 
-        $$a = softmax(\frac{Q}{K^T}){\sqrt{d}}) \dot V$$
+        $$a = softmax(\\frac{Q}{K^T}){\sqrt{d}}) \dot V$$
 
         * B: Batch size
         * L: Keys Sequence length
@@ -211,11 +211,11 @@ class MultiheadAttention(nn.Module):
 
         Each head performs dot-product attention
 
-        $$a_H = softmax(\frac{Q_H}{K_H^T}){\sqrt{d}}) \dot V_H$$
+        $$a_H = softmax(\\frac{Q_H \cdot K_H^T}{\sqrt{d}}) \cdot V_H$$
 
         The outputs of multiple heads are concatenated and passed through a feedforward layer.
 
-        $$a = W (a^{(1)}_{H} | a^{(2)}_{H} \dots) + b$$
+        $$a = W (a^{(1)}_{H} \mathbin\Vert a^{(2)}_{H} \dots) + b$$
 
 
         * B: Batch size
