@@ -17,11 +17,15 @@ class PositionalEncoding(nn.Module):
         the embeddings, so that the two can be summed. Here, we use sine and cosine
         functions of different frequencies.
 
-        $$
-        \text{PosEncoder}(pos, 2i) = sin(pos/10000^(2i/d_model))
-        \text{PosEncoder}(pos, 2i+1) = cos(pos/10000^(2i/d_model))
-        \text{where pos is the word position and i is the embed idx)
-        $$
+        PE for even positions:
+
+        $$\\text{PosEncoder}(pos, 2i) = sin(pos/10000^(2i/d_model))$$
+
+        PE for odd positions:
+
+        $$\\text{PosEncoder}(pos, 2i+1) = cos(pos/10000^(2i/d_model))$$
+
+        where $pos$ is the word position and $i$ is the embedding idx
 
         Implementation modified from pytorch/examples/word_language_model.py
 
@@ -103,7 +107,13 @@ class Embed(nn.Module):
         # the gaussian noise "layer" for the word embeddings
         self.noise = GaussianNoise(noise)
 
-    def init_embeddings(self, weights, trainable):
+    def init_embeddings(self, weights: np.ndarray, trainable: bool):
+        """Initialize embeddings matrix with pretrained embeddings
+
+        Args:
+            weights (np.ndarray): pretrained embeddings
+            trainable (bool): Finetune embeddings?
+        """
         self.embedding.weight = nn.Parameter(
             torch.from_numpy(weights), requires_grad=trainable
         )

@@ -46,9 +46,10 @@ def configure_logging(logfile_prefix: Optional[str] = None) -> str:
         >>> configure_logging("logs/my-cool-experiment)
         logs/my-cool-experiment.20210228-211832.log
     """
-    # Intercept standard logging logs in loguru. Should test this for distributed pytorch lightning
+
     class InterceptHandler(logging.Handler):
         def emit(self, record):
+            """Intercept standard logging logs in loguru. Should test this for distributed pytorch lightning"""
             # Get corresponding Loguru level if it exists
             try:
                 level = logger.level(record.levelname).name
@@ -71,6 +72,7 @@ def configure_logging(logfile_prefix: Optional[str] = None) -> str:
     logger.remove()
 
     def tqdm_write(msg: str) -> Any:
+        """tqdm write wrapper for loguru"""
         return tqdm.write(msg, end="")
 
     logger.add(tqdm_write, colorize=True)

@@ -1,5 +1,8 @@
+from abc import ABC, abstractmethod
+
 from argparse import Namespace
 from typing import Any, Dict, List, Optional, Union, cast, Tuple
+from abc import ABC, abstractmethod
 
 import pytorch_lightning as pl
 import torch
@@ -15,11 +18,54 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 
-class _Classification(object):
-    def parse_batch(
-        self, batch: Tuple[torch.Tensor, torch.Tensor]
+class _Predictor(ABC):
+    """Base predictor class
+
+    Define an interface that can be used to extend the lightning module to new tasks and models
+
+    * parse_batch: Parse input batch and extract necessery masks etc.
+    * get_predictions_and_targets: Perform a forward pass through the model to get the logits and return logits and targets
+    """
+
+    @abstractmethod
+    def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
+        """Abstract parse_batch method to be implemented by child class
+
+        Args:
+            batch (Tuple[torch.Tensor, ...]): A tuple of tensors that contains inputs to the model and targets
+
+        Returns:
+            Tuple[torch.Tensor, ...]: The processed inputs, ready to provide to the model
+        """
+        pass
+
+    @abstractmethod
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Abstract get_predictions and targets method to be implemented by child class
+
+        This method gets exposed to the PLModule classes
+
+        Args:
+            model (nn.Module): model to use for forward pass
+            batch (Tuple[torch.Tensor, torch.Tensor]): A tuple of tensors that contains inputs to the model and targets
+
+        **Note**: Maybe it should be useful to move loss calculation here. Then multitask learning and auxiliary losses should be easier
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, ground_truths), ready to be passed to the loss function
+        """
+        pass
+
+
+class _Classification(_Predictor):
+    """Classification task"""
+
+    def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
         """Parse incoming batch
+
+        Input batch just contains inputs and targets
 
         Args:
             batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, labels)
@@ -33,7 +79,7 @@ class _Classification(object):
         return inputs, targets
 
     def get_predictions_and_targets(
-        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Return logits and ground truths to be passed in loss function
 
@@ -50,11 +96,13 @@ class _Classification(object):
         return y_pred, targets
 
 
-class _AutoEncoder(object):
-    def parse_batch(
-        self, batch: Tuple[torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+class _AutoEncoder(_Predictor):
+    """Autoencoder task"""
+
+    def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
         """Parse incoming batch
+
+        Input batch just contains inputs. Targets are the same as inputs, because we are doing reconstruction.
 
         Args:
             batch (Tuple[torch.Tensor]): (inputs)
@@ -66,7 +114,9 @@ class _AutoEncoder(object):
 
         return inputs, inputs
 
-    def get_predictions_and_targets(self, model, batch):
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Return logits and ground truths to be passed in loss function
 
         Args:
@@ -82,23 +132,61 @@ class _AutoEncoder(object):
         return y_pred.view(y_pred.size(0), -1), targets.view(targets.size(0), -1)
 
 
-class _RnnClassification(object):
-    def parse_batch(self, batch):
+class _RnnClassification(_Predictor):
+    """RNN classification task"""
+
+    def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
+        """Parse incoming batch
+
+        Input batch just contains inputs, targets and lengths.
+        Comes from slp.data.collators.SequentialCollator.
+
+        Args:
+            batch (Tuple[torch.Tensor]): (inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (inputs, inputs)
+        """
         inputs = batch[0]
         targets = batch[1]
         lengths = batch[2]
 
         return inputs, targets, lengths
 
-    def get_predictions_and_targets(self, model, batch):
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return logits and ground truths to be passed in loss function
+
+        Args:
+            model (nn.Module): Model to use for prediction
+            batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, inputs)
+        """
         inputs, targets, lengths = self.parse_batch(batch)
         y_pred = model(inputs, lengths)
 
         return y_pred, targets
 
 
-class _TransformerClassification(object):
-    def parse_batch(self, batch):
+class _TransformerClassification(_Predictor):
+    """Transformer classification task"""
+
+    def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
+        """Parse incoming batch
+
+        Input batch just contains inputs, targets and lengths.
+        Comes from slp.data.collators.SequentialCollator.
+        Create pad masks to be passed to transformer attention
+
+        Args:
+            batch (Tuple[torch.Tensor]): (inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (inputs, inputs)
+        """
         inputs = batch[0]
         targets = batch[1]
         lengths = batch[2]
@@ -106,15 +194,40 @@ class _TransformerClassification(object):
 
         return inputs, targets, attention_mask
 
-    def get_predictions_and_targets(self, model, batch):
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return logits and ground truths to be passed in loss function
+
+        Args:
+            model (nn.Module): Model to use for prediction
+            batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, inputs)
+        """
         inputs, targets, attention_mask = self.parse_batch(batch)
         y_pred = model(inputs, attention_mask=attention_mask)
 
         return y_pred, targets
 
 
-class _Transformer(object):
-    def parse_batch(self, batch):
+class _Transformer(_Predictor):
+    """Generic transformer seq2seq task"""
+
+    def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
+        """Parse incoming batch
+
+        Input batch just contains inputs, targets and lengths.
+        Comes from slp.data.collators.SequentialCollator.
+        Create pad masks and subsequent_masks to be passed to transformer attention
+
+        Args:
+            batch (Tuple[torch.Tensor]): (inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (inputs, inputs)
+        """
         inputs = batch[0]
         targets = batch[1]
         lengths_inputs = batch[2]
@@ -131,12 +244,23 @@ class _Transformer(object):
             lengths_targets,
             max_length=max_length_targets,
         ).unsqueeze(-2)
-        sub_m = subsequent_mask(max_length_targets)
+        sub_m = subsequent_mask(max_length_targets)  # type: ignore
         pad_targets = pad_targets * sub_m.to(pad_targets.device)
 
         return inputs, targets, pad_inputs, pad_targets
 
-    def get_predictions_and_targets(self, model, batch):
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return logits and ground truths to be passed in loss function
+
+        Args:
+            model (nn.Module): Model to use for prediction
+            batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, inputs)
+        """
         inputs, targets, source_mask, target_mask = self.parse_batch(batch)
         y_pred = model(
             inputs, targets, source_mask=source_mask, target_mask=target_mask
@@ -148,8 +272,22 @@ class _Transformer(object):
         return y_pred, targets
 
 
-class _BertSequenceClassification(object):
-    def parse_batch(self, batch):
+class _BertSequenceClassification(_Predictor):
+    """ Bert Classification task"""
+
+    def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
+        """Parse incoming batch
+
+        Input batch just contains inputs, targets and lengths.
+        Comes from slp.data.collators.SequentialCollator.
+        Create pad masks to be passed to BERT attention
+
+        Args:
+            batch (Tuple[torch.Tensor]): (inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (inputs, inputs)
+        """
         inputs = batch[0]
         targets = batch[1]
         lengths = batch[2]
@@ -158,7 +296,18 @@ class _BertSequenceClassification(object):
 
         return inputs, targets, attention_mask
 
-    def get_predictions_and_targets(self, model, batch):
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return logits and ground truths to be passed in loss function
+
+        Args:
+            model (nn.Module): Model to use for prediction
+            batch (Tuple[torch.Tensor, torch.Tensor]): (inputs, inputs)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, inputs)
+        """
         inputs, targets, attention_mask = self.parse_batch(batch)
         out = model(
             input_ids=inputs,
@@ -242,6 +391,7 @@ class SimplePLModule(pl.LightningModule):
             return self.optimizer
 
     def forward(self, *args, **kwargs):
+        """ Call wrapped module forward"""
         return self.model(*args, **kwargs)
 
     def _compute_metrics(self, metrics, loss, y_hat, targets, mode="train"):
@@ -256,9 +406,10 @@ class SimplePLModule(pl.LightningModule):
         """
 
         def fmt(name):
+            """Format metric name"""
             return f"{mode}_{name}"
 
-        metrics = {fmt(k): v(y_hat, targets) for k, v in metrics.items()}
+        metrics = {f"{mode}_{k}": v(y_hat, targets) for k, v in metrics.items()}
 
         if mode == "train":
             metrics["loss"] = loss
@@ -296,6 +447,7 @@ class SimplePLModule(pl.LightningModule):
         """
 
         def fmt(name):
+            """Format metric name"""
             return f"{name}" if name != "loss" else "train_loss"
 
         keys = list(outputs[0].keys())
@@ -416,13 +568,15 @@ def _make_specialized_pl_module(predictor_cls):
             metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
             calculate_perplexity=False,
         ):
+            """Pass arguments through to base class"""
             super(Module, self).__init__(
                 model,
                 optimizer,
                 criterion,
                 predictor_cls=predictor_cls,
-                metrics=metrics,
+                lr_scheduler=lr_scheduler,
                 hparams=hparams,
+                metrics=metrics,
                 calculate_perplexity=calculate_perplexity,
             )
 

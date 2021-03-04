@@ -13,6 +13,7 @@ class LayerNormTf(nn.Module):
         self.variance_epsilon = eps
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Calculate Layernorm the tf way"""
         u = x.mean(-1, keepdim=True)
         s = (x - u).pow(2).mean(-1, keepdim=True)
         x = (x - u) / torch.sqrt(s + self.variance_epsilon)

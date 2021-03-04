@@ -30,6 +30,7 @@ class GaussianNoise(nn.Module):
         return x
 
     def __repr__(self):
+        """String representation of class"""
         return "{} (mean={}, stddev={})".format(
             self.__class__.__name__, str(self.mean), str(self.stddev)
         )

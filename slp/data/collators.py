@@ -67,10 +67,6 @@ class Seq2SeqCollator(object):
         self.pad_indx = pad_indx
         self.device = device
 
-    @staticmethod
-    def get_inputs_and_targets(batch):
-        return inputs, targets
-
     def __call__(
         self, batch: List[Tuple[torch.Tensor, torch.Tensor]]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:

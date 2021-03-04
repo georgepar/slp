@@ -161,16 +161,20 @@ def safe_mkdirs(path: str) -> None:
 
 
 def timethis(method=False) -> Callable:
-    def timethis_inner(func: Callable) -> Callable:
-        """timethis Decorator to measure the time it takes for a function to complete
+    """timethis Decorator to measure the time it takes for a function to complete
 
-        Examples:
-            >>> @slp.util.system.timethis
-            >>> def time_consuming_function(...): ...
-        """
+    Examples:
+        >>> @slp.util.system.timethis
+        >>> def time_consuming_function(...): ...
+    """
+
+    def timethis_inner(func: Callable) -> Callable:
+        """Inner function for decorator closure"""
 
         @functools.wraps(func)
         def timed(*args: types.T, **kwargs: types.T):
+            """Inner function for decorator closure"""
+
             ts = time.time()
             result = func(*args, **kwargs)
             te = time.time()
@@ -204,6 +208,7 @@ def suppress_print(func: Callable) -> Callable:
     """
 
     def func_wrapper(*args: types.T, **kwargs: types.T):
+        """Inner function for decorator closure"""
         with open("/dev/null", "w") as sys.stdout:
             ret = func(*args, **kwargs)
         sys.stdout = sys.__stdout__

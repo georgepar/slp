@@ -57,6 +57,7 @@ def create_vocab(
     logger.info(f"Keeping {vocab_size} most common tokens out of {len(freq)}")
 
     def take0(x: Tuple[Any, Any]) -> Any:
+        """Take first tuple element"""
         return x[0]
 
     common_words = list(map(take0, freq.most_common(take)))
@@ -66,6 +67,7 @@ def create_vocab(
         words = words[: vocab_size + len(extra_tokens)]
 
     def token_freq(t):
+        """Token frequeny"""
         return 0 if t in extra_tokens else freq[t]
 
     vocab = dict(zip(words, map(token_freq, words)))
@@ -99,6 +101,7 @@ class EmbeddingsLoader(object):
         self.extra_tokens = extra_tokens
 
     def __repr__(self):
+        """String representation of class"""
         return f"{self.__class__.__name__}({self.embeddings_file}, {self.dim_})"
 
     def in_accepted_vocab(self, word: str) -> bool:
@@ -664,6 +667,13 @@ class TokenizedCorpus(object):
         max_len: int = -1,
         **kwargs,
     ):
+        """Wrap a corpus that's already tokenized
+
+        Args:
+            corpus (Union[List[str], List[List[str]]]): List of tokens or List of lists of tokens
+            word2idx (Dict[str, int], optional): Token to index mapping. Defaults to None.
+            special_tokens (Optional[SPECIAL_TOKENS], optional): Special Tokens. Defaults to SPECIAL_TOKENS.
+        """
         self.corpus_ = corpus
         self.tokenized_corpus_ = corpus
         self.max_len = max_len

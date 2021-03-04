@@ -312,6 +312,22 @@ python-versions = "*"
 six = ">=1.4.0"
 
 [[package]]
+name = "docstr-coverage"
+version = "2.0.1"
+description = "Utility for examining python source files to ensure proper documentation. Lists missing docstrings, and calculates overall docstring coverage percentage rating."
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+click = "*"
+PyYAML = "*"
+
+[package.extras]
+lint = ["flake8 (==3.8.2)", "black (==19.10b0)", "isort (==5.6.4)"]
+test = ["pytest (==5.4.2)", "pytest-mock (==3.4.0)"]
+
+[[package]]
 name = "en-core-web-md"
 version = "3.0.0"
 description = "English pipeline optimized for CPU. Components: tok2vec, tagger, parser, senter, ner, attribute_ruler, lemmatizer."
@@ -2216,7 +2232,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "cb75b5f585a59b6adbab976d4c8364eab7f441b9485ec40ca29abd4c78dea5d2"
+content-hash = "c6064536d59a2b7490611244dd5ac203c76776d038dc01469ac45ccc9c983544"
 
 [metadata.files]
 absl-py = [
@@ -2492,6 +2508,10 @@ distlib = [
 docker-pycreds = [
     {file = "docker-pycreds-0.4.0.tar.gz", hash = "sha256:6ce3270bcaf404cc4c3e27e4b6c70d3521deae82fb508767870fdbf772d584d4"},
     {file = "docker_pycreds-0.4.0-py2.py3-none-any.whl", hash = "sha256:7266112468627868005106ec19cd0d722702d2b7d5912a28e19b826c3d37af49"},
+]
+docstr-coverage = [
+    {file = "docstr_coverage-2.0.1-py3-none-any.whl", hash = "sha256:a5b1729acd94c452a001bfc419a1788e9b85af5b00d846c0c0cefb5702071bd5"},
+    {file = "docstr_coverage-2.0.1.tar.gz", hash = "sha256:4fb2f7933b55eb5033c8cf78828895c47431156364dff5ccd083005127ca6b29"},
 ]
 en-core-web-md = []
 entrypoints = [
