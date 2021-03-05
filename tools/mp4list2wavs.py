@@ -7,6 +7,7 @@ from typing import Callable, Tuple, cast
 from tqdm import tqdm
 from argparse import ArgumentParser
 
+# Don't induce slp dependency. Just copy paste the code to keep scripts atomic
 
 
 def safe_mkdirs(path: str) -> None:
@@ -108,15 +109,29 @@ def process_file(f, output_folder, sync=False):
     # Setting both width and height != -1 does not preserve aspect ratio
     fname = os.path.basename(f)
     fname = os.path.splitext(fname)[0]
-    out = run_cmd_silent(f"ffmpeg -y -i {f} -vn -acodec copy {output_folder}/{fname}.wav", sync=sync)
+    out = run_cmd_silent(
+        f"ffmpeg -y -i {f} -vn -acodec copy {output_folder}/{fname}.wav", sync=sync
+    )
     return out
 
 
 def parse_args():
     parser = ArgumentParser("Extract wavs from videos")
-    parser.add_argument("-i", "--file-list", type=str, help="Text file with paths to input videos, one video per line")
-    parser.add_argument("-o", "--out", type=str, help="Output folder to save wavs. Will create if does not exist")
-    parser.add_argument("-j", "--n-jobs", type=int, default=1, help="Num of jobs to use")
+    parser.add_argument(
+        "-i",
+        "--file-list",
+        type=str,
+        help="Text file with paths to input videos, one video per line",
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        type=str,
+        help="Output folder to save wavs. Will create if does not exist",
+    )
+    parser.add_argument(
+        "-j", "--n-jobs", type=int, default=1, help="Num of jobs to use"
+    )
 
     args = parser.parse_args()
 
@@ -138,9 +153,7 @@ if __name__ == "__main__":
         else:
             pipe = process_file(f, args.out, sync=False)
             processes.append(pipe)
-            if len(processes) == args.n_jobs:   
+            if len(processes) == args.n_jobs:
                 for p in processes:
                     p.wait()
                 processes = []
-
-

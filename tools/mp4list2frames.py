@@ -6,6 +6,7 @@ from typing import Callable, Tuple, cast
 from tqdm import tqdm
 from argparse import ArgumentParser
 
+# Don't induce slp dependency. Just copy paste the code to keep the scripts atomic.
 
 
 def safe_mkdirs(path: str) -> None:
@@ -109,28 +110,66 @@ def process_file(f, output_folder, fps=30, width=-1, height=-1, quality=3, sync=
     fname = os.path.splitext(fname)[0]
     safe_mkdirs(os.path.join(output_folder, fname))
     if width is not None or height is not None:
-        out = run_cmd_silent(f"ffmpeg -y -i {f} -vf \"scale={width}:{height},fps={fps}\" -qscale:v {quality} -qmin 1 {output_folder}/{fname}/f_%04d.jpg", sync=sync)
+        out = run_cmd_silent(
+            f'ffmpeg -y -i {f} -vf "scale={width}:{height},fps={fps}" -qscale:v {quality} -qmin 1 {output_folder}/{fname}/f_%04d.jpg',
+            sync=sync,
+        )
     else:
-        out = run_cmd_silent(f"ffmpeg -y -i {f} -vf \"fps={fps}\" -qscale:v {quality} -qmin 1 {output_folder}/{fname}/f_%04d.jpg", sync=sync)
+        out = run_cmd_silent(
+            f'ffmpeg -y -i {f} -vf "fps={fps}" -qscale:v {quality} -qmin 1 {output_folder}/{fname}/f_%04d.jpg',
+            sync=sync,
+        )
     return out
 
 
 def parse_args():
     parser = ArgumentParser("Extract frames from videos")
-    parser.add_argument("-i", "--file-list", type=str, help="Text file with paths to input videos, one video per line")
-    parser.add_argument("-o", "--out", type=str, help="Output folder to save frames. Will create if does not exist")
+    parser.add_argument(
+        "-i",
+        "--file-list",
+        type=str,
+        help="Text file with paths to input videos, one video per line",
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        type=str,
+        help="Output folder to save frames. Will create if does not exist",
+    )
     parser.add_argument("--fps", type=int, default=30, help="FPS to sample video")
-    parser.add_argument("-ww", "--width", type=int, default=-1, help="Width of final frames. If both width and height are set, aspect ratio is not preserved")
-    parser.add_argument("-hh", "--height", type=int, default=-1, help="Height of final frames. If both width and height are set, aspect ratio is not preserved")
-    parser.add_argument("-j", "--n-jobs", type=int, default=1, help="Num of jobs to use")
-    parser.add_argument("-q", "--quality", type=int, default=3, help="JPEG quality. 1-31. Lower is better quality / more disc space")
+    parser.add_argument(
+        "-ww",
+        "--width",
+        type=int,
+        default=-1,
+        help="Width of final frames. If both width and height are set, aspect ratio is not preserved",
+    )
+    parser.add_argument(
+        "-hh",
+        "--height",
+        type=int,
+        default=-1,
+        help="Height of final frames. If both width and height are set, aspect ratio is not preserved",
+    )
+    parser.add_argument(
+        "-j", "--n-jobs", type=int, default=1, help="Num of jobs to use"
+    )
+    parser.add_argument(
+        "-q",
+        "--quality",
+        type=int,
+        default=3,
+        help="JPEG quality. 1-31. Lower is better quality / more disc space",
+    )
 
     args = parser.parse_args()
 
     safe_mkdirs(args.out)
 
     if args.height > 0 and args.width > 0:
-        print("WARNING: You have set width and height of output frames. Will not preserve aspect ratio")
+        print(
+            "WARNING: You have set width and height of output frames. Will not preserve aspect ratio"
+        )
 
     return args
 
@@ -139,17 +178,32 @@ if __name__ == "__main__":
 
     args = parse_args()
 
-
     flist = read_file_list(args.file_list)
 
     processes = []
     for f in tqdm(flist, desc="extracting wavs"):
         if args.n_jobs == 1:
-            process_file(f, args.out, fps=args.fps, width=args.width, height=args.height, quality=args.quality, sync=True)
+            process_file(
+                f,
+                args.out,
+                fps=args.fps,
+                width=args.width,
+                height=args.height,
+                quality=args.quality,
+                sync=True,
+            )
         else:
-            pipe = process_file(f, args.out, fps=args.fps, width=args.width, height=args.height, quality=args.quality, sync=False)
+            pipe = process_file(
+                f,
+                args.out,
+                fps=args.fps,
+                width=args.width,
+                height=args.height,
+                quality=args.quality,
+                sync=False,
+            )
             processes.append(pipe)
-            if len(processes) == args.n_jobs:   
+            if len(processes) == args.n_jobs:
                 for p in processes:
                     p.wait()
                 processes = []
