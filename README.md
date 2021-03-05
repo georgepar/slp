@@ -2,6 +2,7 @@
 
 <p align="center">
     <img src="https://github.com/georgepar/slp/actions/workflows/ci.yml/badge.svg" />
+    <img src="https://github.com/georgepar/slp/actions/workflows/docs.yml/badge.svg" />
     <a href="https://codeclimate.com/github/georgepar/slp/maintainability" alt="Maintainability">
         <img src="https://api.codeclimate.com/v1/badges/d3ad9729ad30aa158737/maintainability" /></a>
     <a href="https://choosealicense.com/licenses/mit/" alt="License: MIT">
