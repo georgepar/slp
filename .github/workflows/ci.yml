@@ -40,7 +40,9 @@ jobs:
         if: steps.cache.outputs.cache-hit == 'true'
         run: poetry run pip --version >/dev/null 2>&1 || rm -rf .venv
       - name: Install Dependencies
-        run: poetry install
+        run: |
+          poetry check || rm poetry.lock
+          poetry install
       - name: Lint
         run: poetry run nox -s lintci
       - name: Typecheck
