@@ -57,10 +57,3 @@ jobs:
           poetry run mkdocs gh-deploy --config-file ${GITHUB_WORKSPACE}/mkdocs.yml --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
-      # - name: Publish to PyPi
-      #   env:
-      #     PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      #   run: |
-      #     poetry config pypi-token.pypi $PYPI_TOKEN
-      #     poetry build
-      #     poetry publish
