@@ -1,0 +1,51 @@
+name: slp Deploy docs to Github Pages
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  run-nox:
+    strategy:
+      fail-fast: true
+    name: Deploy docs to gh-pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Get full python version
+        id: full-python-version
+        run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
+      - name: Setup
+        run: |
+          pip install -U pip
+          pip install poetry
+      - name: Configure poetry
+        run: poetry config virtualenvs.in-project true
+      - name: Set up cache
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Ensure cache is healthy
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: poetry run pip --version >/dev/null 2>&1 || rm -rf .venv
+      - name: Install Dependencies
+        run: |
+          poetry install
+      - name: Deploy Docs
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git remote rm origin
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          poetry run mkdocs gh-deploy --config-file ${GITHUB_WORKSPACE}/mkdocs.yml --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
