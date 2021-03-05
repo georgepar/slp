@@ -133,5 +133,4 @@ If you use this code for your research, please include the following citation
 * Add dataloaders for popular multimodal datasets
 * Add multimodal architectures
 * Add RIM, DNC and Kanerva machine implementations
-* Create cookiecutter template for new project scaffolding
 * Write unit tests
