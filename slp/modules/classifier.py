@@ -32,6 +32,6 @@ class Classifier(nn.Module):
             torch.Tensor: [B, *, num_classes] Logits tensor
         """
         encoded: torch.Tensor = self.encoder(*args, **kwargs)  # type: ignore
-        out: torch.Tensor = self.drop(out)
+        out: torch.Tensor = self.drop(encoded)
         out = self.clf(out)
         return out
