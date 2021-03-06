@@ -158,7 +158,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
     parser.add_argument(
         "--early-stop-on",
         dest="trainer.early_stop_on",
-        type="str",
+        type=str,
         default="val_loss",
         help="Metric for early stopping",
     )
