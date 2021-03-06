@@ -1,19 +1,16 @@
-import torch.nn as nn
-from torch.optim import Adam
 import pytorch_lightning as pl
-
+import torch.nn as nn
 from loguru import logger
-from torchnlp.datasets import smt_dataset  # type: ignore
-
-from slp.plbind.dm import PLDataModuleFromCorpus
-from slp.plbind.module import RnnPLModule
-from slp.util.log import configure_logging
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
-from slp.plbind.trainer import make_trainer, watch_model
+from slp.plbind.dm import PLDataModuleFromCorpus
 from slp.plbind.helpers import FromLogits
-
+from slp.plbind.module import RnnPLModule
+from slp.plbind.trainer import make_trainer, watch_model
+from slp.util.log import configure_logging
+from torch.optim import Adam
+from torchnlp.datasets import smt_dataset  # type: ignore
 
 collate_fn = SequenceClassificationCollator(device="cpu")
 
@@ -23,7 +20,9 @@ if __name__ == "__main__":
 
     configure_logging(f"logs/{EXPERIMENT_NAME}")
 
-    train, dev = smt_dataset(directory="../data/", train=True, dev=True)
+    train, dev, test = smt_dataset(
+        directory="../data/", train=True, dev=True, test=True
+    )
 
     raw_train = [d["text"] for d in train]
     labels_train = [d["label"] for d in train]
@@ -31,11 +30,16 @@ if __name__ == "__main__":
     raw_dev = [d["text"] for d in dev]
     labels_dev = [d["label"] for d in dev]
 
+    raw_test = [d["text"] for d in test]
+    labels_test = [d["label"] for d in test]
+
     ldm = PLDataModuleFromCorpus(
         raw_train,
         labels_train,
         val=raw_dev,
         val_labels=labels_dev,
+        test=raw_test,
+        test_labels=labels_test,
         batch_size=8,
         batch_size_eval=32,
         collate_fn=collate_fn,
@@ -49,9 +53,9 @@ if __name__ == "__main__":
     )
 
     encoder = WordRNN(
-        256,
+        128,
         embeddings=ldm.embeddings,
-        embeddings_dim=300,
+        embeddings_dim=50,
         bidirectional=True,
         merge_bi="sum",
         packed_sequence=True,
