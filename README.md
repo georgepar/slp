@@ -74,7 +74,8 @@ You can access it with `poetry shell`.
 **Note**: Wandb logging is enabled by default. You can either
 
 - Create an account and run `wandb login` when you clone the repo in a new machine to store the results in the online managed environment
-- Run `wandb offline` when you clone the repo to disable remote sync
+- Run `wandb offline` when you clone the repo to disable remote sync or use the `--offline` command
+  line argument in your scripts
 - Use one of their self-hosted solutions
 
 
