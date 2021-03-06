@@ -42,7 +42,8 @@ jobs:
         run: |
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          poetry run mike deploy --push -f --update-aliases -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --config-file ${GITHUB_WORKSPACE}/mkdocs.yml latest
+          version=$(poetry version)
+          poetry run mike deploy --push --update-aliases -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --config-file ${GITHUB_WORKSPACE}/mkdocs.yml ${version:-2} latest
           poetry run mike set-default -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --push latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
