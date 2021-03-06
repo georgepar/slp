@@ -44,8 +44,8 @@ jobs:
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git remote rm origin
           git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git checkout -t origin/gh-pages
           git checkout master
-          git pull --all
           git branch -D gh-pages
           git checkout -t origin/gh-pages
           git checkout master
