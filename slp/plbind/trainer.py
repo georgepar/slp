@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Union
 
 import pytorch_lightning as pl
 import torch.nn as nn
@@ -148,6 +148,30 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         help="If true, we run a full run on a small subset of the input data and overfit 10 training batches",
     )
 
+    parser.add_argument(
+        "--offline",
+        dest="trainer.force_wandb_offline",
+        action="store_true",
+        help="If true, forces offline execution of wandb logger",
+    )
+
+    parser.add_argument(
+        "--early-stop-on",
+        dest="trainer.early_stop_on",
+        type="str",
+        default="val_loss",
+        help="Metric for early stopping",
+    )
+
+    parser.add_argument(
+        "--early-stop-mode",
+        dest="trainer.early_stop_mode",
+        type=str,
+        choices=["min", "max"],
+        default="min",
+        help="Minimize or maximize early stopping metric",
+    )
+
     return parser
 
 
@@ -261,7 +285,8 @@ def make_trainer(
     overfit_batches: Optional[int] = None,
     terminate_on_nan: bool = False,  # Be careful this makes training very slow for large models
     profiler: Optional[Union[pl.profiler.BaseProfiler, bool, str]] = "simple",
-    early_stop_on: Tuple[str, str] = ("val_loss", "min"),
+    early_stop_on: str = "val_loss",
+    early_stop_mode: str = "min",
 ) -> pl.Trainer:
     """Configure trainer with preferred defaults
 
@@ -300,7 +325,8 @@ def make_trainer(
         overfit_batches (Optional[int], optional): Try to overfit a small number of batches for debugging. Defaults to None.
         terminate_on_nan (bool, optional): Terminate on NaN gradients. Warning this makes training slow. Defaults to False.
         profiler (Optional[Union[pl.profiler.BaseProfiler, bool, str]]): Use profiler to track execution times of each function
-        early_stop_on (Tuple[str, str]): tuple -> (metric for early stopping, "min" | "max")
+        early_stop_on (str): metric for early stopping
+        early_stop_mode (str): "min" or "max"
 
     Returns:
         pl.Trainer: Configured trainer
@@ -376,17 +402,17 @@ def make_trainer(
 
     callbacks = [
         EarlyStoppingWithLogs(
-            monitor="val_loss",
-            mode="min",
+            monitor=early_stop_on,
+            mode=early_stop_mode,
             patience=patience,
             verbose=True,
         ),
         pl.callbacks.ModelCheckpoint(
             dirpath=checkpoint_dir,
             filename="{epoch}-{val_loss:.2f}",
-            monitor="val_loss",
+            monitor=early_stop_on,
             save_top_k=save_top_k,
-            mode="min",
+            mode=early_stop_mode,
         ),
         pl.callbacks.LearningRateMonitor(logging_interval="step"),
     ]
