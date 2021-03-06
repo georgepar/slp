@@ -1,9 +1,8 @@
 import math
 
 import torch.nn as nn
-
 from slp.modules.attention import MultiheadAttention
-from slp.modules.embed import PositionalEncoding, Embed
+from slp.modules.embed import Embed, PositionalEncoding
 from slp.modules.feedforward import PositionwiseFF
 from slp.modules.norm import LayerNorm
 from slp.util.pytorch import repeat_layer

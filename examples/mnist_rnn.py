@@ -1,32 +1,25 @@
 # python examples/mnist_rnn.py --bsz 128 --bsz-eval 256
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
 import sys
+from argparse import ArgumentParser
 
 import pytorch_lightning as pl
-from argparse import ArgumentParser
-from torchvision.transforms import Compose, ToTensor, Normalize  # type: ignore
-from torchvision.datasets import MNIST  # type: ignore
-
+import torch.nn as nn
+import torch.optim as optim
 from loguru import logger
-
-from slp.config.config_parser import parse_config, make_cli_parser
+from slp.config.config_parser import make_cli_parser, parse_config
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.rnn import RNN
-
-from slp.util.log import configure_logging
 from slp.plbind import (
+    FromLogits,
     PLDataModuleFromDatasets,
     RnnPLModule,
     make_trainer,
     watch_model,
-    FromLogits,
 )
-
+from slp.util.log import configure_logging
+from torchvision.datasets import MNIST  # type: ignore
+from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
 
 collate_fn = SequenceClassificationCollator()
 

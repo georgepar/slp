@@ -1,14 +1,11 @@
-from slp.data.collators import (
-    SequenceClassificationCollator,
-    Seq2SeqCollator,
-)
-from slp.data.corpus import WordCorpus, HfCorpus, create_vocab
-from slp.data.datasets import CorpusLMDataset, CorpusDataset
+from slp.data.collators import Seq2SeqCollator, SequenceClassificationCollator
+from slp.data.corpus import HfCorpus, WordCorpus, create_vocab
+from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import (
-    SentencepieceTokenizer,
     HuggingFaceTokenizer,
-    SpacyTokenizer,
-    ToTokenIds,
     ReplaceUnknownToken,
+    SentencepieceTokenizer,
+    SpacyTokenizer,
     ToTensor,
+    ToTokenIds,
 )

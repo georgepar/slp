@@ -1,16 +1,13 @@
 import os
-import spacy
-import torch
+from typing import Any, Dict, List, Optional
 
 import sentencepiece as spm
-
-from typing import List, Dict, Any, Optional
-
-from transformers import AutoTokenizer
-from spacy.attrs import ORTH
-
+import spacy
+import torch
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.util.pytorch import mktensor
+from spacy.attrs import ORTH
+from transformers import AutoTokenizer
 
 # Avoid deadlocks for hugging face tokenizers
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

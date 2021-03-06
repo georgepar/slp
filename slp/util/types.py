@@ -1,11 +1,12 @@
+import argparse
 import os
+from typing import Any, Callable, Dict, List, Tuple, TypeVar, Union
+
 import numpy as np
 import torch
 import validators
-import argparse
-from torch.optim.optimizer import Optimizer
 from omegaconf import DictConfig
-from typing import Dict, Union, List, TypeVar, Tuple, Callable, Any
+from torch.optim.optimizer import Optimizer
 
 T = TypeVar("T")
 K = TypeVar("K")

@@ -1,28 +1,24 @@
 # python examples/mnist.py --bsz 128 --bsz-eval 256
 
-import torch
+import sys
+from argparse import ArgumentParser
+
+import pytorch_lightning as pl
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
-import sys
-
-import pytorch_lightning as pl
-from argparse import ArgumentParser
-from torchvision.transforms import Compose, ToTensor, Normalize  # type: ignore
-from torchvision.datasets import MNIST  # type: ignore
-
 from loguru import logger
-
-from slp.config.config_parser import parse_config, make_cli_parser
-from slp.util.log import configure_logging
+from slp.config.config_parser import make_cli_parser, parse_config
 from slp.plbind import (
+    FromLogits,
     PLDataModuleFromDatasets,
     PLModule,
     make_trainer,
     watch_model,
-    FromLogits,
 )
+from slp.util.log import configure_logging
+from torchvision.datasets import MNIST  # type: ignore
+from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
 
 # Could be read from yaml with OmegaConf.from_yaml
 CONFIG = {

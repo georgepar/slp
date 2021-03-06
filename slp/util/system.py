@@ -2,18 +2,17 @@ import functools
 import os
 import pickle
 import shutil
+import socket
 import subprocess
 import sys
 import time
 import urllib
 import urllib.request
-import validators
-import socket
-
-from loguru import logger
-from typing import cast, Any, Callable, Optional, Tuple
-
 from datetime import datetime
+from typing import Any, Callable, Optional, Tuple, cast
+
+import validators
+from loguru import logger
 from slp.util import types
 
 try:

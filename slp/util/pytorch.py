@@ -1,18 +1,11 @@
 import copy
-import torch
+from typing import Callable, List, Optional, Tuple, Union, cast
 
 import torch
-
 import torch.nn as nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-
 from loguru import logger
-from typing import Optional
-
-from slp.util import system
-from slp.util import types
-
-from typing import cast, Callable, Optional, Tuple, Union, List
+from slp.util import system, types
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class PadPackedSequence(nn.Module):

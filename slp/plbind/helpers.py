@@ -1,5 +1,4 @@
 import os
-from collections import OrderedDict
 from typing import Optional
 
 import pytorch_lightning as pl

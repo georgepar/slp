@@ -1,9 +1,7 @@
-from tqdm import tqdm
-from toolz.functoolz import compose
-from torch.utils.data import Dataset
-from sklearn.preprocessing import LabelEncoder
-
 from typing import List
+
+from sklearn.preprocessing import LabelEncoder
+from torch.utils.data import Dataset
 
 
 class CorpusLMDataset(Dataset):

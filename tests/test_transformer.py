@@ -1,21 +1,16 @@
 # %%
 import itertools
+from warnings import simplefilter
 
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
-
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.data.collators import Seq2SeqCollator
 from slp.data.corpus import create_vocab
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.modules.transformer import Transformer
-from slp.plbind import PLDataModuleFromCorpus, TransformerPLModule, make_trainer
 from slp.util.pytorch import pad_mask, subsequent_mask
-
-from warnings import simplefilter
+from torch.utils.data import DataLoader, Dataset
 
 simplefilter(action="ignore")
 

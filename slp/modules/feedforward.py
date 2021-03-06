@@ -1,12 +1,10 @@
 import itertools
+from typing import List, Union
+
 import torch
 import torch.nn as nn
-
-from typing import Union, List
-
 from loguru import logger
 from slp.modules.norm import LayerNorm
-
 
 # Activation functions to choose
 NON_LINEARITIES = {

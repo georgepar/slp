@@ -1,23 +1,17 @@
 import argparse
+from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
-import torch
 import pytorch_lightning as pl
-
-from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP
-
+import torch
 from loguru import logger
 from sklearn.model_selection import train_test_split
-from torch.utils.data import random_split, DataLoader, Dataset, Sampler, BatchSampler
-
-from collections.abc import Sized
-
-from typing import Union, List, Dict, Optional, Any, Tuple, Callable, Iterable
-
-from slp.data.corpus import WordCorpus, HfCorpus, TokenizedCorpus
+from slp.data.corpus import HfCorpus, TokenizedCorpus, WordCorpus
 from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import ToTensor
 from slp.util.types import dir_path
+from torch.utils.data import BatchSampler, DataLoader, Dataset, Sampler, random_split
+from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP
 
 DatasetType = Union[Dataset, List[Any]]
 

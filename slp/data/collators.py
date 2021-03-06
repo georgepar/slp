@@ -1,10 +1,9 @@
+from typing import List, Tuple
+
 import torch
-
-from typing import List, Tuple, cast
+from slp.util.pytorch import mktensor
 from slp.util.types import Label
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
-
-from slp.util.pytorch import mktensor, pad_mask, subsequent_mask
+from torch.nn.utils.rnn import pad_sequence
 
 
 class SequenceClassificationCollator(object):

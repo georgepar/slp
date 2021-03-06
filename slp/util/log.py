@@ -1,11 +1,10 @@
 import io
 import logging
+from typing import Any, Optional
 
-from typing import Optional, Any
 from loguru import logger
-from tqdm import tqdm
-
 from slp.util.system import date_fname
+from tqdm import tqdm
 
 
 def log_to_file(fname_prefix: Optional[str]) -> str:

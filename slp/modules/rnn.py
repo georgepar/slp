@@ -1,14 +1,12 @@
-import torch
-import torch.nn as nn
+from typing import Optional, Tuple, Union
 
 import numpy as np
-
+import torch
+import torch.nn as nn
 from loguru import logger
-from typing import Optional, Union, Tuple
-
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
-from slp.util.pytorch import pad_mask, PackSequence, PadPackedSequence
+from slp.util.pytorch import PackSequence, PadPackedSequence, pad_mask
 
 
 class RNN(nn.Module):

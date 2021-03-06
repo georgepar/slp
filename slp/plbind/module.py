@@ -1,15 +1,12 @@
 from abc import ABC, abstractmethod
-
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Union, cast, Tuple
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 from loguru import logger
 from omegaconf import DictConfig
-from pytorch_lightning.core.step_result import Result
 from slp.config.omegaconf import OmegaConf
 from slp.util.pytorch import pad_mask, subsequent_mask
 from slp.util.system import print_separator

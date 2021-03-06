@@ -1,11 +1,10 @@
 import math
+from typing import Optional
+
 import numpy as np
 import torch
 import torch.nn as nn
-
-from typing import Optional
 from loguru import logger
-
 from slp.modules.regularization import GaussianNoise
 
 
