@@ -1,14 +1,13 @@
 import argparse
 import os
-import torch.nn as nn
+from typing import Optional, Sequence, Tuple, Union
+
 import pytorch_lightning as pl
-
+import torch.nn as nn
 from loguru import logger
-from typing import Optional, Sequence, Union
-
+from slp.plbind.helpers import EarlyStoppingWithLogs, FixedWandbLogger
+from slp.util.system import date_fname, has_internet_connection, safe_mkdirs
 from slp.util.types import dir_path
-from slp.util.system import safe_mkdirs, date_fname, has_internet_connection
-from slp.plbind.helpers import FixedWandbLogger, EarlyStoppingWithLogs
 
 
 def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -247,6 +246,7 @@ def make_trainer(
     patience: int = 3,
     wandb_project: Optional[str] = None,
     wandb_user: Optional[str] = None,
+    force_wandb_offline: bool = False,
     tags: Optional[Sequence] = None,
     stochastic_weight_avg: bool = False,
     auto_scale_batch_size: bool = False,
@@ -261,6 +261,7 @@ def make_trainer(
     overfit_batches: Optional[int] = None,
     terminate_on_nan: bool = False,  # Be careful this makes training very slow for large models
     profiler: Optional[Union[pl.profiler.BaseProfiler, bool, str]] = "simple",
+    early_stop_on: Tuple[str, str] = ("val_loss", "min"),
 ) -> pl.Trainer:
     """Configure trainer with preferred defaults
 
@@ -282,6 +283,7 @@ def make_trainer(
         patience (int, optional): Patience for early stopping. Defaults to 3.
         wandb_project (Optional[str], optional): Wandb project to save the experiment. Defaults to None.
         wandb_user (Optional[str], optional): Wandb username. Defaults to None.
+        force_wandb_offline (bool): Force offline execution of wandb
         tags (Optional[Sequence], optional): Additional tags to attach to the experiment. Defaults to None.
         stochastic_weight_avg (bool, optional): Use stochastic weight averaging. Defaults to False.
         auto_scale_batch_size (bool, optional): Find optimal batch size for the available resources when running
@@ -298,6 +300,7 @@ def make_trainer(
         overfit_batches (Optional[int], optional): Try to overfit a small number of batches for debugging. Defaults to None.
         terminate_on_nan (bool, optional): Terminate on NaN gradients. Warning this makes training slow. Defaults to False.
         profiler (Optional[Union[pl.profiler.BaseProfiler, bool, str]]): Use profiler to track execution times of each function
+        early_stop_on (Tuple[str, str]): tuple -> (metric for early stopping, "min" | "max")
 
     Returns:
         pl.Trainer: Configured trainer
@@ -333,6 +336,7 @@ def make_trainer(
         wandb_project = experiment_name
 
     connected = has_internet_connection()
+    offline_run = force_wandb_offline or not connected
 
     loggers = [
         pl.loggers.CSVLogger(logging_dir, name="csv_logs", version=run_id),
@@ -344,8 +348,8 @@ def make_trainer(
             version=run_id,
             save_code=True,
             checkpoint_dir=checkpoint_dir,
-            offline=not connected,
-            log_model=True,
+            offline=offline_run,
+            log_model=not offline_run,
             entity=wandb_user,
             group=experiment_group,
             notes=experiment_description,
