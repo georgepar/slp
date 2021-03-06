@@ -111,6 +111,5 @@ logs/*
 data/*
 .vscode
 experiments/*
-poetry.lock
 
 wandb/

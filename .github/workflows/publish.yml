@@ -46,7 +46,7 @@ jobs:
           git checkout ${latest_tag}
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          poetry run mike deploy -f --update-aliases -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --config-file ${GITHUB_WORKSPACE}/mkdocs.yml ${latest_tag}
+          poetry run mike deploy -f -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --config-file ${GITHUB_WORKSPACE}/mkdocs.yml ${latest_tag}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
       - name: Publish to PyPi
