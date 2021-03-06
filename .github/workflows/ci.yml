@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - develop
+      - main
 
 jobs:
   run-nox:
