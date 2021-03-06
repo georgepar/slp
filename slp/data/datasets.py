@@ -65,7 +65,8 @@ class CorpusDataset(Dataset):
         self.labels = labels
         assert len(self.labels) == len(self.corpus), "Incompatible labels and corpus"
         self.transforms = []
-        if isinstance(self.labels[0], "str"):
+        self.label_encoder = None
+        if isinstance(self.labels[0], str):
             self.label_encoder = LabelEncoder().fit(self.labels)
 
     def map(self, t):
@@ -98,7 +99,8 @@ class CorpusDataset(Dataset):
             Tuple[torch.Tensor, torch.Tensor]: (processed sentence, label)
         """
         text, target = self.corpus[idx], self.labels[idx]
-        target = self.label_encoder.transform([target])[0]
+        if self.label_encoder is not None:
+            target = self.label_encoder.transform([target])[0]
         for t in self.transforms:
             text = t(text)
         return text, target
