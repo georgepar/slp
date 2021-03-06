@@ -33,8 +33,8 @@ def attention_scores(
         k (torch.Tensor): Single head [B, L, A] or multi-head [B, H, L, A/H] Keys tensor
         q (torch.Tensor): Single head [B, M, A] or multi-head [B, H, M, A/H] Keys tensor
         dk (int): Model dimension
-        attention_mask (Optional[torch.Tensor]): Optional [B, M, L] mask tensor with zeros in
-            sequence indices that should be masked and ones in sequence indices that should be
+        attention_mask (Optional[torch.Tensor]): Optional [B, L] pad mask or [B, M, L] pad mask + subsequent mask
+            tensor with zeros in sequence indices that should be masked and ones in sequence indices that should be
             preserved. Defaults to None.
         dropout (float): Drop probability. Defaults to 0.2.
         training (bool): Is module in training phase? Defaults to True.
