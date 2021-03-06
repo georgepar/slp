@@ -11,7 +11,7 @@ jobs:
   run-nox:
     strategy:
       fail-fast: true
-    name: Deploy docs to gh-pages
+    name: Deploy to PyPI
     runs-on: ubuntu-latest
 
     steps:
