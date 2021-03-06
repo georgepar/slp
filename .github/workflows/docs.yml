@@ -47,7 +47,7 @@ jobs:
           git checkout -t origin/gh-pages
           git checkout master
           git branch -D gh-pages
-          git checkout -t origin/gh-pages
+          git checkout gh-pages
           git checkout master
           version=$(poetry version)
           poetry run mike deploy --push --update-aliases --config-file ${GITHUB_WORKSPACE}/mkdocs.yml ${version:-2} latest
