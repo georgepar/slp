@@ -40,8 +40,19 @@ jobs:
       - name: Install Dependencies
         run: |
           poetry install
+      - name: Deploy Docs
+        run: |
+          latest_tag=$(git describe --abbrev=0 --tags)
+          git checkout ${latest_tag}
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          poetry run mike deploy -f --update-aliases -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --config-file ${GITHUB_WORKSPACE}/mkdocs.yml ${latest_tag}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
       - name: Publish to PyPi
         run: |
+          latest_tag=$(git describe --abbrev=0 --tags)
+          git checkout ${latest_tag}
           poetry config pypi-token.pypi $PYPI_TOKEN
           poetry build
           poetry publish
