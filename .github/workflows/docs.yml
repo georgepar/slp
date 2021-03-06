@@ -42,8 +42,6 @@ jobs:
         run: |
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git remote rm origin
-          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          poetry run mike deploy --config-file ${GITHUB_WORKSPACE}/mkdocs.yml -f latest
+          poetry run mike deploy -f -p -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --config-file ${GITHUB_WORKSPACE}/mkdocs.yml latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}

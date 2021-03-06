@@ -14,7 +14,7 @@
 </p>
 
 * **Repo:** [https://github.com/georgepar/slp](https://github.com/georgepar/slp)
-* **Documentation:** [https://georgepar.github.io/slp/](https://georgepar.github.io/slp/)
+* **Documentation:** [https://georgepar.github.io/slp/latest/](https://georgepar.github.io/slp/latest/)
 
 
 slp is a framework for fast and reproducible development of multimodal models, with emphasis on
