@@ -1,2 +1,11 @@
+echo "Checking if code is formatted properly using black"
 
-poetry run nox -s lintci typecheckci testsci
+poetry run nox -s lintci
+
+echo "Checking for broken type stubs"
+
+poetry run nox -s typecheckci
+
+echo "Running tests"
+
+poetry run nox -s testsci
