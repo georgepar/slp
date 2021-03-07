@@ -46,6 +46,6 @@ jobs:
           git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           version=$(poetry version -s)
           poetry run mike deploy --push -f --update-aliases --config-file ${GITHUB_WORKSPACE}/mkdocs.yml ${version:-2} latest
-          poetry run mike set-default -r "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --push latest
+          poetry run mike set-default --push latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
