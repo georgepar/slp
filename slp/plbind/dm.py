@@ -10,7 +10,8 @@ from slp.data.corpus import HfCorpus, TokenizedCorpus, WordCorpus
 from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import ToTensor
 from slp.util.types import dir_path
-from torch.utils.data import BatchSampler, DataLoader, Dataset, Sampler, random_split
+from torch.utils.data import (BatchSampler, DataLoader, Dataset, Sampler,
+                              random_split)
 from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP
 
 DatasetType = Union[Dataset, List[Any]]
@@ -291,13 +292,18 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         )
 
         parser.add_argument(
-            "--bsz", dest="data.batch_size", type=int, help="Training batch size"
+            "--bsz",
+            dest="data.batch_size",
+            type=int,
+            default=32,
+            help="Training batch size",
         )
 
         parser.add_argument(
             "--bsz-eval",
             dest="data.batch_size_eval",
             type=int,
+            default=32,
             help="Evaluation batch size",
         )
 
@@ -310,10 +316,10 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         )
 
         parser.add_argument(
-            "--pin-memory",
+            "--no-pin-memory",
             dest="data.pin_memory",
-            action="store_true",
-            help="Pin data to GPU memory for faster data loading",
+            action="store_false",
+            help="Don't pin data to GPU memory when transferring",
         )
 
         parser.add_argument(
@@ -324,10 +330,10 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         )
 
         parser.add_argument(
-            "--shuffle-eval",
+            "--no-shuffle-eval",
             dest="data.shuffle_eval",
-            action="store_true",
-            help="Shuffle val & test sets",
+            action="store_false",
+            help="Don't shuffle val & test sets",
         )
         return parser
 
@@ -575,10 +581,10 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         )
 
         parser.add_argument(
-            "--add-specials",
+            "--no-add-specials",
             dest="data.add_special_tokens",
-            action="store_true",
-            help="Add special tokens for hugging face tokenizers",
+            action="store_false",
+            help="Do not add special tokens for hugging face tokenizers",
         )
 
         # Generic args

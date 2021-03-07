@@ -61,7 +61,6 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--experiments-folder",
         dest="trainer.experiments_folder",
         type=str,
-        default="experiments",
         help="Top-level folder where experiment results & checkpoints are saved",
     )
 
@@ -69,6 +68,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--save-top-k",
         dest="trainer.save_top_k",
         type=int,
+        default=3,
         help="Save checkpoints for top k models",
     )
 
@@ -76,6 +76,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--patience",
         dest="trainer.patience",
         type=int,
+        default=10,
         help="Number of epochs to wait before early stopping",
     )
 
@@ -117,6 +118,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--clip-grad-norm",
         dest="trainer.gradient_clip_val",
         type=float,
+        default=0,
         help="Clip gradients with ||grad(w)|| >= args.clip_grad_norm",
     )
 
@@ -124,6 +126,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--epochs",
         dest="trainer.max_epochs",
         type=int,
+        default=100,
         help="Maximum number of training epochs",
     )
 
@@ -217,6 +220,7 @@ def add_optimizer_args(
         "--weight-decay",
         dest="optim.weight_decay",
         type=float,
+        default=0,
         help="Learning rate",
     )
 
@@ -233,6 +237,7 @@ def add_optimizer_args(
         "--lr-factor",
         dest="lr_schedule.factor",
         type=float,
+        default=0.1,
         help="Multiplicative factor by which LR is reduced. Used if --lr-scheduler is provided.",
     )
 
@@ -240,6 +245,7 @@ def add_optimizer_args(
         "--lr-patience",
         dest="lr_schedule.patience",
         type=int,
+        patience=10,
         help="Number of epochs with no improvement after which learning rate will be reduced. Used if --lr-scheduler is provided.",
     )
 
@@ -247,6 +253,7 @@ def add_optimizer_args(
         "--lr-cooldown",
         dest="lr_schedule.cooldown",
         type=int,
+        default=0,
         help="Number of epochs to wait before resuming normal operation after lr has been reduced. Used if --lr-scheduler is provided.",
     )
 
@@ -254,6 +261,7 @@ def add_optimizer_args(
         "--min-lr",
         dest="lr_schedule.min_lr",
         type=float,
+        min_lr=0,
         help="Minimum lr for LR scheduling. Used if --lr-scheduler is provided.",
     )
 
