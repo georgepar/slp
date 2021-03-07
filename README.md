@@ -111,7 +111,9 @@ bash hooks/export-requirements-txt
 bash hooks/checks
 EOT
 
-chmod +x .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit  # Keep an up-to-date requirements.txt and run Linting, typechecking and tests
+
+ln -s $(pwd)/hooks/commit-msg .git/hooks/commit-msg  # Sign-off your commit
 ```
 
 ## Cite
