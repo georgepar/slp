@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-echo "Running code formatting with black"
-
-poetry run black slp
-poetry run black examples
-poetry run black tests

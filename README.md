@@ -107,7 +107,6 @@ If you are going to contribute, please use the pre-commit hooks under `hooks`, o
 cat <<EOT >> .git/hooks/pre-commit
 #!/usr/bin/env bash
 
-bash hooks/black-check
 bash hooks/export-requirements-txt
 bash hooks/checks
 EOT
