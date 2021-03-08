@@ -40,6 +40,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--experiment-name",
         dest="trainer.experiment_name",
         type=str,
+        default="experiment",
         help="Name of the running experiment",
     )
 
@@ -47,6 +48,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--run-id",
         dest="trainer.run_id",
         type=str,
+        default=None,
         help="Unique identifier for the current run. If not provided it is inferred from datetime.now()",
     )
 
@@ -54,6 +56,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--experiment-group",
         dest="trainer.experiment_group",
         type=str,
+        default=None,
         help="Group of current experiment. Useful when evaluating for different seeds / cross-validation etc.",
     )
 
@@ -61,6 +64,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--experiments-folder",
         dest="trainer.experiments_folder",
         type=str,
+        default="experiments",
         help="Top-level folder where experiment results & checkpoints are saved",
     )
 
@@ -76,7 +80,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--patience",
         dest="trainer.patience",
         type=int,
-        default=10,
+        default=3,
         help="Number of epochs to wait before early stopping",
     )
 
@@ -84,6 +88,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--wandb-project",
         dest="trainer.wandb_project",
         type=str,
+        default=None,
         help="Wandb project under which results are saved",
     )
 
@@ -92,6 +97,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         dest="trainer.tags",
         type=str,
         nargs="*",
+        default=[],
         help="Tags for current run to make results searchable.",
     )
 
@@ -103,7 +109,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
     )
 
     parser.add_argument(
-        "--gpus", dest="trainer.gpus", type=int, help="Number of GPUs to use"
+        "--gpus", dest="trainer.gpus", type=int, default=0, help="Number of GPUs to use"
     )
 
     parser.add_argument(
@@ -134,6 +140,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--steps",
         dest="trainer.max_steps",
         type=int,
+        default=None,
         help="Maximum number of training steps",
     )
 
@@ -141,6 +148,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
         "--tbtt_steps",
         dest="trainer.truncated_bptt_steps",
         type=int,
+        default=None,
         help="Truncated Back-propagation-through-time steps.",
     )
 
@@ -339,18 +347,22 @@ def make_trainer(
     Returns:
         pl.Trainer: Configured trainer
     """
+
     if overfit_batches is not None:
         trainer = pl.Trainer(overfit_batches=overfit_batches, gpus=gpus)
+
         return trainer
 
     if fast_dev_run is not None:
         trainer = pl.Trainer(fast_dev_run=fast_dev_run, gpus=gpus)
+
         return trainer
 
     logging_dir = os.path.join(experiments_folder, experiment_name)
     safe_mkdirs(logging_dir)
 
     run_id = run_id if run_id is not None else date_fname()
+
     if run_id is None:
         run_id = date_fname()
 
@@ -395,6 +407,7 @@ def make_trainer(
     logger.info(
         f"Wandb configured to run {experiment_name}/{run_id} in project {wandb_project}"
     )
+
     if connected:
         logger.info(f"Results will be stored online.")
     else:
@@ -448,6 +461,100 @@ def make_trainer(
     return trainer
 
 
+def make_trainer_for_ray_tune(
+    experiment_name: str = "experiment",
+    experiments_folder: str = "experiments",
+    run_id: Optional[str] = None,
+    patience: int = 3,
+    stochastic_weight_avg: bool = False,
+    gpus: int = 0,
+    gradient_clip_val: float = 0,
+    precision: int = 32,
+    max_epochs: Optional[int] = 100,
+    max_steps: Optional[int] = None,
+    truncated_bptt_steps: Optional[int] = None,
+    terminate_on_nan: bool = False,  # Be careful this makes training very slow for large models
+    early_stop_on: str = "val_loss",
+    early_stop_mode: str = "min",
+) -> pl.Trainer:
+    """Configure trainer with preferred defaults
+
+    * Experiment folder and run_id configured (based on datetime.now())
+    * Early stopping on best validation loss is configured by default
+
+    Args:
+        experiment_name (str, optional): Experiment name. Defaults to "experiment".
+        experiments_folder (str, optional): Folder to save outputs. Defaults to "experiments".
+        run_id (Optional[str], optional): Unique run_id. Defaults to datetime.now(). Defaults to None.
+        patience (int, optional): Patience for early stopping. Defaults to 3.
+        stochastic_weight_avg (bool, optional): Use stochastic weight averaging. Defaults to False.
+        gpus (int, optional): number of GPUs to use. Defaults to 0.
+        gradient_clip_val (float, optional): Clip gradient norm value. Defaults to 0 (no clipping).
+        precision (int, optional): Floating point precision. Defaults to 32.
+        max_epochs (Optional[int], optional): Maximum number of epochs for training. Defaults to 100.
+        max_steps (Optional[int], optional): Maximum number of steps for training. Defaults to None.
+        truncated_bptt_steps (Optional[int], optional): Truncated back prop breaks performs backprop every k steps of much longer
+                sequence. Defaults to None.
+        terminate_on_nan (bool, optional): Terminate on NaN gradients. Warning this makes training slow. Defaults to False.
+        early_stop_on (str): metric for early stopping
+        early_stop_mode (str): "min" or "max"
+
+    Returns:
+        pl.Trainer: Configured trainer
+    """
+    logging_dir = os.path.join(experiments_folder, experiment_name)
+    safe_mkdirs(logging_dir)
+
+    run_id = run_id if run_id is not None else date_fname()
+
+    if run_id is None:
+        run_id = date_fname()
+
+    if run_id in os.listdir(logging_dir):
+        logger.warning(
+            "The run id you provided {run_id} already exists in {logging_dir}"
+        )
+        run_id = date_fname()
+        logger.info("Setting run_id={run_id}")
+
+    logger.info(f"Logs will be saved in {logging_dir}")
+
+    loggers = [
+        pl.loggers.CSVLogger(logging_dir, name="csv_logs", version=run_id),
+    ]
+
+    logger.info(f"Configured CSV logger.")
+    callbacks = [
+        EarlyStoppingWithLogs(
+            monitor=early_stop_on,
+            mode=early_stop_mode,
+            patience=patience,
+            verbose=True,
+        ),
+        pl.callbacks.LearningRateMonitor(logging_interval="step"),
+    ]
+
+    logger.info("Configured Early stopping to track val_loss")
+
+    trainer = pl.Trainer(
+        default_root_dir=logging_dir,
+        gpus=gpus,
+        max_epochs=max_epochs,
+        max_steps=max_steps,
+        callbacks=callbacks,
+        logger=loggers,
+        check_val_every_n_epoch=1,
+        gradient_clip_val=gradient_clip_val,
+        stochastic_weight_avg=stochastic_weight_avg,
+        precision=precision,
+        truncated_bptt_steps=truncated_bptt_steps,
+        terminate_on_nan=terminate_on_nan,
+        progress_bar_refresh_rate=10,
+    )
+
+    return trainer
+
+
 def watch_model(trainer: pl.Trainer, model: nn.Module) -> None:
     """If wandb logger is configured track gradient and weight norms
 
@@ -455,11 +562,13 @@ def watch_model(trainer: pl.Trainer, model: nn.Module) -> None:
         trainer (pl.Trainer): Trainer
         model (nn.Module): Module to watch
     """
+
     if isinstance(trainer.logger.experiment, list):
         for log in trainer.logger.experiment:
             try:
                 log.watch(model, log="all")
                 logger.info("Tracking model weights & gradients in wandb.")
+
                 break
             except:
                 pass

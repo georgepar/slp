@@ -290,6 +290,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             "--val-percent",
             dest="data.val_percent",
             type=float,
+            default=0.2,
             help="Percent of validation data to be randomly split from the training set, if no validation set is provided",
         )
 
@@ -297,6 +298,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             "--test-percent",
             dest="data.test_percent",
             type=float,
+            default=0.2,
             help="Percent of test data to be randomly split from the training set, if no test set is provided",
         )
 
@@ -598,6 +600,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             type=str.lower,
             # Corpus can already be tokenized, you can use spacy for word tokenization or any tokenizer from hugging face
             choices=cls.accepted_tokenizers,
+            default="spacy",
             help="Token type. The tokenization will happen at this level.",
         )
 
@@ -614,6 +617,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             "--embeddings-file",
             dest="data.embeddings_file",
             type=dir_path,
+            default=None,
             help="Path to file with pretrained embeddings. Applicable only when --tokenizer=spacy",
         )
 
@@ -621,6 +625,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             "--embeddings-dim",
             dest="data.embeddings_dim",
             type=int,
+            default=50,
             help="Embedding dim of pretrained embeddings. Applicable only when --tokenizer=spacy",
         )
 

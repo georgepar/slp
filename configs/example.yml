@@ -1,0 +1,43 @@
+debug: false  # Run in debug mode
+seed: null  # Deterministic run
+optimizer: Adam  # Which optimizer class to use
+lr_scheduler: false  # Use ReduceLROnPlateau scheduler
+
+model:
+  intermediate_hidden: 100 # Your model parameters (kwargs) go here. You are responsible for defining what goes here.
+optim:  # optimizer parameters
+  lr: 0.001
+  weight_decay: 0
+lr_schedule:  # ReduceLROnPlateau parameters
+  factor: 0.1
+  patience: 10
+  cooldown: 0
+  min_lr: 0
+trainer:
+  experiment_name: experiment  # Descriptive experiment name. E.g. mnist-conv2d-classification
+  experiment description: |
+    Verbose experiment description.
+    Run Conv2d classifier on MNIST dataset.
+    Encoder consists of two convolutional layers and two fully connected layers.
+    intermediate_hidden parameter is the number of features produced by the first fully connected layer
+  experiments_folder: experiments  # Local folder to save the logs
+  save_top_k: 3  # Keep k best checkpoints
+  patience: 3  # Early stopping patience
+  tags: ["mnist", "cnn", "other", "descriptive", "tags"]
+  stochastic_weight_avg: false  # Experimental. Use stochastic weight averaging https://pytorch.org/blog/stochastic-weight-averaging-in-pytorch/
+  gpus: 0  # How many gpus to use. 0 means cpu run
+  check_val_every_n_epoch: 1  # How often to calculate metrics on validation set
+  gradient_clip_val: 0  # 0 means no grad clipping
+  max_epochs: 100
+  force_wandb_offline: false  # Use offline execution
+  early_stop_on: val_loss  # Metric to track for early_stopping / checkpointing
+  early_stop_mode: min
+data:
+  val_percent: 0.2  # Split validation set with this percentage if no default validation set is provided
+  test_percent: 0.2  # Split test set with this percentage if no default test set is provided
+  batch_size: 32
+  batch_size_eval: 32  # batch size for validation / testing
+  num_workers: 1  # Dataloader parameters
+  pin_memory: true
+  drop_last: false
+  shuffle_eval: true

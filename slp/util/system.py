@@ -8,6 +8,7 @@ import sys
 import time
 import urllib
 import urllib.request
+import yaml
 from datetime import datetime
 from typing import Any, Callable, Optional, Tuple, cast
 
@@ -327,6 +328,32 @@ def pickle_dump(data: Any, fname: str) -> None:
     """
     with open(fname, "wb") as fd:
         pickle.dump(data, fd)
+
+
+def yaml_load(fname: str) -> types.GenericDict:
+    """yaml_load Load dict from a yaml file
+
+    Args:
+        fname (str): Json file to load
+
+    Returns:
+        types.GenericDict: Dict of loaded data
+    """
+    with open(fname, "r") as fd:
+        data = yaml.load(fd)
+    return cast(types.GenericDict, data)
+
+
+def yaml_dump(data: types.GenericDict, fname: str) -> None:
+    """yaml_dump Save dict to a yaml file
+
+    Args:
+        data (types.GenericDict): Dict to save
+        fname (str): Output json file
+    """
+    with open(fname, "w") as fd:
+        yaml.dump(data, fd)
+
 
 
 def json_load(fname: str) -> types.GenericDict:

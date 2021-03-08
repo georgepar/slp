@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from omegaconf import DictConfig, OmegaConf
 
 
-def _nest(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _nest(d: Dict[str, Any], include_none: bool = False) -> Optional[Dict[str, Any]]:
     """_nest Recursive function to nest a dictionary on keys with . (dots)
 
     Parse documentation into a hierarchical dict. Keys should be separated by dots (e.g. "model.hidden") to go down into the hierarchy
@@ -34,6 +34,9 @@ def _nest(d: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             if val is not None:
                 nested[key] = val
 
+            if val is None and include_none:
+                nested[key] = val
+
     return dict(nested) if nested else None
 
 
@@ -46,7 +49,9 @@ class OmegaConfExtended(OmegaConf):
 
     @staticmethod
     def from_argparse(
-        parser: argparse.ArgumentParser, args: Optional[List[str]] = None
+        parser: argparse.ArgumentParser,
+        args: Optional[List[str]] = None,
+        include_none: bool = False,
     ) -> Tuple[DictConfig, DictConfig]:
         """from_argparse Static method to convert argparse arguments into OmegaConf DictConfig objects
 
@@ -88,7 +93,7 @@ class OmegaConfExtended(OmegaConf):
             else:
                 default_args[k] = v
 
-        provided = OmegaConf.create(_nest(provided_args))
-        defaults = OmegaConf.create(_nest(default_args))
+        provided = OmegaConf.create(_nest(provided_args, include_none=include_none))
+        defaults = OmegaConf.create(_nest(default_args, include_none=include_none))
 
         return provided, defaults

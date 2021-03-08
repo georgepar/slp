@@ -2,6 +2,7 @@ import argparse
 from typing import IO, List, Optional, Union
 
 import pytorch_lightning as pl
+from omegaconf import DictConfig
 from loguru import logger
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import add_optimizer_args, add_trainer_args
@@ -9,7 +10,7 @@ from slp.plbind import add_optimizer_args, add_trainer_args
 
 def make_cli_parser(
     parser: argparse.ArgumentParser, datamodule_cls: pl.LightningDataModule
-):
+) -> argparse.ArgumentParser:
     """make_cli_parser Augment an argument parser for slp with the default arguments
 
     Default arguments for training, logging, optimization etc. are added to the input {parser}.
@@ -115,7 +116,8 @@ def parse_config(
     parser: argparse.ArgumentParser,
     config_file: Union[str, IO],
     args: Optional[List[str]] = None,
-):
+    include_none: bool = False,
+) -> DictConfig:
     """parse_config Parse a provided YAML config file and command line args and merge them
 
     During experimentation we want ideally to have a configuration file with the model and training configuration,
@@ -163,15 +165,48 @@ def parse_config(
         {'model': {'hidden': 20}, 'random_value': 'hello'}
     """
     # Merge Configurations Precedence: default kwarg values < default argparse values < config file values < user provided CLI args values
+
     if config_file is not None:
         dict_config = OmegaConf.from_yaml(config_file)  # type: ignore
     else:
         dict_config = OmegaConf.create({})
 
-    user_cli, default_cli = OmegaConf.from_argparse(parser)
+    user_cli, default_cli = OmegaConf.from_argparse(parser, include_none=include_none)
     config = OmegaConf.merge(default_cli, dict_config, user_cli)
 
     logger.info("Running with the following configuration")
     logger.info(f"\n{OmegaConf.to_yaml(config)}")
 
     return config
+
+
+
+def generate_example_config(
+    parser: argparse.ArgumentParser,
+    output_file: str,
+    args: Optional[List[str]] = None,
+) -> None:
+    """parse_config Parse a provided YAML config file and command line args and merge them
+
+    During experimentation we want ideally to have a configuration file with the model and training configuration,
+    but also be able to run quick experiments using command line args.
+    This function allows you to double dip, by overriding values in a YAML config file through user provided command line arguments.
+
+    The precedence for merging is as follows
+       * default cli args values < config file values < user provided cli args
+
+    E.g.:
+
+       * if you don't include a value in your configuration it will take the default value from the argparse arguments
+       * if you provide a cli arg (e.g. run the script with --bsz 64) it will override the value in the config file
+
+    Note we use an extended OmegaConf istance to achieve this (see slp.config.omegaconf.OmegaConf)
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser you want to use
+        config_file (Union[str, IO]): Configuration file name or file descriptor
+        args (Optional[List[str]]): Optional input sys.argv style args. Useful for testing.
+            Use this only for testing. By default it uses sys.argv[1:]
+    """
+    config = parse_config(parser, None, include_none=True)
+    OmegaConf.save(config, output_file)

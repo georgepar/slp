@@ -1,0 +1,47 @@
+debug: false
+seed: null
+optimizer: Adam
+lr_scheduler: false
+model:
+  hidden_size: 100  # Your model parameters (kwargs) go here
+optim:
+  lr: 0.001
+  weight_decay: 0
+lr_schedule:
+  factor: 0.1
+  patience: 10
+  cooldown: 0
+  min_lr: 0
+trainer:
+  experiment_name: experiment
+  experiments_folder: experiments
+  save_top_k: 3
+  patience: 3
+  tags: []
+  stochastic_weight_avg: false
+  gpus: 0
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 0
+  max_epochs: 100
+  force_wandb_offline: false
+  early_stop_on: val_loss
+  early_stop_mode: min
+data:
+  val_percent: 0.2
+  test_percent: 0.2
+  batch_size: 32
+  batch_size_eval: 32
+  num_workers: 1
+  pin_memory: true
+  drop_last: false
+  shuffle_eval: true
+  tokenizer: spacy  # or tokenized for tokenized corpus or any of the huggingface models (e.g. bert-base-uncased)
+  limit_vocab_size: -1  # Keep N most common tokens in vocab. Used to limit vocab of word corpora (when tokenizer=spacy)
+  embeddings_file: /home/geopar/new-slp/cache/glove.6B.50d.txt  # Path to embeddings file to load pretrained embeddings (when tokenizer=spacy)
+  embeddings_dim: 50  # Pretrained embedding dimension (when tokenizer=spacy)
+  lang: en_core_web_md  # Spacy model to use
+  add_special_tokens: true  # Add special tokens (e.g. [CLS], [SEP]) during tokenization (when huggingface tokenizers)
+  lower: false  # Convert to lowercase
+  prepend_bos: false  # For s2s models. Add [BOS] token in sentence start
+  append_eos: false  # For s2s models. Add [EOS] token in sentence end
+  max_len: -1  # Maximum number of tokens in sentence. Trims sentences above this length
