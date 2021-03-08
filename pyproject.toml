@@ -31,11 +31,9 @@ include = [
 python = "^3.8"
 torch = "^1.7.1"
 numpy = "^1.20.1"
-pytorch-ignite = "0.2.0"
 pytorch-nlp = "0.4.1"
 transformers = "4.3.0"
 requests = "^2.25.1"
-rpdb = "^0.1.6"
 scikit-learn = "^0.24.1"
 scipy = "^1.6.1"
 spacy = "^3.0.3"
@@ -53,6 +51,10 @@ omegaconf = "^2.0.6"
 toml = "^0.10.2"
 aiohttp = "^3.7.4"
 mike = "^0.6.0"
+ray = {extras = ["tune"], version = "^1.2.0"}
+pytorch-lightning-bolts = "^0.3.0"
+gym = "^0.18.0"
+matplotlib = "^3.3.4"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
