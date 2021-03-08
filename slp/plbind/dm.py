@@ -10,7 +10,8 @@ from slp.data.corpus import HfCorpus, TokenizedCorpus, WordCorpus
 from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import ToTensor
 from slp.util.types import dir_path
-from torch.utils.data import BatchSampler, DataLoader, Dataset, Sampler, random_split
+from torch.utils.data import (BatchSampler, DataLoader, Dataset, Sampler,
+                              random_split)
 from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP
 
 DatasetType = Union[Dataset, List[Any]]
@@ -36,6 +37,7 @@ def split_data(dataset, test_size, seed):
         train_len = len(dataset) - test_len
 
         seed_generator = None
+
         if seed is not None:
             seed_generator = torch.Generator().manual_seed(seed)
 
@@ -115,10 +117,13 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             raise ValueError(
                 "You provided both a sampler and a batch sampler for the validation set. These are mutually exclusive"
             )
+
         if batch_sampler_test is not None and sampler_test is not None:
             raise ValueError(
                 "You provided both a sampler and a batch sampler for the test set. These are mutually exclusive"
             )
+        self.val_percent = val_percent
+        self.test_percent = test_percent
         self.sampler_train = sampler_train
         self.sampler_val = sampler_val
         self.sampler_test = sampler_test
@@ -133,54 +138,57 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         self.collate_fn = collate_fn
 
         self.batch_size = batch_size
+        self.seed = seed
 
         if batch_size_eval is None:
             batch_size_eval = self.batch_size
 
         self.batch_size_eval = batch_size_eval
-
         self.train = train
         self.val = val
         self.test = test
 
+    def prepare_data(self):
         if self.val is not None:
-            logger.info(f"Using provided validation set")
+            logger.info("Using provided validation set")
 
         if self.test is not None:
-            logger.info(f"Using provided test set")
+            logger.info("Using provided test set")
 
-        if self.test is None and val is None:
+        if self.test is None and self.val is None:
             assert (
-                val_percent is not None and val_percent > 0
+                self.val_percent is not None and self.val_percent > 0
             ), "You should either provide a validation set or a val set percentage"
 
             assert (
-                test_percent is not None and test_percent > 0
+                self.test_percent is not None and self.test_percent > 0
             ), "You should either provide a test set or a test set percentage"
 
-            testval_percent = test_percent + val_percent
+            testval_percent = self.test_percent + self.val_percent
 
             logger.info(
-                f"No test or validation set provided. Creating random splits using {testval_percent * 100}% of training set with seed={seed}"
+                f"No test or validation set provided. Creating random splits using {testval_percent * 100}% of training set with seed={self.seed}"
             )
 
             self.train, testval = split_data(
-                self.train, test_size=testval_percent, seed=seed
+                self.train, test_size=testval_percent, seed=self.seed
             )
 
-            test_percent = test_percent / testval_percent
-            self.val, self.test = split_data(testval, test_size=test_percent, seed=seed)
+            test_percent = self.test_percent / testval_percent
+            self.val, self.test = split_data(
+                testval, test_size=test_percent, seed=self.seed
+            )
 
         if self.val is None:
             assert (
-                val_percent is not None and val_percent > 0
+                self.val_percent is not None and self.val_percent > 0
             ), "You should either provide a validation set or a val set percentage"
 
             logger.info(
-                f"No validation set provided. Creating random split using {val_percent * 100}% of training set with seed={seed}"
+                f"No validation set provided. Creating random split using {self.val_percent * 100}% of training set with seed={self.seed}"
             )
             self.train, self.val = split_data(
-                self.train, test_size=val_percent, seed=seed
+                self.train, test_size=self.val_percent, seed=self.seed
             )
 
         if self.test is None:
@@ -189,10 +197,10 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             ), "You should either provide a test set or a test set percentage"
 
             logger.info(
-                f"No test set provided. Creating random split using {test_percent * 100}% of training set with seed={seed}"
+                f"No test set provided. Creating random split using {self.test_percent * 100}% of training set with seed={self.seed}"
             )
             self.train, self.test = split_data(
-                self.train, test_size=test_percent, seed=seed
+                self.train, test_size=test_percent, seed=self.seed
             )
 
         logger.info(f"Using {len(self.train)} samples for training")  # type: ignore
@@ -205,6 +213,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         Returns:
             DataLoader: Pytorch DataLoader for train set
         """
+
         return DataLoader(
             self.train,
             batch_size=self.batch_size if self.batch_sampler_train is None else 1,
@@ -247,6 +256,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         Returns:
             DataLoader: Pytorch DataLoader for test set
         """
+
         return DataLoader(
             self.test,
             batch_size=self.batch_size_eval if self.batch_sampler_test is None else 1,
@@ -334,6 +344,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             action="store_false",
             help="Don't shuffle val & test sets",
         )
+
         return parser
 
 
@@ -407,32 +418,12 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             ValueError: [description]
         """
         self.language_model = language_model
-        if not language_model and train_labels is None:
-            raise ValueError(
-                "You should provide train labels if not performing language modeling"
-            )
+        self.tokenizer = tokenizer
+        self.corpus_args = corpus_args
 
-        if language_model:
-            train_labels = train[1:]
-            train = train[0:-1]
-            if val is not None:
-                val_labels = val[1:]
-                val = val[0:-1]
-            if test is not None:
-                test_labels = test[1:]
-                test = test[0:-1]
-
-        train_data = (
-            list(zip(train, train_labels)) if train_labels is not None else train
+        train_data, val_data, test_data = self._zip_corpus_and_labels(
+            train, val, test, train_labels, val_labels, test_labels
         )
-        val_data = None
-        if val is not None:
-            val_data = list(zip(val, val_labels)) if val_labels is not None else val
-        test_data = None
-        if test is not None:
-            test_data = (
-                list(zip(test, test_labels)) if test_labels is not None else test
-            )
 
         super(PLDataModuleFromCorpus, self).__init__(
             train_data,  # type: ignore
@@ -456,46 +447,14 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             collate_fn=collate_fn,
         )
 
+    def prepare_data(self):
         train_corpus, train_labels = zip(*self.train)  # type: ignore
         val_corpus, val_labels = zip(*self.val)  # type: ignore
         test_corpus, test_labels = zip(*self.test)  # type: ignore
 
-        if tokenizer not in self.accepted_tokenizers:
-            raise ValueError(
-                f"tokenizer kwarg in {self.__class__.__name__} should be one of {self.accepted_tokenizers}"
-            )
-
-        if tokenizer == "spacy":
-            logger.info('Selecting WordCorpus because tokenizer="spacy" was provided')
-            corpus_cls = WordCorpus  # type: ignore
-        elif tokenizer == "tokenized":
-            logger.info(
-                'Selecting TokenizedCorpus because tokenizer="tokenized" was provided'
-            )
-            corpus_cls = TokenizedCorpus  # type: ignore
-        else:
-            logger.info(
-                "Selecting HfCorpus because a huggingface tokenizer was provided"
-            )
-            corpus_cls = HfCorpus  # type: ignore
-            corpus_args["tokenizer_model"] = tokenizer
-
-        self.train_corpus = corpus_cls(train_corpus, **corpus_args)  # type: ignore
-
-        if tokenizer == "spacy" or tokenizer == "tokenized":
-            # Force train vocabulary on val & test
-            corpus_args["word2idx"] = self.train_corpus.word2idx
-
-            if tokenizer == "spacy":
-                corpus_args["embeddings"] = self.train_corpus.embeddings
-                corpus_args["idx2word"] = self.train_corpus.word2idx
-
-            logger.info(
-                "Forcing vocabulary from training set for validation and test sets."
-            )
-
-        self.val_corpus = corpus_cls(val_corpus, **corpus_args)  # type: ignore
-        self.test_corpus = corpus_cls(test_corpus, **corpus_args)  # type: ignore
+        self.train_corpus, self.val_corpus, self.test_corpus = self._create_corpora(
+            train_corpus, val_corpus, test_corpus, self.corpus_args
+        )
 
         to_tensor = ToTensor(device="cpu")
 
@@ -508,6 +467,98 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             self.val = CorpusDataset(self.val_corpus, val_labels).map(to_tensor)
             self.test = CorpusDataset(self.test_corpus, test_labels).map(to_tensor)
 
+    def _zip_corpus_and_labels(
+        self, train, val, test, train_labels, val_labels, test_labels
+    ):
+
+        if not self.language_model and train_labels is None:
+            raise ValueError(
+                "You should provide train labels if not performing language modeling"
+            )
+
+        if self.language_model:
+            train_labels = train
+            train = train
+
+            if val is not None:
+                val_labels = val
+                val = val
+
+            if test is not None:
+                test_labels = test
+                test = test
+
+        train_data = (
+            list(zip(train, train_labels)) if train_labels is not None else train
+        )
+        val_data = None
+
+        if val is not None:
+            val_data = list(zip(val, val_labels)) if val_labels is not None else val
+        test_data = None
+
+        if test is not None:
+            test_data = (
+                list(zip(test, test_labels)) if test_labels is not None else test
+            )
+
+        return train_data, val_data, test_data
+
+    def _select_corpus_cls(self, corpus_args):
+        if self.tokenizer not in self.accepted_tokenizers:
+            raise ValueError(
+                f"tokenizer kwarg in {self.__class__.__name__} should be one of {self.accepted_tokenizers}"
+            )
+
+        if self.tokenizer not in self.accepted_tokenizers:
+            raise ValueError(
+                f"tokenizer kwarg in {self.__class__.__name__} should be one of {self.accepted_tokenizers}"
+            )
+
+        if self.tokenizer == "spacy":
+            logger.info('Selecting WordCorpus because tokenizer="spacy" was provided')
+            corpus_cls = WordCorpus  # type: ignore
+        elif self.tokenizer == "tokenized":
+            logger.info(
+                'Selecting TokenizedCorpus because tokenizer="tokenized" was provided'
+            )
+            corpus_cls = TokenizedCorpus  # type: ignore
+        else:
+            logger.info(
+                "Selecting HfCorpus because a huggingface tokenizer was provided"
+            )
+            corpus_cls = HfCorpus  # type: ignore
+            corpus_args["tokenizer_model"] = self.tokenizer
+
+        return corpus_cls, corpus_args
+
+    def _force_train_vocab_on_val_and_test(self, corpus_args, train_corpus):
+        if self.tokenizer == "spacy" or self.tokenizer == "tokenized":
+            # Force train vocabulary on val & test
+            corpus_args["word2idx"] = train_corpus.word2idx
+
+            if self.tokenizer == "spacy":
+                corpus_args["embeddings"] = train_corpus.embeddings
+                corpus_args["idx2word"] = train_corpus.word2idx
+
+            logger.info(
+                "Forcing vocabulary from training set for validation and test sets."
+            )
+
+        return corpus_args
+
+    def _create_corpora(self, train_corpus, val_corpus, test_corpus, corpus_args):
+        corpus_cls, corpus_args = self._select_corpus_cls(corpus_args)
+
+        train_corpus = corpus_cls(train_corpus, **corpus_args)  # type: ignore
+
+        corpus_args = self._force_train_vocab_on_val_and_test(corpus_args, train_corpus)
+
+        val_corpus = corpus_cls(val_corpus, **corpus_args)  # type: ignore
+        test_corpus = corpus_cls(test_corpus, **corpus_args)  # type: ignore
+
+        return train_corpus, val_corpus, test_corpus
+
     @property
     def embeddings(self) -> Optional[np.ndarray]:
         """Embeddings matrix
@@ -516,6 +567,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             Optional[np.ndarray]: Embeddings matrix
         """
         emb: Optional[np.ndarray] = self.train_corpus.embeddings
+
         return emb
 
     @property
@@ -526,6 +578,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             int: Number of tokens in the vocabulary
         """
         vsz: int = self.train_corpus.vocab_size
+
         return vsz
 
     @classmethod
