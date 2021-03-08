@@ -355,7 +355,6 @@ def yaml_dump(data: types.GenericDict, fname: str) -> None:
         yaml.dump(data, fd)
 
 
-
 def json_load(fname: str) -> types.GenericDict:
     """json_load Load dict from a json file
 

@@ -2,7 +2,7 @@ import argparse
 from typing import IO, List, Optional, Union
 
 import pytorch_lightning as pl
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 from loguru import logger
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import add_optimizer_args, add_trainer_args
@@ -114,10 +114,10 @@ def make_cli_parser(
 
 def parse_config(
     parser: argparse.ArgumentParser,
-    config_file: Union[str, IO],
+    config_file: Optional[Union[str, IO]],
     args: Optional[List[str]] = None,
     include_none: bool = False,
-) -> DictConfig:
+) -> Union[ListConfig, DictConfig]:
     """parse_config Parse a provided YAML config file and command line args and merge them
 
     During experimentation we want ideally to have a configuration file with the model and training configuration,
@@ -178,7 +178,6 @@ def parse_config(
     logger.info(f"\n{OmegaConf.to_yaml(config)}")
 
     return config
-
 
 
 def generate_example_config(
