@@ -245,7 +245,7 @@ def add_optimizer_args(
         "--lr-patience",
         dest="lr_schedule.patience",
         type=int,
-        patience=10,
+        default=10,
         help="Number of epochs with no improvement after which learning rate will be reduced. Used if --lr-scheduler is provided.",
     )
 
@@ -261,7 +261,7 @@ def add_optimizer_args(
         "--min-lr",
         dest="lr_schedule.min_lr",
         type=float,
-        min_lr=0,
+        default=0,
         help="Minimum lr for LR scheduling. Used if --lr-scheduler is provided.",
     )
 
