@@ -6,7 +6,9 @@ from torch.utils.data import Dataset
 
 class CorpusLMDataset(Dataset):
     def __init__(self, corpus):
-        """Wraps a wikitext dataset from pytorch NLP which is provided as a list of tokens
+        """Wraps a tokenized dataset which is provided as a list of tokens
+
+        Targets = source shifted one token to the left (next token prediction)
 
         Args:
             corpus (List[str] or WordCorpus): List of tokens
