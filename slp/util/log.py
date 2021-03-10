@@ -26,7 +26,7 @@ def log_to_file(fname_prefix: Optional[str]) -> str:
     return logfile
 
 
-def configure_logging(logfile_prefix: Optional[str] = None) -> str:
+def configure_logging(logfile_prefix: Optional[str] = None) -> Optional[str]:
     """configure_logging Configure loguru to intercept logging module logs, tqdm.writes and write to a logfile
 
     We use logure for stdout/stderr logging in this project.
@@ -78,6 +78,7 @@ def configure_logging(logfile_prefix: Optional[str] = None) -> str:
 
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.INFO)
 
+    logfile = None
     if logfile_prefix is not None:
         logfile = log_to_file(logfile_prefix)
         logger.info(f"Log file will be saved in {logfile}")
