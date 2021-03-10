@@ -499,15 +499,12 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
 
         if self.language_model:
             train_labels = train
-            train = train
 
             if val is not None:
                 val_labels = val
-                val = val
 
             if test is not None:
                 test_labels = test
-                test = test
 
         train_data = (
             list(zip(train, train_labels)) if train_labels is not None else train
@@ -554,7 +551,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         return corpus_cls, corpus_args
 
     def _force_train_vocab_on_val_and_test(self, corpus_args, train_corpus):
-        if self.tokenizer == "spacy" or self.tokenizer == "tokenized":
+        if self.tokenizer in {"spacy", "tokenized"}:
             # Force train vocabulary on val & test
             corpus_args["word2idx"] = train_corpus.word2idx
 

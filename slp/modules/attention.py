@@ -14,9 +14,9 @@ def attention_scores(
     dropout: float = 0.2,
     training: bool = True,
 ) -> torch.Tensor:
-    """Calculate attention scores for scaled dot product attention
+    r"""Calculate attention scores for scaled dot product attention
 
-    $$s = softmax(\\frac{Q \cdot K^T}{\sqrt{d}})$$
+    $$s = softmax(\frac{Q \cdot K^T}{\sqrt{d}})$$
 
     * B: Batch size
     * L: Keys Sequence length
@@ -80,11 +80,11 @@ class Attention(nn.Module):
         values: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Single-head scaled dot-product attention forward pass
+        r"""Single-head scaled dot-product attention forward pass
 
         Outputs the values, where features for each sequence element are weighted by their respective attention scores
 
-        $$a = softmax(\\frac{Q}{K^T}){\sqrt{d}}) \dot V$$
+        $$a = softmax(\frac{Q}{K^T}){\sqrt{d}}) \dot V$$
 
         * B: Batch size
         * L: Keys Sequence length
@@ -127,7 +127,7 @@ class Attention(nn.Module):
         return out, scores
 
     def _reset_parameters(self):
-        """xavier uniform init for Linear layer weights"""
+        """Xavier uniform init for Linear layer weights"""
         nn.init.xavier_uniform_(self.k.weight)
         nn.init.xavier_uniform_(self.q.weight)
         nn.init.xavier_uniform_(self.v.weight)
@@ -200,13 +200,13 @@ class MultiheadAttention(nn.Module):
         return x.view(batch_size, max_length, -1)
 
     def forward(self, keys, queries=None, values=None, attention_mask=None):
-        """Multi-head scaled dot-product attention forward pass
+        r"""Multi-head scaled dot-product attention forward pass
 
         Outputs the values, where features for each sequence element are weighted by their respective attention scores
 
         Each head performs dot-product attention
 
-        $$a_H = softmax(\\frac{Q_H \cdot K_H^T}{\sqrt{d}}) \cdot V_H$$
+        $$a_H = softmax(\frac{Q_H \cdot K_H^T}{\sqrt{d}}) \cdot V_H$$
 
         The outputs of multiple heads are concatenated and passed through a feedforward layer.
 
@@ -255,7 +255,7 @@ class MultiheadAttention(nn.Module):
         return out
 
     def _reset_parameters(self):
-        """xavier uniform init for Linear layer weights"""
+        """Xavier uniform init for Linear layer weights"""
         nn.init.xavier_uniform_(self.k.weight)
         nn.init.xavier_uniform_(self.q.weight)
         nn.init.xavier_uniform_(self.v.weight)

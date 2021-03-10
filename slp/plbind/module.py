@@ -7,13 +7,12 @@ import torch
 import torch.nn as nn
 from loguru import logger
 from omegaconf import DictConfig
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
-
 from slp.config.omegaconf import OmegaConf
 from slp.util.pytorch import pad_mask, subsequent_mask
 from slp.util.system import print_separator
 from slp.util.types import Configuration, LossType
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 
 class _Predictor(ABC):
@@ -35,7 +34,7 @@ class _Predictor(ABC):
         Returns:
             Tuple[torch.Tensor, ...]: The processed inputs, ready to provide to the model
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_predictions_and_targets(
@@ -54,7 +53,7 @@ class _Predictor(ABC):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: (logits, ground_truths), ready to be passed to the loss function
         """
-        pass
+        raise NotImplementedError
 
 
 class _Classification(_Predictor):
@@ -271,7 +270,7 @@ class _Transformer(_Predictor):
 
 
 class _BertSequenceClassification(_Predictor):
-    """ Bert Classification task"""
+    """Bert Classification task"""
 
     def parse_batch(self, batch: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
         """Parse incoming batch
@@ -331,7 +330,7 @@ class SimplePLModule(pl.LightningModule):
         predictor_cls=_Classification,
         calculate_perplexity: bool = False,  # for LM. Dirty but much more efficient
     ):
-        """LightningModule wrapper for a (model, optimizer, criterion, lr_scheduler) tuple
+        """Wraps a (model, optimizer, criterion, lr_scheduler) tuple in a LightningModule
 
         Handles the boilerplate for metrics calculation and logging and defines the train_step / val_step / test_step
         with use of the predictor helper classes (e.g. _Classification, _RnnClassification)
@@ -383,13 +382,15 @@ class SimplePLModule(pl.LightningModule):
         Returns:
             Tuple[List[Optimizer], List[_LRScheduler]]: (optimizers, lr_schedulers)
         """
+
         if self.lr_scheduler is not None:
             return self.optimizer, self.lr_scheduler
-        else:
-            return self.optimizer
+
+        return self.optimizer
 
     def forward(self, *args, **kwargs):
-        """ Call wrapped module forward"""
+        """Call wrapped module forward"""
+
         return self.model(*args, **kwargs)
 
     def _compute_metrics(self, metrics, loss, y_hat, targets, mode="train"):
@@ -405,6 +406,7 @@ class SimplePLModule(pl.LightningModule):
 
         def fmt(name):
             """Format metric name"""
+
             return f"{mode}_{name}"
 
         metrics = {f"{mode}_{k}": v(y_hat, targets) for k, v in metrics.items()}
@@ -446,6 +448,7 @@ class SimplePLModule(pl.LightningModule):
 
         def fmt(name):
             """Format metric name"""
+
             return f"{name}" if name != "loss" else "train_loss"
 
         keys = list(outputs[0].keys())
@@ -473,7 +476,7 @@ class SimplePLModule(pl.LightningModule):
         )
 
         self.log_dict(
-            {k: v for k, v in metrics.items()},
+            metrics,
             on_step=True,
             on_epoch=False,
             logger=True,

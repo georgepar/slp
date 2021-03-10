@@ -84,7 +84,7 @@ class PositionwiseFF(nn.Module):
         self.net = nn.Sequential(self.ff1, self.drop, self.ff2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Position-wise FF forward pass
+        r"""Position-wise FF forward pass
 
         $$out = W_2 \dot max(0, W_1 \dot x + b_1) + b_2$$
 

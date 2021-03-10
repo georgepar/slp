@@ -54,7 +54,8 @@ def dir_path(path):
         argparse.ArgumentTypeError: User provided path 'my_random_config_that_does_not_exist.yaml' does not exist
 
     """
+
     if os.path.isdir(path):
         return path
-    else:
-        raise argparse.ArgumentTypeError(f"User provided path '{path}' does not exist")
+
+    raise argparse.ArgumentTypeError(f"User provided path '{path}' does not exist")

@@ -143,7 +143,7 @@ def is_subpath(child: str, parent: str) -> bool:
 
 
 def safe_mkdirs(path: str) -> None:
-    """safe_mkdirs Makes recursively all the directories in input path
+    """Makes recursively all the directories in input path
 
     Utility function similar to mkdir -p. Makes directories recursively, if given path does not exist
 
@@ -162,7 +162,7 @@ def safe_mkdirs(path: str) -> None:
 
 
 def timethis(method=False) -> Callable:
-    """timethis Decorator to measure the time it takes for a function to complete
+    """Decorator to measure the time it takes for a function to complete
 
     Examples:
         >>> @slp.util.system.timethis

@@ -1,4 +1,3 @@
-import io
 import logging
 from typing import Any, Optional
 
@@ -72,7 +71,7 @@ def configure_logging(logfile_prefix: Optional[str] = None) -> Optional[str]:
     logger.remove()
 
     def tqdm_write(msg: str) -> Any:
-        """tqdm write wrapper for loguru"""
+        """Loguru wrapper for tqdm.write"""
         return tqdm.write(msg, end="")
 
     logger.add(tqdm_write, colorize=True)

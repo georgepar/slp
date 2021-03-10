@@ -5,13 +5,12 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
-from loguru import logger
-from tqdm import tqdm
-
 import slp.util.system as system
 import slp.util.types as types
+from loguru import logger
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.data.transforms import HuggingFaceTokenizer, SpacyTokenizer, ToTokenIds
+from tqdm import tqdm
 
 
 def create_vocab(
@@ -119,10 +118,7 @@ class EmbeddingsLoader(object):
             bool: Word exists
         """
 
-        if self.vocab is None:
-            return True
-        else:
-            return word in self.vocab
+        return True if self.vocab is None else word in self.vocab
 
     def _get_cache_name(self) -> str:
         """Create a cache file name to avoid reloading the embeddings
@@ -134,7 +130,7 @@ class EmbeddingsLoader(object):
             str: Cache file name
         """
         head, tail = os.path.split(self.embeddings_file)
-        filename, ext = os.path.splitext(tail)
+        filename, _ = os.path.splitext(tail)
 
         if self.vocab is not None:
             cache_name = os.path.join(head, f"{filename}.{len(self.vocab)}.p")
@@ -527,7 +523,6 @@ class WordCorpus(object):
         Returns:
             List[int]: List of token indices for sentence
         """
-        indices = self.corpus_indices_[idx]
         out: List[int] = (
             self.corpus_indices_[idx]
             if self.max_len <= 0
@@ -682,7 +677,7 @@ class HfCorpus(object):
 
         return len(self.corpus_indices_)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> List[int]:
         """Get ith element in corpus as token indices
 
         Args:
@@ -691,12 +686,13 @@ class HfCorpus(object):
         Returns:
             List[int]: List of token indices for sentence
         """
-
-        return (
+        out: List[int] = (
             self.corpus_indices_[idx]
             if self.max_len <= 0
             else self.corpus_indices_[idx][: self.max_len]
         )
+
+        return out
 
 
 class TokenizedCorpus(object):

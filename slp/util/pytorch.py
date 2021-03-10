@@ -130,9 +130,9 @@ def sort_sequences(
     lengths_sorted, sorted_idx = lengths.sort(descending=True)
     _, unsorted_idx = sorted_idx.sort()
 
-    def unsort(t: torch.Tensor) -> torch.Tensor:
+    def unsort(tt: torch.Tensor) -> torch.Tensor:
         """Restore original unsorted sequence"""
-        return t[unsorted_idx]
+        return tt[unsorted_idx]
 
     return inputs[sorted_idx], lengths_sorted, unsort
 
@@ -217,7 +217,7 @@ def mktensor(
     dtype: torch.dtype = torch.float,
     device: types.Device = "cpu",
     requires_grad: bool = False,
-    copy: bool = True,
+    copy_tensor: bool = True,
 ) -> torch.Tensor:
     """Convert a list or numpy array to torch tensor. If a torch tensor
         is passed it is cast to  dtype, device and the requires_grad flag is
@@ -231,7 +231,7 @@ def mktensor(
         device: (torch.device, str): Device where the tensor should be
             (Default value = 'cpu')
         requires_grad: (bool): Trainable tensor or not? (Default value = False)
-        copy: (bool): If false creates the tensor inplace else makes a copy
+        copy_tensor: (bool): If false creates the tensor inplace else makes a copy
             (Default value = True)
 
     Returns:
@@ -239,7 +239,7 @@ def mktensor(
             requires_grad containing data
 
     """
-    tensor_factory = t if copy else t_
+    tensor_factory = t if copy_tensor else t_
     return tensor_factory(data, dtype=dtype, device=device, requires_grad=requires_grad)
 
 

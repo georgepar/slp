@@ -1,15 +1,13 @@
 import math
-import os
 from typing import Any, Callable, Dict, Union, cast
 
 from loguru import logger
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig
 from ray import tune
 from ray.tune.integration.wandb import WandbLogger
 from ray.tune.suggest.optuna import OptunaSearch
-
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
-from slp.util.system import date_fname, has_internet_connection, safe_mkdirs, yaml_dump
+from slp.util.system import date_fname, has_internet_connection, yaml_dump
 
 
 def _extract_wandb_config(config: DictConfig) -> DictConfig:

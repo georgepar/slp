@@ -444,15 +444,15 @@ def make_trainer(
         ),
     ]
 
-    logger.info(f"Configured wandb and CSV loggers.")
+    logger.info("Configured wandb and CSV loggers.")
     logger.info(
         f"Wandb configured to run {experiment_name}/{run_id} in project {wandb_project}"
     )
 
     if connected:
-        logger.info(f"Results will be stored online.")
+        logger.info("Results will be stored online.")
     else:
-        logger.info(f"Results will be stored offline due to bad internet connection.")
+        logger.info("Results will be stored offline due to bad internet connection.")
         logger.info(
             f"If you want to upload your results later run\n\t wandb sync {logging_dir}/wandb/run-{run_id}"
         )

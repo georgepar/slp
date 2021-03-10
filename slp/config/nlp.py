@@ -32,7 +32,7 @@ class SPECIAL_TOKENS(Enum):
         Returns:
             bool: True if token exists, False if not
         """
-        return any(token == t.name or token == t.value for t in cls)
+        return any(token in {t.name, t.value} for t in cls)
 
     @classmethod
     def to_list(cls):
