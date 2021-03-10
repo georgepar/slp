@@ -10,7 +10,31 @@ from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.util.system import date_fname, has_internet_connection, safe_mkdirs, yaml_dump
 
 
-def extract_wandb_config(config: DictConfig) -> DictConfig:
+def _extract_wandb_config(config: DictConfig) -> DictConfig:
+    """Copy wandb configuration from trainer subdict to wandb subdict
+    Ray tune requires a separate wandb configuration entry in the input config dict
+    Our configuration organizes these parameters under trainer e.g.:
+
+    > trainer:
+    >   wandb_project: ...
+    >   wandb_user: ...
+
+    This function takes all relevant wandb configuration options and puts them under a wandb
+    entry, converting them in a form that is compatible with wandb.init(), e.g.:
+
+    > wandb:
+    >   project: trainer_config["wandb_project"]
+    >   entity: trainer_config["wandb_user"]
+
+    This function is implicitly called by run_tuning and you should not have to directly interact
+    with it.
+
+    Args:
+        config (omegaconf.DictConfig): The parsed configuration
+
+    Returns:
+        (omegaconf.DictConfig): The converted configuration
+    """
     cfg = cast(DictConfig, OmegaConf.to_container(config))
     train_cfg = cfg["trainer"]
     experiment_name = train_cfg.get("experiment_name", "experiment")
@@ -44,7 +68,63 @@ def run_tuning(
     train: Any,
     val: Any,
 ):
-    config = extract_wandb_config(config)
+    """Run distributed hyperparameter tuning using ray tune
+
+    Uses Optuna TPE search algorithm and ASHA pruning strategy
+
+    Args:
+        config (omegaconf.DictConfig): The parsed configuration
+        output_config_file (str): Path to save the optimal configuration that yields the best
+            result
+        train_fn (Callable[[Dict[str, Any], Any, Any], None]): Train function that takes the
+            configuration as a python dict, train dataset and validation dataset and fits the
+            model. This function is used to create the trainable that will run when calling
+            ray.tune.run
+        config_fn (Callable[[Dict[str, Any]], Dict[str, Any]]): Configuration function that
+            constructs the search space by overriding entries in the input configuration
+        train (Dataset): Torch dataset or corpus that will be used for training
+        val (Dataset): Torch dataset or corpus that will be used for validation
+
+    Returns:
+        Dict[str, Any]: The configuration for the best trial
+
+    Examples:
+        >>> # Make search space
+        >>> def configure_search_space(config):
+        >>>     config["trainer"]["gpus"] = math.ceil(config["tune"]["gpus_per_trial"])
+        >>>     config["optimizer"] = tune.choice(["SGD", "Adam", "AdamW"])
+        >>>     config["optim"]["lr"] = tune.loguniform(1e-4, 1e-1)
+        >>>     config["optim"]["weight_decay"] = tune.loguniform(1e-4, 1e-1)
+        >>>     config["data"]["batch_size"] = tune.choice([16, 32, 64, 128])
+        >>>     return config
+        >>> # Training function.
+        >>> def train_fn(config, train=None, val=None):
+        >>>     config = OmegaConf.create(config) # convert dict from ray tune to DictConfig
+        >>>     ldm = PLDataModuleFromDatasets(train, val=val, seed=config.seed, no_test_set=True, **config.data)
+        >>>     model = Net(**config.model)
+        >>>     optimizer = getattr(optim, config.optimizer)(model.parameters(), **config.optim)
+        >>>     criterion = nn.CrossEntropyLoss()
+        >>>     lm = PLModule(
+        >>>         model, optimizer, criterion,
+        >>>         hparams=config,
+        >>>         metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())}, # Logs train_acc and val_acc
+        >>>     )
+        >>>     metrics_map = {"accuracy": "val_acc", "validation_loss": "val_loss"}  # map metrics from pl to ray tune
+        >>>     trainer = make_trainer_for_ray_tune(metrics_map=metrics_map, **config.trainer)
+        >>>     trainer.fit(lm, datamodule=ldm)
+        >>> # Run optimization
+        >>> if __name__ == "__main__":
+        >>>     config, train_dataset, val_dataset = ...
+        >>>     best_config = run_tuning(
+        >>>         config,
+        >>>         "configs/best.tuning.config.yml",
+        >>>         train_fn,
+        >>>         configure_search_space,
+        >>>         train_dataset,
+        >>>         val_dataset,
+        >>>     )
+    """
+    config = _extract_wandb_config(config)
     cfg = config_fn(cast(Dict[str, Any], OmegaConf.to_container(config)))
     trainable = tune.with_parameters(train_fn, train=train, val=val)
     metric, mode = cfg["tune"]["metric"], cfg["tune"]["mode"]
