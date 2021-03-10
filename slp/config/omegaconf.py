@@ -6,13 +6,17 @@ from typing import Any, Dict, List, Optional, Tuple
 from omegaconf import DictConfig, OmegaConf
 
 
-def _nest(d: Dict[str, Any], include_none: bool = False) -> Optional[Dict[str, Any]]:
+def _nest(
+    d: Dict[str, Any], separator: str = ".", include_none: bool = False
+) -> Optional[Dict[str, Any]]:
     """_nest Recursive function to nest a dictionary on keys with . (dots)
 
     Parse documentation into a hierarchical dict. Keys should be separated by dots (e.g. "model.hidden") to go down into the hierarchy
 
     Args:
         d (Dict[str, Any]): dictionary containing flat config values
+        separator (str): Separator to nest dictionary
+        include_none (bool): If true includes none values in final dict
 
     Returns:
         Dict[str, Any]: Hierarchical config dictionary
