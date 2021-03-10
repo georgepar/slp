@@ -35,10 +35,18 @@ class Net(nn.Module):
 
 
 def get_data():
+    # Bug from torch vision https://github.com/pytorch/vision/issues/1938
+    from six.moves import urllib
+
+    opener = urllib.request.build_opener()
+    opener.addheaders = [("User-agent", "Mozilla/5.0")]
+    urllib.request.install_opener(opener)
+
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
     train = MNIST(download=True, root=".", transform=data_transform, train=True)
 
     val = MNIST(download=False, root=".", transform=data_transform, train=False)
+
     return train, val
 
 
