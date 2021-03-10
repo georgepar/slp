@@ -30,7 +30,7 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.8"
 torch = "^1.7.1"
-numpy = "^1.20.1"
+numpy = "^1.19.5"
 pytorch-nlp = "0.4.1"
 transformers = "4.3.0"
 requests = "^2.25.1"
@@ -55,6 +55,7 @@ ray = {extras = ["tune"], version = "^1.2.0"}
 pytorch-lightning-bolts = "^0.3.0"
 gym = "^0.18.0"
 matplotlib = "^3.3.4"
+optuna = "^2.6.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
