@@ -4,7 +4,7 @@ We provide easy distributed hyperparameter tuning using Ray Tune. Let's walk thr
 `examples/mnist_tune.py` script for a concrete example.
 
 This script has been modified from `examples/mnist.py` that was presented in
-[Getting started](getting-started.md), to perform a distributed hyperparameter parameter tuning
+[Getting started](get-started.md), to perform a distributed hyperparameter parameter tuning
 run using Ray Tune and the SLP utilities.
 
 First we refactor the model creation and training into a function, so that each worker is able to

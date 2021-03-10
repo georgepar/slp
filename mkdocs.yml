@@ -17,6 +17,7 @@ extra:
 nav:
     - 'index.md'
     - 'get-started.md'
+    - 'tuning.md'
     - 'config.md'
     - 'data-utils.md'
     - 'plbind.md'
