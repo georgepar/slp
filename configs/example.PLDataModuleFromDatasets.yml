@@ -5,14 +5,17 @@ lr_scheduler: false  # Use ReduceLROnPlateau scheduler
 
 model:
   intermediate_hidden: 100 # Your model parameters (kwargs) go here. You are responsible for defining what goes here.
+
 optim:  # optimizer parameters
   lr: 0.001
   weight_decay: 0
+
 lr_schedule:  # ReduceLROnPlateau parameters
   factor: 0.1
   patience: 10
   cooldown: 0
   min_lr: 0
+
 trainer:
   experiment_name: experiment  # Descriptive experiment name. E.g. mnist-conv2d-classification
   experiment description: |
@@ -32,6 +35,7 @@ trainer:
   force_wandb_offline: false  # Use offline execution
   early_stop_on: val_loss  # Metric to track for early_stopping / checkpointing
   early_stop_mode: min
+
 data:
   val_percent: 0.2  # Split validation set with this percentage if no default validation set is provided
   test_percent: 0.2  # Split test set with this percentage if no default test set is provided
@@ -41,3 +45,11 @@ data:
   pin_memory: true
   drop_last: false
   shuffle_eval: true
+
+# If we perform hyperparameter tuning use this configuration
+tune:
+  num_trials: 1000
+  gpus_per_trial: !float 0.12
+  cpus_per_trial: 1
+  metric: "accuracy"
+  mode: "max"

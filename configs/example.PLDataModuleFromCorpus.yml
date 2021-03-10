@@ -2,16 +2,24 @@ debug: false
 seed: null
 optimizer: Adam
 lr_scheduler: false
+
+# Model configuration. User is responsible to define this
 model:
   hidden_size: 100  # Your model parameters (kwargs) go here
+
+# Optimizer parameters
 optim:
   lr: 0.001
   weight_decay: 0
+
+# ReduceLROnPlateau parameters
 lr_schedule:
   factor: 0.1
   patience: 10
   cooldown: 0
   min_lr: 0
+
+# Trainer & Wandb configuration
 trainer:
   experiment_name: experiment
   experiments_folder: experiments
@@ -26,9 +34,11 @@ trainer:
   force_wandb_offline: false
   early_stop_on: val_loss
   early_stop_mode: min
+
+# Data processing configuration
 data:
-  val_percent: 0.2
-  test_percent: 0.2
+  val_percent: 0.2  # Not used if validation set is already provided
+  test_percent: 0.2  # Not used if test set is already provided
   batch_size: 32
   batch_size_eval: 32
   num_workers: 1
@@ -45,3 +55,11 @@ data:
   prepend_bos: false  # For s2s models. Add [BOS] token in sentence start
   append_eos: false  # For s2s models. Add [EOS] token in sentence end
   max_len: -1  # Maximum number of tokens in sentence. Trims sentences above this length
+
+# If we perform hyperparameter tuning use this configuration
+tune:
+  num_trials: 1000
+  gpus_per_trial: !float 0.12
+  cpus_per_trial: 1
+  metric: "accuracy"
+  mode: "max"
