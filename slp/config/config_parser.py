@@ -203,7 +203,7 @@ def generate_example_config(
 
     Args:
         parser (argparse.ArgumentParser): The argument parser you want to use
-        config_file (Union[str, IO]): Configuration file name or file descriptor
+        output_file (Union[str, IO]): Configuration file name or file descriptor to save example configuration
         args (Optional[List[str]]): Optional input sys.argv style args. Useful for testing.
             Use this only for testing. By default it uses sys.argv[1:]
     """

@@ -78,7 +78,7 @@ class Embed(nn.Module):
 
         Args:
             num_embeddings (int): Total number of embeddings.
-            embeddings_dim (int): Embedding dimension.
+            embedding_dim (int): Embedding dimension.
             embeddings (numpy.ndarray): the 2D ndarray with the word vectors.
             noise (float): Optional additive noise. Defaults to 0.0.
             dropout (float): Embedding dropout probability. Defaults to 0.0.

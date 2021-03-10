@@ -19,7 +19,7 @@ class SequenceClassificationCollator(object):
                 The LightningModule will handle the Conversion.
 
         Examples:
-        >>> dataloader = torch.utils.DataLoader(my_dataset, collate_fn=SequenceClassificationCollator())
+            >>> dataloader = torch.utils.DataLoader(my_dataset, collate_fn=SequenceClassificationCollator())
         """
         self.pad_indx = pad_indx
         self.device = device
@@ -61,7 +61,7 @@ class Seq2SeqCollator(object):
                 The LightningModule will handle the Conversion.
 
         Examples:
-        >>> dataloader = torch.utils.DataLoader(my_dataset, collate_fn=Seq2SeqClassificationCollator())
+            >>> dataloader = torch.utils.DataLoader(my_dataset, collate_fn=Seq2SeqClassificationCollator())
         """
         self.pad_indx = pad_indx
         self.device = device

@@ -11,7 +11,7 @@ def log_to_file(fname_prefix: Optional[str]) -> str:
     """log_to_file Configure loguru to log to a logfile
 
     Args:
-        logfile_prefix (Optional[str]): Optional prefix to file where logs will be written.
+        fname_prefix (Optional[str]): Optional prefix to file where logs will be written.
 
     Returns:
         str: The logfile where logs are written
