@@ -73,6 +73,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         batch_sampler_test: BatchSampler = None,
         shuffle_eval: bool = False,
         collate_fn: Optional[Callable[..., Any]] = None,
+        no_test_set: bool = False,
     ):
         """LightningDataModule wrapper for generic torch.utils.data.Dataset
 
@@ -99,6 +100,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             batch_sampler_test (BatchSampler): Batch sampler for test loader. Defaults to None.
             shuffle_eval (bool): Shuffle validation and test dataloaders. Defaults to False.
             collate_fn (Callable[..., Any]): Collator function. Defaults to None.
+            no_test_set (bool): Do not create test set. Useful for tuning
 
         Raises:
             ValueError: If both mutually exclusive sampler_train and batch_sampler_train are provided
@@ -142,19 +144,23 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         if batch_size_eval is None:
             batch_size_eval = self.batch_size
 
+        self.no_test_set = no_test_set
         self.batch_size_eval = batch_size_eval
         self.train = train
         self.val = val
         self.test = test
 
     def prepare_data(self):
+        return None
+
+    def setup(self, stage=None):
         if self.val is not None:
             logger.info("Using provided validation set")
 
         if self.test is not None:
             logger.info("Using provided test set")
 
-        if self.test is None and self.val is None:
+        if self.test is None and self.val is None and not self.no_test_set:
             assert (
                 self.val_percent is not None and self.val_percent > 0
             ), "You should either provide a validation set or a val set percentage"
@@ -190,7 +196,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
                 self.train, test_size=self.val_percent, seed=self.seed
             )
 
-        if self.test is None:
+        if self.test is None and not self.no_test_set:
             assert (
                 test_percent is not None and test_percent > 0
             ), "You should either provide a test set or a test set percentage"
@@ -204,7 +210,9 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
 
         logger.info(f"Using {len(self.train)} samples for training")  # type: ignore
         logger.info(f"Using {len(self.val)} samples for validation")  # type: ignore
-        logger.info(f"Using {len(self.test)} samples for testing")  # type: ignore
+
+        if not self.no_test_set:
+            logger.info(f"Using {len(self.test)} samples for testing")  # type: ignore
 
     def train_dataloader(self) -> DataLoader:
         """Configure train DataLoader
@@ -380,6 +388,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         collate_fn: Optional[Callable[..., Any]] = None,
         language_model: bool = False,
         tokenizer: str = "spacy",
+        no_test_set: bool = False,
         **corpus_args,
     ):
         """Wrap raw corpus in a LightningDataModule
@@ -413,7 +422,9 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             collate_fn (Callable[..., Any]): Collator function. Defaults to None.
             language_model (bool): Use corpus for Language Modeling. Defaults to False.
             tokenizer (str): Select one of the cls.accepted_tokenizers. Defaults to "spacy".
-
+            no_test_set (bool): Do not create test set. Useful for tuning
+            **corpus_args (kwargs): Extra arguments to be passed to the corpus. See
+                slp/data/corpus.py
         Raises:
             ValueError: [description]
             ValueError: [description]
@@ -426,6 +437,7 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             train, val, test, train_labels, val_labels, test_labels
         )
 
+        self.no_test_set = no_test_set
         super(PLDataModuleFromCorpus, self).__init__(
             train_data,  # type: ignore
             val=val_data,  # type: ignore
@@ -446,12 +458,15 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             batch_sampler_val=batch_sampler_val,
             batch_sampler_test=batch_sampler_test,
             collate_fn=collate_fn,
+            no_test_set=no_test_set,
         )
 
-    def prepare_data(self):
+    def setup(self):
         train_corpus, train_labels = zip(*self.train)  # type: ignore
         val_corpus, val_labels = zip(*self.val)  # type: ignore
-        test_corpus, test_labels = zip(*self.test)  # type: ignore
+
+        if not self.no_test_set:
+            test_corpus, test_labels = zip(*self.test)  # type: ignore
 
         self.train_corpus, self.val_corpus, self.test_corpus = self._create_corpora(
             train_corpus, val_corpus, test_corpus, self.corpus_args
@@ -462,11 +477,15 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         if self.language_model:
             self.train = CorpusLMDataset(self.train_corpus).map(to_tensor)
             self.val = CorpusLMDataset(self.val_corpus).map(to_tensor)
-            self.test = CorpusLMDataset(self.test_corpus).map(to_tensor)
+
+            if not self.no_test_set:
+                self.test = CorpusLMDataset(self.test_corpus).map(to_tensor)
         else:
             self.train = CorpusDataset(self.train_corpus, train_labels).map(to_tensor)
             self.val = CorpusDataset(self.val_corpus, val_labels).map(to_tensor)
-            self.test = CorpusDataset(self.test_corpus, test_labels).map(to_tensor)
+
+            if not self.no_test_set:
+                self.test = CorpusDataset(self.test_corpus, test_labels).map(to_tensor)
 
     def _zip_corpus_and_labels(
         self, train, val, test, train_labels, val_labels, test_labels
@@ -556,7 +575,11 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         corpus_args = self._force_train_vocab_on_val_and_test(corpus_args, train_corpus)
 
         val_corpus = corpus_cls(val_corpus, **corpus_args)  # type: ignore
-        test_corpus = corpus_cls(test_corpus, **corpus_args)  # type: ignore
+
+        if not self.no_test_set:
+            test_corpus = corpus_cls(test_corpus, **corpus_args)  # type: ignore
+        else:
+            test_corpus = None
 
         return train_corpus, val_corpus, test_corpus
 
