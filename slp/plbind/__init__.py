@@ -11,6 +11,8 @@ from slp.plbind.module import (
 from slp.plbind.trainer import (
     add_optimizer_args,
     add_trainer_args,
+    add_tune_args,
     make_trainer,
+    make_trainer_for_ray_tune,
     watch_model,
 )

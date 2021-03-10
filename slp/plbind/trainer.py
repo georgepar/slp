@@ -1,13 +1,56 @@
 import argparse
 import os
-from typing import Optional, Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
+from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from slp.plbind.helpers import EarlyStoppingWithLogs, FixedWandbLogger
 from slp.util.system import date_fname, has_internet_connection, safe_mkdirs
 from slp.util.types import dir_path
+
+
+def add_tune_args(parent_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+    parser.add_argument(
+        "--num-trials",
+        dest="tune.num_trials",
+        type=int,
+        default=100,
+        help="Number of trials to run for hyperparameter tuning",
+    )
+    parser.add_argument(
+        "--gpus-per-trial",
+        dest="tune.gpus_per_trial",
+        type=float,
+        default=0.5,
+        help="How many gpus to use for each trial. If gpus_per_trial < 1 multiple trials are packed in the same gpu",
+    )
+    parser.add_argument(
+        "--cpus-per-trial",
+        dest="tune.cpus_per_trial",
+        type=int,
+        default=1,
+        help="How many cpus to use for each trial.",
+    )
+    parser.add_argument(
+        "--tune-metric",
+        dest="tune.metric",
+        type=str,
+        default="validation_loss",
+        help="Tune this metric. Need to be one of the keys of metrics_map passed into make_trainer_for_ray_tune.",
+    )
+    parser.add_argument(
+        "--tune-mode",
+        dest="tune.mode",
+        choices=["max", "min"],
+        type=str,
+        default="min",
+        help="Maximize or minimize metric",
+    )
+
+    return parser
 
 
 def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -363,9 +406,6 @@ def make_trainer(
 
     run_id = run_id if run_id is not None else date_fname()
 
-    if run_id is None:
-        run_id = date_fname()
-
     if run_id in os.listdir(logging_dir):
         logger.warning(
             "The run id you provided {run_id} already exists in {logging_dir}"
@@ -462,9 +502,6 @@ def make_trainer(
 
 
 def make_trainer_for_ray_tune(
-    experiment_name: str = "experiment",
-    experiments_folder: str = "experiments",
-    run_id: Optional[str] = None,
     patience: int = 3,
     stochastic_weight_avg: bool = False,
     gpus: int = 0,
@@ -476,16 +513,15 @@ def make_trainer_for_ray_tune(
     terminate_on_nan: bool = False,  # Be careful this makes training very slow for large models
     early_stop_on: str = "val_loss",
     early_stop_mode: str = "min",
+    metrics_map: Optional[Dict[str, str]] = None,
+    **extra_kwargs,
 ) -> pl.Trainer:
     """Configure trainer with preferred defaults
 
-    * Experiment folder and run_id configured (based on datetime.now())
     * Early stopping on best validation loss is configured by default
+    * Ray tune callback configured
 
     Args:
-        experiment_name (str, optional): Experiment name. Defaults to "experiment".
-        experiments_folder (str, optional): Folder to save outputs. Defaults to "experiments".
-        run_id (Optional[str], optional): Unique run_id. Defaults to datetime.now(). Defaults to None.
         patience (int, optional): Patience for early stopping. Defaults to 3.
         stochastic_weight_avg (bool, optional): Use stochastic weight averaging. Defaults to False.
         gpus (int, optional): number of GPUs to use. Defaults to 0.
@@ -498,32 +534,18 @@ def make_trainer_for_ray_tune(
         terminate_on_nan (bool, optional): Terminate on NaN gradients. Warning this makes training slow. Defaults to False.
         early_stop_on (str): metric for early stopping
         early_stop_mode (str): "min" or "max"
-
+        metrics_map (Optional[Dict[str, str]]): The mapping from pytorch lightning logged metrics
+            to ray tune metrics. The --tune-metric argument should be one of the keys of this
+            mapping
+        extra_kwargs (kwargs): Ignored. We use it so that we are able to pass the same config
+            object as in make_trainer
     Returns:
         pl.Trainer: Configured trainer
     """
-    logging_dir = os.path.join(experiments_folder, experiment_name)
-    safe_mkdirs(logging_dir)
 
-    run_id = run_id if run_id is not None else date_fname()
+    if metrics_map is None:
+        raise ValueError("Need to pass metrics for TuneReportCallback")
 
-    if run_id is None:
-        run_id = date_fname()
-
-    if run_id in os.listdir(logging_dir):
-        logger.warning(
-            "The run id you provided {run_id} already exists in {logging_dir}"
-        )
-        run_id = date_fname()
-        logger.info("Setting run_id={run_id}")
-
-    logger.info(f"Logs will be saved in {logging_dir}")
-
-    loggers = [
-        pl.loggers.CSVLogger(logging_dir, name="csv_logs", version=run_id),
-    ]
-
-    logger.info(f"Configured CSV logger.")
     callbacks = [
         EarlyStoppingWithLogs(
             monitor=early_stop_on,
@@ -531,25 +553,27 @@ def make_trainer_for_ray_tune(
             patience=patience,
             verbose=True,
         ),
+        TuneReportCallback(metrics_map, on="validation_end"),
         pl.callbacks.LearningRateMonitor(logging_interval="step"),
     ]
 
     logger.info("Configured Early stopping to track val_loss")
 
     trainer = pl.Trainer(
-        default_root_dir=logging_dir,
         gpus=gpus,
         max_epochs=max_epochs,
         max_steps=max_steps,
         callbacks=callbacks,
-        logger=loggers,
+        logger=[],
         check_val_every_n_epoch=1,
         gradient_clip_val=gradient_clip_val,
         stochastic_weight_avg=stochastic_weight_avg,
         precision=precision,
         truncated_bptt_steps=truncated_bptt_steps,
         terminate_on_nan=terminate_on_nan,
-        progress_bar_refresh_rate=10,
+        progress_bar_refresh_rate=0,
+        num_sanity_val_steps=0,
+        auto_scale_batch_size=False,
     )
 
     return trainer

@@ -2,10 +2,11 @@ import argparse
 from typing import IO, List, Optional, Union
 
 import pytorch_lightning as pl
-from omegaconf import DictConfig, ListConfig
 from loguru import logger
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
-from slp.plbind import add_optimizer_args, add_trainer_args
+from slp.plbind import add_optimizer_args, add_trainer_args, add_tune_args
+
+from omegaconf import DictConfig, ListConfig
 
 
 def make_cli_parser(
@@ -16,76 +17,131 @@ def make_cli_parser(
     Default arguments for training, logging, optimization etc. are added to the input {parser}.
     If you use make_cli_parser, the following command line arguments will be included
 
-        usage: my_script.py [-h] [--optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}] [--lr OPTIM.LR] [--weight-decay OPTIM.WEIGHT_DECAY]
-                        [--lr-scheduler] [--lr-factor LR_SCHEDULE.FACTOR] [--lr-patience LR_SCHEDULE.PATIENCE] [--lr-cooldown LR_SCHEDULE.COOLDOWN] [--min-lr LR_SCHEDULE.MIN_LR] [--seed SEED]
-                        [--config CONFIG] [--experiment-name TRAINER.EXPERIMENT_NAME] [--run-id TRAINER.RUN_ID] [--experiment-group TRAINER.EXPERIMENT_GROUP]
-                        [--experiments-folder TRAINER.EXPERIMENTS_FOLDER] [--save-top-k TRAINER.SAVE_TOP_K] [--patience TRAINER.PATIENCE] [--wandb-project TRAINER.WANDB_PROJECT]
-                        [--tags [TRAINER.TAGS [TRAINER.TAGS ...]]] [--stochastic_weight_avg] [--gpus TRAINER.GPUS] [--val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH]
-                        [--clip-grad-norm TRAINER.GRADIENT_CLIP_VAL] [--epochs TRAINER.MAX_EPOCHS] [--steps TRAINER.MAX_STEPS] [--tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS] [--debug]
-                        [--val-percent DATA.VAL_PERCENT] [--test-percent DATA.TEST_PERCENT] [--bsz DATA.BATCH_SIZE] [--bsz-eval DATA.BATCH_SIZE_EVAL] [--num-workers DATA.NUM_WORKERS]
-                        [--pin-memory] [--drop-last] [--shuffle-eval]
+        usage: my_script.py [-h] [--hidden MODEL.INTERMEDIATE_HIDDEN]
+                                        [--optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}]
+                                        [--lr OPTIM.LR] [--weight-decay OPTIM.WEIGHT_DECAY]
+                                        [--lr-scheduler] [--lr-factor LR_SCHEDULE.FACTOR]
+                                        [--lr-patience LR_SCHEDULE.PATIENCE]
+                                        [--lr-cooldown LR_SCHEDULE.COOLDOWN]
+                                        [--min-lr LR_SCHEDULE.MIN_LR] [--seed SEED] [--config CONFIG]
+                                        [--experiment-name TRAINER.EXPERIMENT_NAME]
+                                        [--run-id TRAINER.RUN_ID]
+                                        [--experiment-group TRAINER.EXPERIMENT_GROUP]
+                                        [--experiments-folder TRAINER.EXPERIMENTS_FOLDER]
+                                        [--save-top-k TRAINER.SAVE_TOP_K]
+                                        [--patience TRAINER.PATIENCE]
+                                        [--wandb-project TRAINER.WANDB_PROJECT]
+                                        [--tags [TRAINER.TAGS [TRAINER.TAGS ...]]]
+                                        [--stochastic_weight_avg] [--gpus TRAINER.GPUS]
+                                        [--val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH]
+                                        [--clip-grad-norm TRAINER.GRADIENT_CLIP_VAL]
+                                        [--epochs TRAINER.MAX_EPOCHS] [--steps TRAINER.MAX_STEPS]
+                                        [--tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS] [--debug]
+                                        [--offline] [--early-stop-on TRAINER.EARLY_STOP_ON]
+                                        [--early-stop-mode {min,max}] [--num-trials TUNE.NUM_TRIALS]
+                                        [--gpus-per-trial TUNE.GPUS_PER_TRIAL]
+                                        [--cpus-per-trial TUNE.CPUS_PER_TRIAL]
+                                        [--tune-metric TUNE.METRIC] [--tune-mode {max,min}]
+                                        [--val-percent DATA.VAL_PERCENT]
+                                        [--test-percent DATA.TEST_PERCENT] [--bsz DATA.BATCH_SIZE]
+                                        [--bsz-eval DATA.BATCH_SIZE_EVAL]
+                                        [--num-workers DATA.NUM_WORKERS] [--no-pin-memory]
+                                        [--drop-last] [--no-shuffle-eval]
 
         optional arguments:
-        -h, --help            show this help message and exit
-        --optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}
-                                Which optimizer to use
-        --lr OPTIM.LR         Learning rate
-        --weight-decay OPTIM.WEIGHT_DECAY
-                                Learning rate
-        --lr-scheduler        Use learning rate scheduling. Currently only ReduceLROnPlateau is supported out of the box
-        --lr-factor LR_SCHEDULE.FACTOR
-                                Multiplicative factor by which LR is reduced. Used if --lr-scheduler is provided.
-        --lr-patience LR_SCHEDULE.PATIENCE
-                                Number of epochs with no improvement after which learning rate will be reduced. Used if --lr-scheduler is provided.
-        --lr-cooldown LR_SCHEDULE.COOLDOWN
-                                Number of epochs to wait before resuming normal operation after lr has been reduced. Used if --lr-scheduler is provided.
-        --min-lr LR_SCHEDULE.MIN_LR
-                                Minimum lr for LR scheduling. Used if --lr-scheduler is provided.
-        --seed SEED           Seed for reproducibility
-        --config CONFIG       Path to YAML configuration file
-        --experiment-name TRAINER.EXPERIMENT_NAME
-                                Name of the running experiment
-        --run-id TRAINER.RUN_ID
-                                Unique identifier for the current run. If not provided it is inferred from datetime.now()
-        --experiment-group TRAINER.EXPERIMENT_GROUP
-                                Group of current experiment. Useful when evaluating for different seeds / cross-validation etc.
-        --experiments-folder TRAINER.EXPERIMENTS_FOLDER
-                                Top-level folder where experiment results & checkpoints are saved
-        --save-top-k TRAINER.SAVE_TOP_K
-                                Save checkpoints for top k models
-        --patience TRAINER.PATIENCE
-                                Number of epochs to wait before early stopping
-        --wandb-project TRAINER.WANDB_PROJECT
-                                Wandb project under which results are saved
-        --tags [TRAINER.TAGS [TRAINER.TAGS ...]]
-                                Tags for current run to make results searchable.
-        --stochastic_weight_avg
-                                Use Stochastic weight averaging.
-        --gpus TRAINER.GPUS   Number of GPUs to use
-        --val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH
-                                Run validation every n epochs
-        --clip-grad-norm TRAINER.GRADIENT_CLIP_VAL
-                                Clip gradients with ||grad(w)|| >= args.clip_grad_norm
-        --epochs TRAINER.MAX_EPOCHS
-                                Maximum number of training epochs
-        --steps TRAINER.MAX_STEPS
-                                Maximum number of training steps
-        --tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS
-                                Truncated Back-propagation-through-time steps.
-        --debug               If true, we run a full run on a small subset of the input data and overfit 10 training batches
-        --val-percent DATA.VAL_PERCENT
-                                Percent of validation data to be randomly split from the training set, if no validation set is provided
-        --test-percent DATA.TEST_PERCENT
-                                Percent of test data to be randomly split from the training set, if no test set is provided
-        --bsz DATA.BATCH_SIZE
-                                Training batch size
-        --bsz-eval DATA.BATCH_SIZE_EVAL
-                                Evaluation batch size
-        --num-workers DATA.NUM_WORKERS
-                                Number of workers to be used in the DataLoader
-        --pin-memory          Pin data to GPU memory for faster data loading
-        --drop-last           Drop last incomplete batch
-        --shuffle-eval        Shuffle val & test sets
+          -h, --help            show this help message and exit
+          --hidden MODEL.INTERMEDIATE_HIDDEN
+                                                        Intermediate hidden layers for linear module
+          --optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}
+                                                        Which optimizer to use
+          --lr OPTIM.LR         Learning rate
+          --weight-decay OPTIM.WEIGHT_DECAY
+                                                        Learning rate
+          --lr-scheduler        Use learning rate scheduling. Currently only
+                                                        ReduceLROnPlateau is supported out of the box
+          --lr-factor LR_SCHEDULE.FACTOR
+                                                        Multiplicative factor by which LR is reduced. Used if
+                                                        --lr-scheduler is provided.
+          --lr-patience LR_SCHEDULE.PATIENCE
+                                                        Number of epochs with no improvement after which
+                                                        learning rate will be reduced. Used if --lr-scheduler
+                                                        is provided.
+          --lr-cooldown LR_SCHEDULE.COOLDOWN
+                                                        Number of epochs to wait before resuming normal
+                                                        operation after lr has been reduced. Used if --lr-
+                                                        scheduler is provided.
+          --min-lr LR_SCHEDULE.MIN_LR
+                                                        Minimum lr for LR scheduling. Used if --lr-scheduler
+                                                        is provided.
+          --seed SEED           Seed for reproducibility
+          --config CONFIG       Path to YAML configuration file
+          --experiment-name TRAINER.EXPERIMENT_NAME
+                                                        Name of the running experiment
+          --run-id TRAINER.RUN_ID
+                                                        Unique identifier for the current run. If not provided
+                                                        it is inferred from datetime.now()
+          --experiment-group TRAINER.EXPERIMENT_GROUP
+                                                        Group of current experiment. Useful when evaluating
+                                                        for different seeds / cross-validation etc.
+          --experiments-folder TRAINER.EXPERIMENTS_FOLDER
+                                                        Top-level folder where experiment results &
+                                                        checkpoints are saved
+          --save-top-k TRAINER.SAVE_TOP_K
+                                                        Save checkpoints for top k models
+          --patience TRAINER.PATIENCE
+                                                        Number of epochs to wait before early stopping
+          --wandb-project TRAINER.WANDB_PROJECT
+                                                        Wandb project under which results are saved
+          --tags [TRAINER.TAGS [TRAINER.TAGS ...]]
+                                                        Tags for current run to make results searchable.
+          --stochastic_weight_avg
+                                                        Use Stochastic weight averaging.
+          --gpus TRAINER.GPUS   Number of GPUs to use
+          --val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH
+                                                        Run validation every n epochs
+          --clip-grad-norm TRAINER.GRADIENT_CLIP_VAL
+                                                        Clip gradients with ||grad(w)|| >= args.clip_grad_norm
+          --epochs TRAINER.MAX_EPOCHS
+                                                        Maximum number of training epochs
+          --steps TRAINER.MAX_STEPS
+                                                        Maximum number of training steps
+          --tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS
+                                                        Truncated Back-propagation-through-time steps.
+          --debug               If true, we run a full run on a small subset of the
+                                                        input data and overfit 10 training batches
+          --offline             If true, forces offline execution of wandb logger
+          --early-stop-on TRAINER.EARLY_STOP_ON
+                                                        Metric for early stopping
+          --early-stop-mode {min,max}
+                                                        Minimize or maximize early stopping metric
+          --num-trials TUNE.NUM_TRIALS
+                                                        Number of trials to run for hyperparameter tuning
+          --gpus-per-trial TUNE.GPUS_PER_TRIAL
+                                                        How many gpus to use for each trial. If gpus_per_trial
+                                                        < 1 multiple trials are packed in the same gpu
+          --cpus-per-trial TUNE.CPUS_PER_TRIAL
+                                                        How many cpus to use for each trial.
+          --tune-metric TUNE.METRIC
+                                                        Tune this metric. Need to be one of the keys of
+                                                        metrics_map passed into make_trainer_for_ray_tune.
+          --tune-mode {max,min}
+                                                        Maximize or minimize metric
+          --val-percent DATA.VAL_PERCENT
+                                                        Percent of validation data to be randomly split from
+                                                        the training set, if no validation set is provided
+          --test-percent DATA.TEST_PERCENT
+                                                        Percent of test data to be randomly split from the
+                                                        training set, if no test set is provided
+          --bsz DATA.BATCH_SIZE
+                                                        Training batch size
+          --bsz-eval DATA.BATCH_SIZE_EVAL
+                                                        Evaluation batch size
+          --num-workers DATA.NUM_WORKERS
+                                                        Number of workers to be used in the DataLoader
+          --no-pin-memory       Don't pin data to GPU memory when transferring
+          --drop-last           Drop last incomplete batch
+          --no-shuffle-eval     Don't shuffle val & test sets
+
     Args:
         parser (argparse.ArgumentParser): A parent argument to be augmented
         datamodule_cls (pytorch_lightning.LightningDataModule): A data module class that injects arguments through the add_argparse_args method
@@ -107,6 +163,7 @@ def make_cli_parser(
     """
     parser = add_optimizer_args(parser)
     parser = add_trainer_args(parser)
+    parser = add_tune_args(parser)
     parser = datamodule_cls.add_argparse_args(parser)
 
     return parser
