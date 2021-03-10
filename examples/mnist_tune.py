@@ -130,15 +130,7 @@ def train_mnist(config, train=None, val=None):
     trainer.fit(lm, datamodule=ldm)
 
 
-def configure_tuning(config):
-    config["tune"] = {
-        "num_trials": 10,
-        "cpus_per_trial": 1,
-        "gpus_per_trial": 0.12,
-        "metric": "accuracy",
-        "mode": "max",
-    }
-    config["trainer"]["gpus"] = math.ceil(config["tune"]["gpus_per_trial"])
+def configure_search_space(config):
     config["model"] = {
         "intermediate_hidden": tune.choice([16, 32, 64, 100, 128, 256, 300, 512])
     }
@@ -146,9 +138,6 @@ def configure_tuning(config):
     config["optim"]["lr"] = tune.loguniform(1e-4, 1e-1)
     config["optim"]["weight_decay"] = tune.loguniform(1e-4, 1e-1)
     config["data"]["batch_size"] = tune.choice([16, 32, 64, 128])
-
-    config["trainer"]["max_epochs"] = 15
-    config["wandb"]["project"] = "tuning-mnist-classification"
 
     return config
 
@@ -169,7 +158,27 @@ if __name__ == "__main__":
         logger.info("Seeding everything with seed={seed}")
         pl.utilities.seed.seed_everything(seed=config.seed)
 
+    # These arguments may be provided from the command line or a config file
+    # config = OmegaConf.to_container(config)
+    # config["tune"] = {
+    #     "num_trials": 10,
+    #     "cpus_per_trial": 1,
+    #     "gpus_per_trial": 0.12,
+    #     "metric": "accuracy",
+    #     "mode": "max",
+    # }
+    # config["wandb"]["project"] = "tuning-mnist-classification"
+    # config["trainer"]["max_epochs"] = 15
+    # config = OmegaConf.create(config)
+
+    # Handle train / val splitting.
+    # All trials should run on the same validation set
     train, val, _ = get_data()
     best_config = run_tuning(
-        config, "configs/best.mnist.tune.yml", train_mnist, configure_tuning, train, val
+        config,  # type: ignore
+        "configs/best.mnist.tune.yml",
+        train_mnist,
+        configure_search_space,
+        train,
+        val,
     )

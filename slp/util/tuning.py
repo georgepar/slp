@@ -1,3 +1,4 @@
+import math
 import os
 from typing import Any, Callable, Dict, Union, cast
 
@@ -91,7 +92,6 @@ def run_tuning(
     Examples:
         >>> # Make search space
         >>> def configure_search_space(config):
-        >>>     config["trainer"]["gpus"] = math.ceil(config["tune"]["gpus_per_trial"])
         >>>     config["optimizer"] = tune.choice(["SGD", "Adam", "AdamW"])
         >>>     config["optim"]["lr"] = tune.loguniform(1e-4, 1e-1)
         >>>     config["optim"]["weight_decay"] = tune.loguniform(1e-4, 1e-1)
@@ -126,6 +126,7 @@ def run_tuning(
     """
     config = _extract_wandb_config(config)
     cfg = config_fn(cast(Dict[str, Any], OmegaConf.to_container(config)))
+    cfg["trainer"]["gpus"] = math.ceil(cfg["tune"]["gpus_per_trial"])
     trainable = tune.with_parameters(train_fn, train=train, val=val)
     metric, mode = cfg["tune"]["metric"], cfg["tune"]["mode"]
 
