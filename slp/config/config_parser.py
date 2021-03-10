@@ -3,10 +3,10 @@ from typing import IO, List, Optional, Union
 
 import pytorch_lightning as pl
 from loguru import logger
+from omegaconf import DictConfig, ListConfig
+
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import add_optimizer_args, add_trainer_args, add_tune_args
-
-from omegaconf import DictConfig, ListConfig
 
 
 def make_cli_parser(

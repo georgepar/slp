@@ -4,8 +4,9 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 import torch
 import torch.nn as nn
 from loguru import logger
-from slp.util import system, types
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
+from slp.util import system, types
 
 
 class PadPackedSequence(nn.Module):

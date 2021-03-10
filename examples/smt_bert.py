@@ -3,6 +3,10 @@ from argparse import ArgumentParser
 import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
+from torch.optim import Adam
+from torchnlp.datasets import smt_dataset  # type: ignore
+from transformers import AdamW, BertForSequenceClassification
+
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
@@ -12,9 +16,6 @@ from slp.plbind.helpers import FromLogits
 from slp.plbind.module import BertPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
-from torch.optim import Adam
-from torchnlp.datasets import smt_dataset  # type: ignore
-from transformers import AdamW, BertForSequenceClassification
 
 collate_fn = SequenceClassificationCollator(device="cpu")
 

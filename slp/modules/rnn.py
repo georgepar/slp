@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from loguru import logger
+
 from slp.modules.attention import Attention
 from slp.modules.embed import Embed
 from slp.util.pytorch import PackSequence, PadPackedSequence, pad_mask

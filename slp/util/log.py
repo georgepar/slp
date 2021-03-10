@@ -3,8 +3,9 @@ import logging
 from typing import Any, Optional
 
 from loguru import logger
-from slp.util.system import date_fname
 from tqdm import tqdm
+
+from slp.util.system import date_fname
 
 
 def log_to_file(fname_prefix: Optional[str]) -> str:

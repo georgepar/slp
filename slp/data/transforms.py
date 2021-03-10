@@ -4,10 +4,11 @@ from typing import Any, Dict, List, Optional
 import sentencepiece as spm
 import spacy
 import torch
-from slp.config.nlp import SPECIAL_TOKENS
-from slp.util.pytorch import mktensor
 from spacy.attrs import ORTH
 from transformers import AutoTokenizer
+
+from slp.config.nlp import SPECIAL_TOKENS
+from slp.util.pytorch import mktensor
 
 # Avoid deadlocks for hugging face tokenizers
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

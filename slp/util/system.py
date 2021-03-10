@@ -8,12 +8,13 @@ import sys
 import time
 import urllib
 import urllib.request
-import yaml
 from datetime import datetime
 from typing import Any, Callable, Optional, Tuple, cast
 
 import validators
+import yaml
 from loguru import logger
+
 from slp.util import types
 
 try:

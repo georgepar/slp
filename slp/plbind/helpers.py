@@ -4,9 +4,10 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-import wandb
 from loguru import logger
 from pytorch_lightning.utilities import rank_zero_only
+
+import wandb
 from slp.util.system import print_separator
 
 

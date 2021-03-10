@@ -11,6 +11,9 @@ import torch.optim as optim
 from filelock import FileLock
 from loguru import logger
 from ray import tune
+from torchvision.datasets import MNIST  # type: ignore
+from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
+
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.plbind import (
@@ -23,8 +26,6 @@ from slp.plbind import (
 from slp.plbind.dm import split_data
 from slp.util.log import configure_logging
 from slp.util.tuning import run_tuning
-from torchvision.datasets import MNIST  # type: ignore
-from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
 
 
 class Net(nn.Module):

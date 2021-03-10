@@ -8,6 +8,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from loguru import logger
+from torchvision.datasets import MNIST  # type: ignore
+from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
+
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.plbind import (
     FromLogits,
@@ -17,8 +20,6 @@ from slp.plbind import (
     watch_model,
 )
 from slp.util.log import configure_logging
-from torchvision.datasets import MNIST  # type: ignore
-from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
 
 # Could be read from yaml with OmegaConf.from_yaml
 CONFIG = {

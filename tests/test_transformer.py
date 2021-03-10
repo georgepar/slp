@@ -4,13 +4,14 @@ from warnings import simplefilter
 
 import pytorch_lightning as pl
 import torch
+from torch.utils.data import DataLoader, Dataset
+
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.data.collators import Seq2SeqCollator
 from slp.data.corpus import create_vocab
 from slp.data.transforms import ToTensor, ToTokenIds
 from slp.modules.transformer import Transformer
 from slp.util.pytorch import pad_mask, subsequent_mask
-from torch.utils.data import DataLoader, Dataset
 
 simplefilter(action="ignore")
 

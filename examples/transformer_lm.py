@@ -2,6 +2,9 @@ import math
 
 import torch.nn as nn
 import torch.optim as optim
+from torchnlp.datasets import wikitext_2_dataset  # type: ignore
+from torchnlp.samplers import BPTTBatchSampler
+
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.data import Seq2SeqCollator
 from slp.modules.embed import PositionalEncoding
@@ -13,8 +16,6 @@ from slp.plbind import (
     watch_model,
 )
 from slp.util.log import configure_logging
-from torchnlp.datasets import wikitext_2_dataset  # type: ignore
-from torchnlp.samplers import BPTTBatchSampler
 
 
 class TransformerLM(nn.Module):

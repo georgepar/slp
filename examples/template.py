@@ -1,20 +1,17 @@
-import torch.nn as nn
-import torch.optim as optim
-
-import pytorch_lightning as pl
 from argparse import ArgumentParser
 
+import pytorch_lightning as pl
+import torch.nn as nn
+import torch.optim as optim
 from loguru import logger
 
-from slp.util.log import configure_logging
-from slp.config.config_parser import parse_config, make_cli_parser
+from slp.config.config_parser import make_cli_parser, parse_config
 from slp.plbind import (
-    PLDataModuleFromDatasets,  # or PLDataModuleFromCorpus see slp/plbind/dm.py
-    PLModule,  # or any other PLModule. See slp/plbind/module.py
-    make_trainer,
-    watch_model,
-    FromLogits,
-)
+    PLDataModuleFromDatasets,
+)  # or PLDataModuleFromCorpus see slp/plbind/dm.py
+from slp.plbind import PLModule  # or any other PLModule. See slp/plbind/module.py
+from slp.plbind import FromLogits, make_trainer, watch_model
+from slp.util.log import configure_logging
 
 
 class MyCoolNet(nn.Module):

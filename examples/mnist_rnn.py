@@ -7,6 +7,9 @@ import pytorch_lightning as pl
 import torch.nn as nn
 import torch.optim as optim
 from loguru import logger
+from torchvision.datasets import MNIST  # type: ignore
+from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
+
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.rnn import RNN
@@ -18,8 +21,6 @@ from slp.plbind import (
     watch_model,
 )
 from slp.util.log import configure_logging
-from torchvision.datasets import MNIST  # type: ignore
-from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
 
 collate_fn = SequenceClassificationCollator()
 
