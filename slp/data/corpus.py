@@ -41,13 +41,16 @@ def create_vocab(
         >>> create_vocab(["in", "a", "galaxy", "far", "far", "away"], vocab_size=3, special_tokens=slp.config.nlp.SPECIAL_TOKENS)
         {'[PAD]': 0, '[MASK]': 0, '[UNK]': 0, '[BOS]': 0, '[EOS]': 0, '[CLS]': 0, '[SEP]': 0, 'far': 2, 'a': 1, 'in': 1}
     """
+
     if isinstance(corpus[0], list):
         corpus = list(itertools.chain.from_iterable(corpus))
     freq = Counter(corpus)
+
     if special_tokens is None:
         extra_tokens = []
     else:
         extra_tokens = special_tokens.to_list()
+
     if vocab_size < 0:
         vocab_size = len(freq)
     take = min(vocab_size, len(freq))
@@ -55,16 +58,19 @@ def create_vocab(
 
     def take0(x: Tuple[Any, Any]) -> Any:
         """Take first tuple element"""
+
         return x[0]
 
     common_words = list(map(take0, freq.most_common(take)))
     common_words = list(set(common_words) - set(extra_tokens))
     words = extra_tokens + common_words
+
     if len(words) > vocab_size:
         words = words[: vocab_size + len(extra_tokens)]
 
     def token_freq(t):
         """Token frequeny"""
+
         return 0 if t in extra_tokens else freq[t]
 
     vocab = dict(zip(words, map(token_freq, words)))
@@ -99,6 +105,7 @@ class EmbeddingsLoader(object):
 
     def __repr__(self):
         """String representation of class"""
+
         return f"{self.__class__.__name__}({self.embeddings_file}, {self.dim_})"
 
     def in_accepted_vocab(self, word: str) -> bool:
@@ -110,6 +117,7 @@ class EmbeddingsLoader(object):
         Returns:
             bool: Word exists
         """
+
         if self.vocab is None:
             return True
         else:
@@ -126,11 +134,13 @@ class EmbeddingsLoader(object):
         """
         head, tail = os.path.split(self.embeddings_file)
         filename, ext = os.path.splitext(tail)
+
         if self.vocab is not None:
             cache_name = os.path.join(head, f"{filename}.{len(self.vocab)}.p")
         else:
             cache_name = os.path.join(head, f"{filename}.p")
         logger.info(f"Cache: {cache_name}")
+
         return cache_name
 
     def _dump_cache(self, data: types.Embeddings) -> None:
@@ -149,6 +159,7 @@ class EmbeddingsLoader(object):
         Returns:
             types.Embeddings: (word2idx, idx2word, embeddings) tuple
         """
+
         return cast(types.Embeddings, system.pickle_load(self.cache_))
 
     def augment_embeddings(
@@ -174,9 +185,11 @@ class EmbeddingsLoader(object):
         """
         word2idx[token] = len(embeddings)
         idx2word[len(embeddings)] = token
+
         if emb is None:
             emb = np.random.uniform(low=-0.05, high=0.05, size=self.dim_)
         embeddings.append(emb)
+
         return word2idx, idx2word, embeddings
 
     @system.timethis(method=True)
@@ -194,12 +207,14 @@ class EmbeddingsLoader(object):
         try:
             cache = self._load_cache()
             logger.info("Loaded word embeddings from cache.")
+
             return cache
         except OSError:
             logger.warning(f"Didn't find embeddings cache file {self.embeddings_file}")
             logger.warning("Loading embeddings from file.")
 
         # create the necessary dictionaries and the word embeddings matrix
+
         if not os.path.exists(self.embeddings_file):
             logger.critical(f"{self.embeddings_file} not found!")
             raise OSError(errno.ENOENT, os.strerror(errno.ENOENT), self.embeddings_file)
@@ -210,6 +225,7 @@ class EmbeddingsLoader(object):
         # the Embedding layer of a NN.
         # We reserve the first row (idx=0), as the word embedding,
         # which will be used for zero padding (word with id = 0).
+
         if self.extra_tokens is not None:
             word2idx, idx2word, embeddings = self.augment_embeddings(
                 {},
@@ -221,6 +237,7 @@ class EmbeddingsLoader(object):
 
             for token in self.extra_tokens:  # type: ignore
                 logger.debug(f"Adding token {token.value} to embeddings matrix")
+
                 if token == self.extra_tokens.PAD:
                     continue
                 word2idx, idx2word, embeddings = self.augment_embeddings(
@@ -241,6 +258,7 @@ class EmbeddingsLoader(object):
                 f, total=num_lines, desc="Loading word embeddings...", leave=False
             ):
                 # skip the first row if it is a header
+
                 if len(line.split()) < self.dim_:
                     continue
 
@@ -264,6 +282,7 @@ class EmbeddingsLoader(object):
 
         # write the data to a cache file
         self._dump_cache((word2idx, idx2word, embeddings_out))
+
         return word2idx, idx2word, embeddings_out
 
 
@@ -385,6 +404,7 @@ class WordCorpus(object):
             logger.info("Filtering corpus vocabulary.")
 
             updated_vocab = {}
+
             for k, v in self.vocab_.items():
                 if k in self.word2idx_:
                     updated_vocab[k] = v
@@ -402,9 +422,11 @@ class WordCorpus(object):
         Returns:
             int: vocabulary size
         """
-        return (
+        sz: int = (
             cls.embeddings.shape[0] if cls.embeddings is not None else len(cls.vocab_)
         )
+
+        return sz
 
     @property
     def frequencies(cls) -> Dict[str, int]:
@@ -413,6 +435,7 @@ class WordCorpus(object):
         Returns:
             Dict[str, int]: word occurence counts
         """
+
         return cls.vocab_
 
     @property
@@ -422,6 +445,7 @@ class WordCorpus(object):
         Returns:
             Set[str]: set of words in vocabulary
         """
+
         return set(cls.vocab_.keys())
 
     @property
@@ -431,6 +455,7 @@ class WordCorpus(object):
         Returns:
             np.ndarray: Array of pretrained word embeddings
         """
+
         return cast(np.ndarray, cls.embeddings_)
 
     @property
@@ -440,6 +465,7 @@ class WordCorpus(object):
         Returns:
             Dict[str, int]: word2idx mapping
         """
+
         return cast(Dict[str, int], cls.word2idx_)
 
     @property
@@ -449,6 +475,7 @@ class WordCorpus(object):
         Returns:
             Dict[str, int]: idx2word mapping
         """
+
         return cast(Dict[int, str], cls.idx2word_)
 
     @property
@@ -458,6 +485,7 @@ class WordCorpus(object):
         Returns:
             List[List[str]]: Tokenized corpus
         """
+
         return cls.tokenized_corpus_
 
     @property
@@ -467,6 +495,7 @@ class WordCorpus(object):
         Returns:
             List[List[int]]: Token indices for corpus
         """
+
         return cls.corpus_indices_
 
     @property
@@ -476,6 +505,7 @@ class WordCorpus(object):
         Returns:
             List[str]: Raw Corpus
         """
+
         return cls.corpus_
 
     def __len__(self) -> int:
@@ -484,6 +514,7 @@ class WordCorpus(object):
         Returns:
             int: Corpus length
         """
+
         return len(self.corpus_indices_)
 
     def __getitem__(self, idx) -> List[int]:
@@ -501,6 +532,7 @@ class WordCorpus(object):
             if self.max_len <= 0
             else self.corpus_indices_[idx][: self.max_len]
         )
+
         return out
 
 
@@ -569,6 +601,7 @@ class HfCorpus(object):
             int: Vocabulary size
         """
         sz: int = cls.tokenizer.vocab_size
+
         return sz
 
     @property
@@ -578,6 +611,7 @@ class HfCorpus(object):
         Returns:
             Dict[str, int]: wordpieces occurence counts
         """
+
         return cls.vocab_
 
     @property
@@ -587,21 +621,25 @@ class HfCorpus(object):
         Returns:
             Set[str]: set of words in vocabulary
         """
+
         return set(cls.vocab_.keys())
 
     @property
     def embeddings(cls) -> None:
         """Unused. Defined for compatibility"""
+
         return None
 
     @property
     def word2idx(cls) -> None:
         """Unused. Defined for compatibility"""
+
         return None
 
     @property
     def idx2word(cls) -> None:
         """Unused. Defined for compatibility"""
+
         return None
 
     @property
@@ -611,6 +649,7 @@ class HfCorpus(object):
         Returns:
             List[List[str]]: tokenized corpus
         """
+
         return cls.tokenized_corpus_
 
     @property
@@ -620,6 +659,7 @@ class HfCorpus(object):
         Returns:
             List[List[int]]: Token indices for corpus
         """
+
         return cls.corpus_indices_
 
     @property
@@ -629,6 +669,7 @@ class HfCorpus(object):
         Returns:
             List[str]: Raw Corpus
         """
+
         return cls.corpus_
 
     def __len__(self) -> int:
@@ -637,6 +678,7 @@ class HfCorpus(object):
         Returns:
             int: Corpus length
         """
+
         return len(self.corpus_indices_)
 
     def __getitem__(self, idx):
@@ -648,6 +690,7 @@ class HfCorpus(object):
         Returns:
             List[int]: List of token indices for sentence
         """
+
         return (
             self.corpus_indices_[idx]
             if self.max_len <= 0
@@ -696,6 +739,7 @@ class TokenizedCorpus(object):
             self.word2idx_,
             specials=SPECIAL_TOKENS,  # type: ignore
         )
+
         if isinstance(self.tokenized_corpus_[0], list):
             self.corpus_indices_ = [
                 self.to_token_ids(s)
@@ -715,6 +759,7 @@ class TokenizedCorpus(object):
         Returns:
             int: Vocabulary size
         """
+
         return len(cls.vocab_)
 
     @property
@@ -724,6 +769,7 @@ class TokenizedCorpus(object):
         Returns:
             Dict[str, int]: wordpieces occurence counts
         """
+
         return cls.vocab_
 
     @property
@@ -733,11 +779,13 @@ class TokenizedCorpus(object):
         Returns:
             Set[str]: set of words in vocabulary
         """
+
         return set(cls.vocab_.keys())
 
     @property
     def embeddings(cls) -> None:
         """Unused. Kept for compatibility"""
+
         return None
 
     @property
@@ -747,6 +795,7 @@ class TokenizedCorpus(object):
         Returns:
             Dict[str, int]: word2idx mapping
         """
+
         return cls.word2idx_
 
     @property
@@ -756,6 +805,7 @@ class TokenizedCorpus(object):
         Returns:
             Dict[str, int]: idx2word mapping
         """
+
         return cls.idx2word_
 
     @property
@@ -765,6 +815,7 @@ class TokenizedCorpus(object):
         Returns:
             List[List[str]]: Tokenized corpus
         """
+
         return cls.tokenized_corpus_
 
     @property
@@ -774,6 +825,7 @@ class TokenizedCorpus(object):
         Returns:
             List[List[int]]: Token indices for corpus
         """
+
         return cls.corpus_indices_
 
     @property
@@ -783,6 +835,7 @@ class TokenizedCorpus(object):
         Returns:
             List[str]: Raw Corpus
         """
+
         return cls.corpus_
 
     def __len__(self) -> int:
@@ -791,6 +844,7 @@ class TokenizedCorpus(object):
         Returns:
             int: Corpus length
         """
+
         return len(self.corpus_indices_)
 
     def __getitem__(self, idx) -> List[int]:
@@ -807,6 +861,7 @@ class TokenizedCorpus(object):
             if self.max_len <= 0
             else self.corpus_indices_[idx][: self.max_len]
         )
+
         return out
 
 
