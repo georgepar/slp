@@ -81,6 +81,7 @@ class RNN(nn.Module):
             if cls.bidirectional and cls.merge_bi == "cat"
             else cls.hidden_size
         )
+
         return out
 
     def _merge_bi(self, forward: torch.Tensor, backward: torch.Tensor) -> torch.Tensor:
@@ -93,6 +94,7 @@ class RNN(nn.Module):
         Returns:
             torch.Tensor: [B, L, H] or [B, L, 2*H] Merged forward and backward states
         """
+
         if self.merge_bi == "sum":
             return forward + backward
 
@@ -141,6 +143,7 @@ class RNN(nn.Module):
                 merged last forward and backward state [B, H] or [B, 2*H]
             )
         """
+
         if not self.bidirectional:
             return out, self._select_last_unpadded(out, lengths)
 
@@ -242,15 +245,16 @@ class WordRNN(nn.Module):
         else:
             vocab_size = embeddings.shape[0]
             embeddings_dim = embeddings.shape[1]
+
         self.embed = Embed(
-            vocab_size,
-            embeddings_dim,
+            vocab_size,  # type: ignore
+            embeddings_dim,  # type: ignore
             embeddings=embeddings,
             dropout=embeddings_dropout,
             trainable=finetune_embeddings,
         )
         self.rnn = RNN(
-            embeddings_dim,
+            embeddings_dim,  # type: ignore
             hidden_size,
             batch_first=batch_first,
             layers=layers,
