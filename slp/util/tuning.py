@@ -145,11 +145,10 @@ def run_tuning(
         scheduler=tune.schedulers.ASHAScheduler(metric=metric, mode=mode),
         name=f"{cfg['trainer']['experiment_name']}-tuning",
     )
-
     best_config = analysis.get_best_config(metric, mode)
     best_result = analysis.get_best_trial(metric=metric, mode=mode).last_result
-    logger.info("Best hyperparameters found were: ", best_config)
-    logger.info("Best score: ", best_result)
+    logger.info(f"Best hyperparameters found were: {best_config}")
+    logger.info(f"Best score: {best_result[metric]}")
 
     best_config["tune"]["result"] = best_result
 
