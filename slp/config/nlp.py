@@ -12,6 +12,8 @@ class SPECIAL_TOKENS(Enum):
         * [BOS]: 3
         * [EOS]: 4
         * [CLS]: 5
+        * [SEP]: 6
+        * [PAUSE]: 7
     """
 
     PAD = "[PAD]"
@@ -21,6 +23,7 @@ class SPECIAL_TOKENS(Enum):
     EOS = "[EOS]"
     CLS = "[CLS]"
     SEP = "[SEP]"
+    PAUSE = "[PAUSE]"
 
     @classmethod
     def has_token(cls, token):

@@ -56,6 +56,7 @@ pytorch-lightning-bolts = "^0.3.0"
 gym = "^0.18.0"
 matplotlib = "^3.3.4"
 optuna = "^2.6.0"
+h5py = "^3.2.1"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
