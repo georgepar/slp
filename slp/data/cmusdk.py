@@ -503,6 +503,3 @@ if __name__ == "__main__":
         already_aligned=False,
         align_features=True,
     )
-    import ipdb
-
-    ipdb.set_trace()
