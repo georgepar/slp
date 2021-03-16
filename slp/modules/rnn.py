@@ -302,7 +302,7 @@ class AttentiveRNN(nn.Module):
                     lengths, max_length=out.size(1) if self.batch_first else out.size(0)
                 ),
             )
-            out = out.sum(1)
+            out = out.mean(dim=1)
         else:
             out = last_hidden
 

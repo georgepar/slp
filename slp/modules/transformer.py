@@ -14,8 +14,8 @@ def reset_parameters(named_parameters):
 
     for name, p in named_parameters:
         if p.dim() > 1:
-            if "weight" in name:
-                nn.init.xavier_uniform_(p)
+            # if "weight" in name:
+            nn.init.xavier_uniform_(p)
 
             # if "bias" in name:
             #    nn.init.constant_(p, 0.0)
@@ -425,7 +425,7 @@ class TransformerSequenceEncoder(nn.Module):
 
     def forward(self, x, attention_mask=None):
         x = self.pe(x)
-        out = self.transformer_block(x, attention_mask=attention_mask).sum(1)
+        out = self.transformer_block(x, attention_mask=attention_mask).mean(dim=1)
 
         return out
 

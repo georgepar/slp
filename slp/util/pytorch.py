@@ -339,7 +339,7 @@ def moore_penrose_pinv(x, num_iter=6):
     abs_x = torch.abs(x)
     col = abs_x.sum(dim=-1)
     row = abs_x.sum(dim=-2)
-    z = x.transpose(-1, -2)
+    z = x.transpose(-1, -2).contiguous()
     z = z / (torch.max(col) * torch.max(row))
 
     I = torch.eye(x.shape[-1], device=x.device).unsqueeze(0)
