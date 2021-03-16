@@ -1,9 +1,12 @@
 from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import numpy as np
+import torch
 from toolz import compose_left, pipe
 from torch.utils.data import Dataset
 from tqdm import tqdm
+
+from slp.data.transforms import ToTensor
 
 
 class MMDataset(Dataset):
@@ -68,6 +71,7 @@ class MOSI(MMDataset):
         self,
         data: List[Dict[str, Any]],
         modalities: Union[List[str], Set[str]] = {"text", "audio", "visual"},
+        text_is_tokens: bool = False,
         binary: bool = False,
     ):
         super(MOSI, self).__init__(data, modalities)
@@ -80,12 +84,19 @@ class MOSI(MMDataset):
         if binary:
             self.map(binarize, "label", lazy=True)
 
+        for m in self.modalities:
+            if m == "text" and text_is_tokens:
+                self.map(ToTensor(dtype=torch.long), m, lazy=True)
+            else:
+                self.map(ToTensor(dtype=torch.float), m, lazy=True)
+
 
 class MOSEI(MMDataset):
     def __init__(
         self,
         data: List[Dict[str, Any]],
         modalities: Union[List[str], Set[str]] = {"text", "audio", "visual"},
+        text_is_tokens: bool = False,
         label_selector: Optional[Callable] = None,
     ):
         super(MOSEI, self).__init__(data, modalities)
@@ -97,3 +108,9 @@ class MOSEI(MMDataset):
             label_selector = default_label_selector
 
         self.map(label_selector, "label", lazy=True)
+
+        for m in self.modalities:
+            if m == "text" and text_is_tokens:
+                self.map(ToTensor(dtype=torch.long), m, lazy=True)
+            else:
+                self.map(ToTensor(dtype=torch.float), m, lazy=True)
