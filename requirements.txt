@@ -39,6 +39,7 @@ defusedxml==0.7.1; python_version >= "3.6" and python_full_version < "3.0.0" or 
 distlib==0.3.1; python_version >= "3.5" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.5"
 docker-pycreds==0.4.0; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.4.0"
 docstr-coverage==2.0.1
+einops==0.3.0
 entrypoints==0.3; python_version >= "3.6"
 filelock==3.0.12; python_full_version >= "3.6.0" and python_version >= "3.5"
 fsspec==0.8.7; python_version > "3.6"

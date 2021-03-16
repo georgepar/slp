@@ -298,7 +298,7 @@ class WordCorpus(object):
         prepend_bos: bool = False,
         append_eos: bool = False,
         lang: str = "en_core_web_md",
-        max_len: int = -1,
+        max_length: int = -1,
         **kwargs,
     ):
         """Load corpus embeddings, tokenize in words using spacy and convert to ids
@@ -330,11 +330,11 @@ class WordCorpus(object):
             prepend_bos (bool): Prepend Beginning of Sequence token for seq2seq tasks. Defaults to False.
             append_eos (bool): Append End of Sequence token for seq2seq tasks. Defaults to False.
             lang (str): Spacy language, e.g. el_core_web_sm, en_core_web_sm etc. Defaults to "en_core_web_md".
-            max_len (int): Crop sequences above this length. Defaults to -1 where sequences are left unaltered.
+            max_length (int): Crop sequences above this length. Defaults to -1 where sequences are left unaltered.
         """
         # FIXME: Extract super class to avoid repetition
         self.corpus_ = corpus
-        self.max_len = max_len
+        self.max_length = max_length
         self.tokenizer = SpacyTokenizer(
             lower=lower,
             prepend_bos=prepend_bos,
@@ -525,8 +525,8 @@ class WordCorpus(object):
         """
         out: List[int] = (
             self.corpus_indices_[idx]
-            if self.max_len <= 0
-            else self.corpus_indices_[idx][: self.max_len]
+            if self.max_length <= 0
+            else self.corpus_indices_[idx][: self.max_length]
         )
 
         return out
@@ -540,7 +540,7 @@ class HfCorpus(object):
         tokenizer_model: str = "bert-base-uncased",
         add_special_tokens: bool = True,
         special_tokens: Optional[SPECIAL_TOKENS] = SPECIAL_TOKENS,  # type: ignore
-        max_len: int = -1,
+        max_length: int = -1,
         **kwargs,
     ):
         """Process a corpus using hugging face tokenizers
@@ -554,10 +554,10 @@ class HfCorpus(object):
             add_special_tokens (bool): Add special tokens in sentence during tokenization. Defaults to True.
             special_tokens (Optional[SPECIAL_TOKENS]): Special tokens to include in the vocabulary.
                  Defaults to slp.config.nlp.SPECIAL_TOKENS.
-            max_len (int): Crop sequences above this length. Defaults to -1 where sequences are left unaltered.
+            max_length (int): Crop sequences above this length. Defaults to -1 where sequences are left unaltered.
         """
         self.corpus_ = corpus
-        self.max_len = max_len
+        self.max_length = max_length
 
         logger.info(
             f"Tokenizing corpus using hugging face tokenizer from {tokenizer_model}"
@@ -688,8 +688,8 @@ class HfCorpus(object):
         """
         out: List[int] = (
             self.corpus_indices_[idx]
-            if self.max_len <= 0
-            else self.corpus_indices_[idx][: self.max_len]
+            if self.max_length <= 0
+            else self.corpus_indices_[idx][: self.max_length]
         )
 
         return out
@@ -701,7 +701,7 @@ class TokenizedCorpus(object):
         corpus: Union[List[str], List[List[str]]],
         word2idx: Dict[str, int] = None,
         special_tokens: Optional[SPECIAL_TOKENS] = SPECIAL_TOKENS,  # type: ignore
-        max_len: int = -1,
+        max_length: int = -1,
         **kwargs,
     ):
         """Wrap a corpus that's already tokenized
@@ -713,7 +713,7 @@ class TokenizedCorpus(object):
         """
         self.corpus_ = corpus
         self.tokenized_corpus_ = corpus
-        self.max_len = max_len
+        self.max_length = max_length
 
         self.vocab_ = create_vocab(
             self.tokenized_corpus_,
@@ -855,8 +855,8 @@ class TokenizedCorpus(object):
         """
         out: List[int] = (
             self.corpus_indices_[idx]
-            if self.max_len <= 0
-            else self.corpus_indices_[idx][: self.max_len]
+            if self.max_length <= 0
+            else self.corpus_indices_[idx][: self.max_length]
         )
 
         return out

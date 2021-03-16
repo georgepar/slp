@@ -1,14 +1,12 @@
 from typing import List, Tuple
 
 import torch
-from torch.nn.utils.rnn import pad_sequence
-
-from slp.util.pytorch import mktensor
+from slp.util.pytorch import mktensor, pad_sequence
 from slp.util.types import Label
 
 
 class SequenceClassificationCollator(object):
-    def __init__(self, pad_indx=0, device="cpu"):
+    def __init__(self, pad_indx=0, max_length=-1, device="cpu"):
         """Collate function for sequence classification tasks
 
         * Perform padding
@@ -16,6 +14,7 @@ class SequenceClassificationCollator(object):
 
         Args:
             pad_indx (int): Pad token index. Defaults to 0.
+            max_length (int): Pad sequences to a fixed maximum length
             device (str): device of returned tensors. Leave this as "cpu".
                 The LightningModule will handle the Conversion.
 
@@ -24,6 +23,7 @@ class SequenceClassificationCollator(object):
         """
         self.pad_indx = pad_indx
         self.device = device
+        self.max_length = max_length
 
     def __call__(
         self, batch: List[Tuple[torch.Tensor, Label]]
@@ -41,16 +41,24 @@ class SequenceClassificationCollator(object):
         targets: List[Label] = [b[1] for b in batch]
         #  targets: List[torch.tensor] = map(list, zip(*batch))
         lengths = torch.tensor([s.size(0) for s in inputs], device=self.device)
+
+        if self.max_length > 0:
+            lengths = torch.clamp(lengths, min=0, max=self.max_length)
         # Pad and convert to tensor
         inputs_padded: torch.Tensor = pad_sequence(
-            inputs, batch_first=True, padding_value=self.pad_indx
+            inputs,
+            batch_first=True,
+            padding_value=self.pad_indx,
+            max_length=self.max_length,
         ).to(self.device)
+
         ttargets: torch.Tensor = mktensor(targets, device=self.device, dtype=torch.long)
+
         return inputs_padded, ttargets.to(self.device), lengths
 
 
 class Seq2SeqCollator(object):
-    def __init__(self, pad_indx=0, device="cpu"):
+    def __init__(self, pad_indx=0, max_length=-1, device="cpu"):
         """Collate function for seq2seq tasks
 
         * Perform padding
@@ -58,6 +66,7 @@ class Seq2SeqCollator(object):
 
         Args:
             pad_indx (int): Pad token index. Defaults to 0.
+            max_length (int): Pad sequences to a fixed maximum length
             device (str): device of returned tensors. Leave this as "cpu".
                 The LightningModule will handle the Conversion.
 
@@ -65,6 +74,7 @@ class Seq2SeqCollator(object):
             >>> dataloader = torch.utils.DataLoader(my_dataset, collate_fn=Seq2SeqClassificationCollator())
         """
         self.pad_indx = pad_indx
+        self.max_length = max_length
         self.device = device
 
     def __call__(
@@ -86,12 +96,22 @@ class Seq2SeqCollator(object):
         lengths_inputs = torch.tensor([s.size(0) for s in inputs], device=self.device)
         lengths_targets = torch.tensor([s.size(0) for s in targets], device=self.device)
 
+        if self.max_length > 0:
+            lengths_inputs = torch.clamp(lengths_inputs, min=0, max=self.max_length)
+            lengths_targets = torch.clamp(lengths_targets, min=0, max=self.max_length)
+
         inputs_padded: torch.Tensor = pad_sequence(
-            inputs, batch_first=True, padding_value=self.pad_indx
+            inputs,
+            batch_first=True,
+            padding_value=self.pad_indx,
+            max_length=self.max_length,
         ).to(self.device)
 
         targets_padded: torch.Tensor = pad_sequence(
-            targets, batch_first=True, padding_value=self.pad_indx
+            targets,
+            batch_first=True,
+            padding_value=self.pad_indx,
+            max_length=self.max_length,
         ).to(self.device)
 
         return inputs_padded, targets_padded, lengths_inputs, lengths_targets

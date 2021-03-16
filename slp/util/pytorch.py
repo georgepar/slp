@@ -4,13 +4,12 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 import torch
 import torch.nn as nn
 from loguru import logger
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-
 from slp.util import system, types
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class PadPackedSequence(nn.Module):
-    def __init__(self, batch_first: bool = True):
+    def __init__(self, batch_first: bool = True, max_length: int = -1):
         """Wrap sequence padding in nn.Module
 
         Args:
@@ -18,6 +17,7 @@ class PadPackedSequence(nn.Module):
         """
         super(PadPackedSequence, self).__init__()
         self.batch_first = batch_first
+        self.max_length = max_length if max_length > 0 else None
 
     def forward(
         self, x: torch.nn.utils.rnn.PackedSequence, lengths: torch.Tensor
@@ -31,10 +31,10 @@ class PadPackedSequence(nn.Module):
         Returns:
             torch.Tensor: Padded sequence
         """
-        max_length = lengths.max().item()
         out, _ = pad_packed_sequence(
-            x, batch_first=self.batch_first, total_length=max_length  # type: ignore
+            x, batch_first=self.batch_first, total_length=self.max_length  # type: ignore
         )
+
         return out  # type: ignore
 
 
@@ -64,6 +64,7 @@ class PackSequence(nn.Module):
             x, lengths, batch_first=self.batch_first, enforce_sorted=False
         )
         lengths = lengths[out.sorted_indices]
+
         return out, lengths
 
 
@@ -77,6 +78,7 @@ def repeat_layer(l: nn.Module, times: int) -> List[nn.Module]:
     Returns:
         List[nn.Module]: List of identical clones of input layer
     """
+
     return [l] + [copy.deepcopy(l) for _ in range(times - 1)]
 
 
@@ -92,11 +94,13 @@ def pad_mask(
     Returns:
         torch.Tensor: padding mask
     """
-    if max_length is None:
+
+    if max_length is None or max_length < 0:
         max_length = cast(int, torch.max(lengths).item())
     max_length = cast(int, max_length)
     idx = torch.arange(0, max_length, device=lengths.device).unsqueeze(0)
     mask: torch.Tensor = (idx < lengths.unsqueeze(1)).float()
+
     return mask
 
 
@@ -111,6 +115,7 @@ def subsequent_mask(max_length: int) -> torch.Tensor:
     """
     mask = torch.ones(max_length, max_length)
     # Ignore typecheck because pytorch types are incomplete
+
     return mask.triu().t().unsqueeze(0).contiguous()  # type: ignore
 
 
@@ -132,6 +137,7 @@ def sort_sequences(
 
     def unsort(tt: torch.Tensor) -> torch.Tensor:
         """Restore original unsorted sequence"""
+
         return tt[unsorted_idx]
 
     return inputs[sorted_idx], lengths_sorted, unsort
@@ -150,6 +156,7 @@ def to_device(
     Returns:
         torch.Tensor: Tensor in the desired device
     """
+
     return tt.to(device, non_blocking=non_blocking)
 
 
@@ -177,10 +184,12 @@ def t_(
             requires_grad containing data
 
     """
+
     if isinstance(device, str):
         device = torch.device(device)
 
     tt = torch.as_tensor(data, dtype=dtype, device=device).requires_grad_(requires_grad)
+
     return tt
 
 
@@ -209,6 +218,7 @@ def t(
 
     """
     tt = torch.tensor(data, dtype=dtype, device=device, requires_grad=requires_grad)
+
     return tt
 
 
@@ -240,6 +250,7 @@ def mktensor(
 
     """
     tensor_factory = t if copy_tensor else t_
+
     return tensor_factory(data, dtype=dtype, device=device, requires_grad=requires_grad)
 
 
@@ -260,6 +271,7 @@ def from_checkpoint(
     Returns:
         types.ModuleOrOptimizer: Loaded module or optimizer
     """
+
     if checkpoint_file is None:
         return obj
 
@@ -268,12 +280,15 @@ def from_checkpoint(
             f"The checkpoint {checkpoint_file} you are trying to load "
             "does not exist. Continuing without loading..."
         )
+
         return obj
 
     state_dict = torch.load(checkpoint_file, map_location=map_location)
+
     if dataparallel:
         state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
     obj.load_state_dict(state_dict)
+
     return obj
 
 
@@ -287,6 +302,7 @@ def rotate_tensor(l: torch.Tensor, n: int = 1) -> torch.Tensor:
     Returns:
         torch.Tensor: rotated tensor
     """
+
     return torch.cat((l[n:], l[:n]))
 
 
@@ -302,4 +318,108 @@ def shift_tensor(l: torch.Tensor, n: int = 1) -> torch.Tensor:
     """
     out = rotate_tensor(l, n=n)
     out[-n:] = 0
+
     return out
+
+
+def moore_penrose_pinv(x, num_iter=6):
+    """Calculate approximate Moore-Penrose pseudoinverse, via iterative method
+
+    * Method is described in (Razavi et al 2014) https://www.hindawi.com/journals/aaa/2014/563787/
+    * Implementation modified from lucidrains https://github.com/lucidrains/nystrom-attention/blob/main/nystrom_attention/nystrom_attention.py#L13
+
+    Args:
+        mat (torch.Tensor): (*, M, M) The square tensors to inverse.
+            Dimension * can be any number of additional dimensions, e.g. (batch_size, num_heads, M, M)
+    Returns:
+        (torch.Tensor): (B, H, N, N) The approximate Moore-Penrose pseudoinverse of mat
+    """
+    abs_x = torch.abs(x)
+    col = abs_x.sum(dim=-1)
+    row = abs_x.sum(dim=-2)
+    z = x.transpose(-1, -2).contiguous()
+    z = z / (torch.max(col) * torch.max(row))
+
+    I = torch.eye(x.shape[-1], device=x.device).unsqueeze(0)
+
+    for _ in range(num_iter):
+        xz = x @ z
+        z = 0.25 * z @ (13 * I - (xz @ (15 * I - (xz @ (7 * I - xz)))))
+
+    return z
+
+
+def pad_sequence(
+    sequences: List[torch.Tensor],
+    batch_first: bool = False,
+    padding_value: Union[float, int] = 0.0,
+    max_length: int = -1,
+):
+    r"""Pad a list of variable length Tensors with ``padding_value``
+
+    ``pad_sequence`` stacks a list of Tensors along a new dimension,
+    and pads them to equal length. For example, if the input is list of
+    sequences with size ``L x *`` and if batch_first is False, and ``T x B x *``
+    otherwise.
+
+    `B` is batch size. It is equal to the number of elements in ``sequences``.
+    `T` is length of the longest sequence.
+    `L` is length of the sequence.
+    `*` is any number of trailing dimensions, including none.
+
+    Example:
+        >>> from torch.nn.utils.rnn import pad_sequence
+        >>> a = torch.ones(25, 300)
+        >>> b = torch.ones(22, 300)
+        >>> c = torch.ones(15, 300)
+        >>> pad_sequence([a, b, c]).size()
+        torch.Size([25, 3, 300])
+
+    Note:
+        This function returns a Tensor of size ``T x B x *`` or ``B x T x *``
+        where `T` is the length of the longest sequence. This function assumes
+        trailing dimensions and type of all the Tensors in sequences are same.
+
+        Note:
+        This implementation is modified from torch.nn.utils.rnn.pad_sequence, to accept a
+        max_length argument for fixed length padding
+
+    Args:
+        sequences (list[Tensor]): list of variable length sequences.
+        batch_first (bool, optional): output will be in ``B x T x *`` if True, or in
+            ``T x B x *`` otherwise
+        padding_value (float, optional): value for padded elements. Default: 0.
+        max_length (int): If max length is > 0 then this function will pad to a fixed maximum
+            length. If any sequence is longer than max_length, it will be trimmed.
+    Returns:
+        Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.
+        Tensor of size ``B x T x *`` otherwise
+    """
+
+    # assuming trailing dimensions and type of all the Tensors
+    # in sequences are same and fetching those from sequences[0]
+    max_size = sequences[0].size()
+    trailing_dims = max_size[1:]
+    if max_length < 0:
+        max_len = max([s.size(0) for s in sequences])
+    else:
+        max_len = max_length
+    if batch_first:
+        out_dims = (len(sequences), max_len) + trailing_dims
+    else:
+        out_dims = (max_len, len(sequences)) + trailing_dims
+
+    out_tensor = sequences[0].new_full(out_dims, padding_value)
+    for i, tensor in enumerate(sequences):
+        length = tensor.size(0)
+        # use index notation to prevent duplicate references to the tensor
+        if batch_first:
+            out_tensor[i, : min(length, max_len), ...] = tensor[
+                : min(length, max_len), ...
+            ]
+        else:
+            out_tensor[: min(length, max_len), i, ...] = tensor[
+                : min(length, max_len), ...
+            ]
+
+    return out_tensor
