@@ -5,17 +5,19 @@ import mmsdk
 import numpy as np
 from loguru import logger
 from mmsdk import mmdatasdk as md
+from tqdm import tqdm
+
 from slp.config.multimodal import (
     MOSEI_COVAREP_FACET_GLOVE,
     MOSI_COVAREP_FACET_GLOVE,
     MOSI_COVAREP_FACET_RAW,
     MOSI_COVAREP_OPENFACE_GLOVE,
+    MOSI_OPENSMILE_OPENFACE_GLOVE,
     POM_COVAREP_FACET_GLOVE,
     POM_COVAREP_FACET_RAW,
 )
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.util.system import pickle_dump, pickle_load, safe_mkdirs
-from tqdm import tqdm
 
 
 def download_mmdata(base_path, dataset):
@@ -181,7 +183,7 @@ def load_dataset(
     recipe = {
         f: os.path.join(base_path, "{}.csd".format(f))
         for k, f in feature_cfg.items()
-        if k in modalities + ["raw"]
+        if k in list(modalities) + ["raw"]
     }
     data = md.mmdataset(recipe)
 
@@ -518,9 +520,9 @@ if __name__ == "__main__":
     import sys
 
     base_path = sys.argv[1]
-    train, dev, test, w2i = pom(
+    train, dev, test, w2i = mosi(
         base_path,
-        feature_cfg=POM_COVAREP_FACET_RAW,
+        feature_cfg=MOSI_OPENSMILE_OPENFACE_GLOVE,
         modalities=["audio", "text", "visual"],
         remove_pauses=True,
         pad_front=False,
