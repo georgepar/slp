@@ -7,10 +7,9 @@ from loguru import logger
 
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.plbind import (
-    PLDataModuleFromDatasets,
-)  # or PLDataModuleFromCorpus see slp/plbind/dm.py
-from slp.plbind import PLModule  # or any other PLModule. See slp/plbind/module.py
-from slp.plbind import FromLogits, make_trainer, watch_model
+    PLModule,
+)  # or PLDataModuleFromCorpus see slp/plbind/dm.py; or any other PLModule. See slp/plbind/module.py
+from slp.plbind import FromLogits, PLDataModuleFromDatasets, make_trainer, watch_model
 from slp.util.log import configure_logging
 
 
