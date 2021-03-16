@@ -37,6 +37,8 @@ class TransformerLM(nn.Module):
             num_heads=num_heads,
             inner_size=inner_size,
             dropout=dropout,
+            nystrom=False,  # Cannot be used for autoregressive masks right now
+            kernel_size=None,  # Cannot be used for autoregressive tasks right now
         )
         self.hidden_size = hidden_size
         self.encoder = nn.Embedding(vocab_size, hidden_size)
@@ -102,6 +104,8 @@ if __name__ == "__main__":
         tokenizer="tokenized",
         collate_fn=collate_fn,
     )
+
+    ldm.setup()
 
     model = TransformerLM(
         vocab_size=ldm.vocab_size,
