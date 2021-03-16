@@ -103,6 +103,22 @@ def select_dataset(dataset_name):
     return dataset
 
 
+def patch_missing_metadata(data):
+    # Remove need for annoying input that stops execution
+    for k in data.computational_sequences.keys():
+        data.computational_sequences[k].metadata[
+            "dimension names"
+        ] = data.computational_sequences[k].metadata.get("dimension names", None)
+        data.computational_sequences[k].metadata[
+            "computational sequence version"
+        ] = data.computational_sequences[k].metadata.get(
+            "computational sequence version", None
+        )
+        data.computational_sequences[k].metadata[
+            "dimension namescomputational sequence version"
+        ] = None
+
+
 def load_and_align(
     base_path,
     dataset="mosi",
@@ -115,9 +131,11 @@ def load_and_align(
     recipe = {
         f: os.path.join(base_path, "{}.csd".format(f))
         for k, f in feature_cfg.items()
-        if k in modalities + ["raw"]
+        if k in list(modalities) + ["raw"]
     }
     data = md.mmdataset(recipe)
+
+    patch_missing_metadata(data)
 
     if collapse is None:
         collapse = [avg_collapse]
@@ -140,6 +158,8 @@ def load_and_align(
         )
     }
     data.add_computational_sequences(label_recipe, destination=None)
+    patch_missing_metadata(data)
+
     data.align(feature_cfg["labels"])
     data.hard_unify()
     align_path = base_path + "_final_aligned"
@@ -165,6 +185,8 @@ def load_dataset(
     }
     data = md.mmdataset(recipe)
 
+    patch_missing_metadata(data)
+
     all_words = get_vocabulary(data[feature_cfg["raw"]])
 
     word2idx = create_word2idx(all_words)
@@ -175,6 +197,8 @@ def load_dataset(
         )
     }
     data.add_computational_sequences(label_recipe, destination=None)
+
+    patch_missing_metadata(data)
 
     if not already_segmented:
         data.align(feature_cfg["labels"])
@@ -272,10 +296,10 @@ def clean_split_dataset(
     if max_length < 0:
         max_length = {
             m: max([len(data[feature_cfg[m]][s]["features"]) for s in segments])
-            for m in modalities + ["raw"]
+            for m in list(modalities) + ["raw"]
         }
     else:
-        max_length = {m: max_length for m in modalities + ["raw"]}
+        max_length = {m: max_length for m in list(modalities) + ["raw"]}
 
     for segment in tqdm(segments):
         # get the video ID and the features out of the aligned dataset
@@ -288,7 +312,8 @@ def clean_split_dataset(
 
         # if segment == 'c5xsKMxpXnc':
         mods = {
-            k: data[feature_cfg[k]][segment]["features"] for k in modalities + ["raw"]
+            k: data[feature_cfg[k]][segment]["features"]
+            for k in list(modalities) + ["raw"]
         }
 
         is_raw_text_feature = isinstance(mods["text"][0][0], bytes)
