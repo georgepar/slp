@@ -13,12 +13,12 @@ class MMDataset(Dataset):
         modalities: Union[List[str], Set[str]] = {"text", "audio", "visual"},
     ):
         self.data = data
-        self.modalities = modalities
+        self.modalities = set(list(modalities) + ["label"])
 
         self.transforms: Dict[str, List[Callable]] = {m: [] for m in self.modalities}
         self.transforms["label"] = []
 
-    def map(self, fn: Callable, modality: str, lazy: bool = True) -> MMDataset:
+    def map(self, fn: Callable, modality: str, lazy: bool = True):
         if modality not in self.modalities:
             return self
         self.transforms[modality].append(fn)
@@ -28,7 +28,7 @@ class MMDataset(Dataset):
 
         return self
 
-    def apply_transforms(self) -> MMDataset:
+    def apply_transforms(self):
         for m in self.modalities:
             if len(self.transforms[m]) == 0:
                 continue
@@ -49,7 +49,7 @@ class MMDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        dat = self.data[idx]
+        dat = {m: self.data[idx][m] for m in self.modalities}
 
         for m in self.modalities:
             if len(self.transforms[m]) == 0:
@@ -75,10 +75,10 @@ class MOSI(MMDataset):
         def label_selector(l):
             return l.item()
 
-        self.transforms["label"].append(label_selector)
+        self.map(label_selector, "label", lazy=True)
 
         if binary:
-            self.transforms["label"].append(binarize)
+            self.map(binarize, "label", lazy=True)
 
 
 class MOSEI(MMDataset):
@@ -96,4 +96,4 @@ class MOSEI(MMDataset):
         if label_selector is None:
             label_selector = default_label_selector
 
-        self.transforms["label"].append(label_selector)
+        self.map(label_selector, "label", lazy=True)
