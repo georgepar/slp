@@ -329,8 +329,9 @@ def moore_penrose_pinv(x, num_iter=6):
     * Implementation modified from lucidrains https://github.com/lucidrains/nystrom-attention/blob/main/nystrom_attention/nystrom_attention.py#L13
 
     Args:
-        mat (torch.Tensor): (*, M, M) The square tensors to inverse.
+        x (torch.Tensor): (*, M, M) The square tensors to inverse.
             Dimension * can be any number of additional dimensions, e.g. (batch_size, num_heads, M, M)
+        num_iter (int): Number of iterations to run for approximation (6 is good enough usually)
     Returns:
         (torch.Tensor): (B, H, N, N) The approximate Moore-Penrose pseudoinverse of mat
     """
