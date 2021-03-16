@@ -7,13 +7,12 @@ import torch
 import torch.nn as nn
 from loguru import logger
 from omegaconf import DictConfig
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
-
 from slp.config.omegaconf import OmegaConf
 from slp.util.pytorch import pad_mask, subsequent_mask
 from slp.util.system import print_separator
 from slp.util.types import Configuration, LossType
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
 
 class _Predictor(ABC):
@@ -91,7 +90,7 @@ class _Classification(_Predictor):
         inputs, targets = self.parse_batch(batch)
         y_pred = model(inputs)
 
-        return y_pred, targets
+        return y_pred.squeeze(), targets.squeeze()
 
 
 class _AutoEncoder(_Predictor):
@@ -166,7 +165,7 @@ class _RnnClassification(_Predictor):
         inputs, targets, lengths = self.parse_batch(batch)
         y_pred = model(inputs, lengths)
 
-        return y_pred, targets
+        return y_pred.squeeze(), targets.squeeze()
 
 
 class _TransformerClassification(_Predictor):
@@ -207,7 +206,51 @@ class _TransformerClassification(_Predictor):
         inputs, targets, attention_mask = self.parse_batch(batch)
         y_pred = model(inputs, attention_mask=attention_mask)
 
-        return y_pred, targets
+        return y_pred.squeeze(), targets.squeeze()
+
+
+class _MultimodalTransformerClassification(_Predictor):
+    """Transformer classification task"""
+
+    def parse_batch(self, batch):
+        """Parse incoming batch
+
+        Input batch just contains inputs, targets and lengths.
+        Comes from slp.data.collators.SequentialCollator.
+        Create pad masks to be passed to transformer attention
+
+        Args:
+            batch (Tuple[Dict[str, torch.Tensor], torch.Tensor, Dict[str, torch.Tensor]]): (inputs, targets, lengths)
+
+        Returns:
+            Tuple[Dict[str, torch.Tensor], torch.Tensor, Dict[str, torch.Tensor]]: (inputs, targets, attention_masks)
+        """
+        inputs = batch[0]
+        targets = batch[1]
+        lengths = batch[2]
+        attention_masks = {
+            m: pad_mask(lengths[m], max_length=inputs[m].size(1))
+            for m in lengths.keys()
+        }
+
+        return inputs, targets, attention_masks
+
+    def get_predictions_and_targets(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return logits and ground truths to be passed in loss function
+
+        Args:
+            model (nn.Module): Model to use for prediction
+            batch (Tuple[Dict[str, torch.Tensor], torch.Tensor, Dict[str, torch.Tensor]]): (inputs, targets, lengths)
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: (logits, targets)
+        """
+        inputs, targets, attention_masks = self.parse_batch(batch)
+        y_pred = model(inputs, attention_masks=attention_masks)
+
+        return y_pred.squeeze(), targets.squeeze()
 
 
 class _Transformer(_Predictor):
@@ -224,7 +267,7 @@ class _Transformer(_Predictor):
             batch (Tuple[torch.Tensor]): (inputs)
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: (inputs, inputs)
+            Tuple[torch.Tensor, torch.Tensor]: (inputs, targets)
         """
         inputs = batch[0]
         targets = batch[1]
@@ -313,7 +356,7 @@ class _BertSequenceClassification(_Predictor):
         y_pred = out[0].view(-1, out[0].size(-1))
         targets = targets.view(-1)
 
-        return y_pred, targets
+        return y_pred.squeeze(), targets.squeeze()
 
 
 class SimplePLModule(pl.LightningModule):
@@ -590,3 +633,6 @@ TransformerClassificationPLModule = _make_specialized_pl_module(
 )
 TransformerPLModule = _make_specialized_pl_module(_Transformer)
 BertPLModule = _make_specialized_pl_module(_BertSequenceClassification)
+MultimodalTransformerClassificationPLModule = _make_specialized_pl_module(
+    _MultimodalTransformerClassification
+)
