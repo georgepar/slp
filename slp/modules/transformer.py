@@ -398,6 +398,7 @@ class TransformerClassifier(nn.Module):
         num_layers=6,
         hidden_size=512,
         num_heads=8,
+        max_length=512,
         inner_size=2048,
         dropout=0.1,
         nystrom=False,
@@ -407,6 +408,7 @@ class TransformerClassifier(nn.Module):
         scalenorm=True,
     ):
         super(TransformerClassifier, self).__init__()
+        self.pe = PositionalEncoding(embedding_dim=hidden_size, max_len=max_length)
         self.transformer_block = Encoder(
             num_layers=num_layers,
             hidden_size=hidden_size,
@@ -424,6 +426,7 @@ class TransformerClassifier(nn.Module):
         reset_parameters(self.named_parameters())
 
     def forward(self, x, attention_mask=None):
+        x = self.pe(x)
         out = self.transformer_block(x, attention_mask=attention_mask)
         out = self.drop(out)
         out = self.predict(out.mean(dim=1))
