@@ -9,8 +9,6 @@ from transformers import AdamW, BertForSequenceClassification
 
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.data.collators import SequenceClassificationCollator
-from slp.modules.classifier import Classifier
-from slp.modules.rnn import WordRNN
 from slp.plbind.dm import PLDataModuleFromCorpus
 from slp.plbind.helpers import FromLogits
 from slp.plbind.module import BertPLModule
@@ -28,6 +26,7 @@ def get_parser():
         action="store_true",
         help="Perform binary classification. If False performs fine-grained 5-class classification",
     )
+
     return parser
 
 
@@ -47,6 +46,7 @@ def get_data(config):
 
         for d, l in zip(data, labels):
             # l positive or very positive
+
             if "positive" in l:
                 new_data.append(d)
                 new_labels.append("positive")
@@ -69,6 +69,7 @@ def get_data(config):
     labels_test = [d["label"] for d in dev]
 
     num_labels = 5
+
     if config.binary:
         raw_train, labels_train = filter_neutrals(raw_train, labels_train)
         raw_dev, labels_dev = filter_neutrals(raw_dev, labels_dev)

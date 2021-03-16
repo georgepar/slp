@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from loguru import logger
+
 from slp.modules.attention import MultiheadSelfAttention, SelfAttention
 from slp.modules.embed import Embed
 from slp.util.pytorch import PackSequence, PadPackedSequence, pad_mask
@@ -197,12 +198,121 @@ class RNN(nn.Module):
         return out, last_timestep, hidden
 
 
-class WordRNN(nn.Module):
-    available_attention_mechanisms = ["nystrom", "single-head", "multi-head"]
-
+class AttentiveRNN(nn.Module):
     def __init__(
         self,
-        hidden_size: int,
+        input_size: int,
+        hidden_size: int = 256,
+        batch_first: bool = True,
+        layers: int = 1,
+        bidirectional: bool = False,
+        merge_bi: str = "cat",
+        dropout: float = 0.1,
+        rnn_type: str = "lstm",
+        packed_sequence: bool = True,
+        attention: bool = False,
+        max_length: int = -1,
+        num_heads: int = 1,
+        nystrom: bool = True,
+        num_landmarks: int = 32,
+        kernel_size: Optional[int] = 33,
+        inverse_iterations: int = 6,
+    ):
+        """RNN with embedding layer and optional attention mechanism
+
+        Single-headed scaled dot-product attention is used as an attention mechanism
+
+        Args:
+            input_size (int): Input features dimension
+            hidden_size (int): Hidden features
+            batch_first (bool): Use batch first representation type. Defaults to True.
+            layers (int): Number of RNN layers. Defaults to 1.
+            bidirectional (bool): Use bidirectional RNNs. Defaults to False.
+            merge_bi (str): How bidirectional states are merged. Defaults to "cat".
+            dropout (float): Dropout probability. Defaults to 0.0.
+            rnn_type (str): lstm or gru. Defaults to "lstm".
+            packed_sequence (bool): Use packed sequences. Defaults to True.
+            max_length (int): Maximum sequence length for fixed length padding. If -1 takes the
+                largest sequence length in this batch
+            attention (bool): Use attention mechanism. Defaults to False
+            num_heads (int): Number of attention heads. If 1 uses single headed attention
+            nystrom (bool): Use nystrom approximation for multihead attention
+            num_landmarks (int): Number of landmark sequence elements for nystrom attention
+            kernel_size (int): Kernel size for multihead attention output residual convolution
+            inverse_iterations (int): Number of iterations for moore-penrose inverse approximation
+                in nystrom attention. 6 is a good value
+        """
+        super(AttentiveRNN, self).__init__()
+        self.rnn = RNN(
+            input_size,  # type: ignore
+            hidden_size,
+            batch_first=batch_first,
+            layers=layers,
+            merge_bi=merge_bi,
+            bidirectional=bidirectional,
+            dropout=dropout,
+            rnn_type=rnn_type,
+            packed_sequence=packed_sequence,
+            max_length=max_length,
+        )
+        self.out_size = (
+            hidden_size
+            if not (bidirectional and merge_bi == "cat")
+            else 2 * hidden_size
+        )
+        self.batch_first = batch_first
+
+        self.attention = None
+
+        if attention:
+            if num_heads == 1:
+                self.attention = SelfAttention(
+                    attention_size=self.out_size, dropout=dropout
+                )
+            else:
+                self.attention = MultiheadSelfAttention(  # type: ignore
+                    attention_size=self.out_size,
+                    num_heads=num_heads,
+                    kernel_size=kernel_size,
+                    nystrom=nystrom,
+                    num_landmarks=num_landmarks,
+                    inverse_iterations=inverse_iterations,
+                    dropout=dropout,
+                )
+
+    def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+        """Attentive RNN forward pass
+
+        If self.attention=True then the outputs are the weighted sum of the RNN hidden states with the attention score weights
+        Else the output is the last hidden state of the RNN.
+
+        Args:
+            x (torch.Tensor): [B, L] Input token ids
+            lengths (torch.Tensor): [B] Original sequence lengths
+
+        Returns:
+            torch.Tensor: [B, H] or [B, 2*H] Output features to be used for classification
+        """
+        out, last_hidden, _ = self.rnn(x, lengths)
+
+        if self.attention is not None:
+            out, _ = self.attention(
+                out,
+                attention_mask=pad_mask(
+                    lengths, max_length=out.size(1) if self.batch_first else out.size(0)
+                ),
+            )
+            out = out.sum(1)
+        else:
+            out = last_hidden
+
+        return out  # type: ignore
+
+
+class TokenRNN(nn.Module):
+    def __init__(
+        self,
+        hidden_size: int = 256,
         vocab_size: Optional[int] = None,
         embeddings_dim: Optional[int] = None,
         embeddings: Optional[np.ndarray] = None,
@@ -215,9 +325,13 @@ class WordRNN(nn.Module):
         dropout: float = 0.1,
         rnn_type: str = "lstm",
         packed_sequence: bool = True,
-        attention: Optional[str] = None,
+        attention: bool = False,
         max_length: int = -1,
-        extra_attention_args: Optional[Dict[str, Any]] = None,
+        num_heads: int = 1,
+        nystrom: bool = True,
+        num_landmarks: int = 32,
+        kernel_size: Optional[int] = 33,
+        inverse_iterations: int = 6,
     ):
         """RNN with embedding layer and optional attention mechanism
 
@@ -237,19 +351,17 @@ class WordRNN(nn.Module):
             dropout (float): Dropout probability. Defaults to 0.0.
             rnn_type (str): lstm or gru. Defaults to "lstm".
             packed_sequence (bool): Use packed sequences. Defaults to True.
-            attention (Optional[str]): Select attention mechanism to use on RNN outputs. Defaults to None
-                Available choices:
-                    * nystrom: Nystrom approximation of scaled-dot-product multihead attention
-                    * single-head: Single headed scaled dot product attention
-                    * multi-head: Multi headed scaled dot product attention
-
+            max_length (int): Maximum sequence length for fixed length padding. If -1 takes the
+                largest sequence length in this batch
+            attention (bool): Use attention mechanism. Defaults to False
+            num_heads (int): Number of attention heads. If 1 uses single headed attention
+            nystrom (bool): Use nystrom approximation for multihead attention
+            num_landmarks (int): Number of landmark sequence elements for nystrom attention
+            kernel_size (int): Kernel size for multihead attention output residual convolution
+            inverse_iterations (int): Number of iterations for moore-penrose inverse approximation
+                in nystrom attention. 6 is a good value
         """
-        super(WordRNN, self).__init__()
-
-        if attention:
-            assert (
-                attention in self.available_attention_mechanisms
-            ), f"attention should be one of {self.available_attention_mechanisms} or None"
+        super(TokenRNN, self).__init__()
 
         if embeddings is None:
             finetune_embeddings = True
@@ -271,64 +383,29 @@ class WordRNN(nn.Module):
             scale=hidden_size ** 0.5,
             trainable=finetune_embeddings,
         )
-        self.rnn = RNN(
+        self.encoder = AttentiveRNN(
             embeddings_dim,  # type: ignore
             hidden_size,
             batch_first=batch_first,
             layers=layers,
-            merge_bi=merge_bi,
             bidirectional=bidirectional,
+            merge_bi=merge_bi,
             dropout=dropout,
             rnn_type=rnn_type,
             packed_sequence=packed_sequence,
+            attention=attention,
             max_length=max_length,
+            num_heads=num_heads,
+            nystrom=nystrom,
+            num_landmarks=num_landmarks,
+            kernel_size=kernel_size,
+            inverse_iterations=inverse_iterations,
         )
-        self.out_size = (
-            hidden_size
-            if not (bidirectional and merge_bi == "cat")
-            else 2 * hidden_size
-        )
-        self.batch_first = batch_first
 
-        self.attention = None
-
-        if attention == "single-head":
-            self.attention = SelfAttention(
-                attention_size=self.out_size, dropout=dropout
-            )
-        elif attention == "multi-head":
-            if extra_attention_args is None:
-                extra_attention_args = {
-                    "num_heads": 2,
-                    "kernel_size": None,
-                }
-
-            self.attention = MultiheadSelfAttention(  # type: ignore
-                attention_size=self.out_size,
-                num_heads=extra_attention_args.get("num_heads", 2),
-                kernel_size=extra_attention_args.get("kernel_size", None),
-                dropout=dropout,
-            )
-        elif attention == "nystrom":
-            if extra_attention_args is None:
-                extra_attention_args = {
-                    "num_heads": 2,
-                    "num_landmarks": 32,
-                    "inverse_iterations": 6,
-                    "kernel_size": 33,
-                }
-            self.attention = MultiheadSelfAttention(  # type: ignore
-                attention_size=self.out_size,
-                num_heads=extra_attention_args.get("num_heads", 2),
-                dropout=dropout,
-                nystrom=True,
-                num_landmarks=extra_attention_args.get("num_landmarks", 32),
-                inverse_iterations=extra_attention_args.get("inverse_iterations", 6),
-                kernel_size=extra_attention_args.get("kernel_size", 33),
-            )
+        self.out_size = self.encoder.out_size
 
     def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
-        """Word RNN forward pass
+        """Token RNN forward pass
 
         If self.attention=True then the outputs are the weighted sum of the RNN hidden states with the attention score weights
         Else the output is the last hidden state of the RNN.
@@ -341,17 +418,6 @@ class WordRNN(nn.Module):
             torch.Tensor: [B, H] or [B, 2*H] Output features to be used for classification
         """
         x = self.embed(x)
-        out, last_hidden, _ = self.rnn(x, lengths)
-
-        if self.attention is not None:
-            out, _ = self.attention(
-                out,
-                attention_mask=pad_mask(
-                    lengths, max_length=out.size(1) if self.batch_first else out.size(0)
-                ),
-            )
-            out = out.sum(1)
-        else:
-            out = last_hidden
+        out = self.encoder(x, lengths)
 
         return out  # type: ignore

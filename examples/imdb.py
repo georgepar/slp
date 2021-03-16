@@ -1,16 +1,16 @@
 import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
+from torch.optim import Adam
+from torchnlp.datasets import imdb_dataset  # type: ignore
+
 from slp.data.collators import SequenceClassificationCollator
-from slp.modules.classifier import Classifier
-from slp.modules.rnn import WordRNN
+from slp.modules.classifier import RNNTokenSequenceClassifier
 from slp.plbind.dm import PLDataModuleFromCorpus
 from slp.plbind.helpers import FromLogits
 from slp.plbind.module import RnnPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
-from torch.optim import Adam
-from torchnlp.datasets import imdb_dataset  # type: ignore
 
 MAX_LENGTH = 1024
 collate_fn = SequenceClassificationCollator(device="cpu", max_length=MAX_LENGTH)
@@ -18,6 +18,7 @@ collate_fn = SequenceClassificationCollator(device="cpu", max_length=MAX_LENGTH)
 
 
 if __name__ == "__main__":
+    pl.utilities.seed.seed_everything(seed=42)
     EXPERIMENT_NAME = "imdb-words-sentiment-classification"
 
     configure_logging(f"logs/{EXPERIMENT_NAME}")
@@ -49,20 +50,18 @@ if __name__ == "__main__":
         lang="en_core_web_md",
     )
     ldm.setup()
-    encoder = WordRNN(
-        256,
+
+    model = RNNTokenSequenceClassifier(
+        3,
         embeddings=ldm.embeddings,
-        embeddings_dim=300,
         bidirectional=True,
         merge_bi="sum",
-        packed_sequence=True,
         finetune_embeddings=True,
-        attention="nystrom",
-        max_length=MAX_LENGTH,
-        extra_attention_args={"num_landmarks": 32, "num_heads": 2},
+        attention=True,
+        nystrom=True,
+        num_landmarks=32,
+        num_heads=2,
     )
-
-    model = Classifier(encoder, encoder.out_size, 3)
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad], lr=1e-3)
     criterion = nn.CrossEntropyLoss()

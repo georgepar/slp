@@ -1,6 +1,7 @@
 import math
 
 import torch.nn as nn
+
 from slp.modules.attention import MultiheadAttention
 from slp.modules.embed import Embed, PositionalEncoding
 from slp.modules.feedforward import PositionwiseFF
@@ -13,8 +14,8 @@ def reset_parameters(named_parameters):
 
     for name, p in named_parameters:
         if p.dim() > 1:
-            # if "weight" in name:
-            nn.init.xavier_uniform_(p)
+            if "weight" in name:
+                nn.init.xavier_uniform_(p)
 
             # if "bias" in name:
             #    nn.init.constant_(p, 0.0)
@@ -391,10 +392,9 @@ class Transformer(nn.Module):
         return out
 
 
-class TransformerClassifier(nn.Module):
+class TransformerSequenceEncoder(nn.Module):
     def __init__(
         self,
-        num_classes,
         num_layers=6,
         hidden_size=512,
         num_heads=8,
@@ -407,7 +407,7 @@ class TransformerClassifier(nn.Module):
         prenorm=True,
         scalenorm=True,
     ):
-        super(TransformerClassifier, self).__init__()
+        super(TransformerSequenceEncoder, self).__init__()
         self.pe = PositionalEncoding(embedding_dim=hidden_size, max_len=max_length)
         self.transformer_block = Encoder(
             num_layers=num_layers,
@@ -421,23 +421,18 @@ class TransformerClassifier(nn.Module):
             prenorm=prenorm,
             scalenorm=scalenorm,
         )
-        self.drop = nn.Dropout(dropout)
-        self.predict = nn.Linear(hidden_size, num_classes)
         reset_parameters(self.named_parameters())
 
     def forward(self, x, attention_mask=None):
         x = self.pe(x)
-        out = self.transformer_block(x, attention_mask=attention_mask)
-        out = self.drop(out)
-        out = self.predict(out.mean(dim=1))
+        out = self.transformer_block(x, attention_mask=attention_mask).sum(1)
 
         return out
 
 
-class TransformerTokenClassifier(nn.Module):
+class TransformerTokenSequenceEncoder(nn.Module):
     def __init__(
         self,
-        num_classes,
         vocab_size=30000,
         max_length=256,
         num_layers=6,
@@ -451,7 +446,7 @@ class TransformerTokenClassifier(nn.Module):
         prenorm=True,
         scalenorm=True,
     ):
-        super(TransformerTokenClassifier, self).__init__()
+        super(TransformerTokenSequenceEncoder, self).__init__()
         self.embed = Embed(
             vocab_size,
             hidden_size,
@@ -459,10 +454,9 @@ class TransformerTokenClassifier(nn.Module):
             dropout=dropout,
             trainable=True,
         )
-        self.pe = PositionalEncoding(embedding_dim=hidden_size, max_len=max_length)
-        self.classifier = TransformerClassifier(
-            num_classes,
+        self.encoder = TransformerSequenceEncoder(
             num_layers=num_layers,
+            max_length=max_length,
             hidden_size=hidden_size,
             num_heads=num_heads,
             inner_size=inner_size,
@@ -478,10 +472,6 @@ class TransformerTokenClassifier(nn.Module):
 
     def forward(self, x, attention_mask=None):
         x = self.embed(x)
-        # Adding embeddings + pos embeddings
-        # is done in PositionalEncoding class
-        x = self.pe(x)
-
-        out = self.classifier(x, attention_mask=attention_mask)
+        out = self.encoder(x, attention_mask=attention_mask)
 
         return out

@@ -1,22 +1,22 @@
 import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
+from torch.optim import Adam, AdamW
+from torchnlp.datasets import imdb_dataset  # type: ignore
+
 from slp.data.collators import SequenceClassificationCollator
-from slp.modules.classifier import Classifier
-from slp.modules.transformer import TransformerTokenClassifier
+from slp.modules.classifier import TransformerTokenSequenceClassifier
 from slp.plbind.dm import PLDataModuleFromCorpus
 from slp.plbind.helpers import FromLogits
 from slp.plbind.module import TransformerClassificationPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
-from torch.optim import Adam, AdamW
-from torchnlp.datasets import imdb_dataset  # type: ignore
-
-MAX_LENGTH = 1024
-collate_fn = SequenceClassificationCollator(device="cpu")
-
 
 if __name__ == "__main__":
+
+    MAX_LENGTH = 1024
+    collate_fn = SequenceClassificationCollator(device="cpu")
+
     EXPERIMENT_NAME = "imdb-words-sentiment-classification"
 
     configure_logging(f"logs/{EXPERIMENT_NAME}")
@@ -34,17 +34,17 @@ if __name__ == "__main__":
         labels_train,
         test=raw_test,
         test_labels=labels_test,
-        batch_size=8,
-        batch_size_eval=8,
+        batch_size=64,
+        batch_size_eval=64,
+        max_length=MAX_LENGTH,
         collate_fn=collate_fn,
         pin_memory=True,
         num_workers=1,
         lower=True,
-        max_length=MAX_LENGTH,
         tokenizer="bert-base-uncased",
     )
     ldm.setup()
-    model = TransformerTokenClassifier(
+    model = TransformerTokenSequenceClassifier(
         2,
         vocab_size=ldm.vocab_size,
         max_length=2 * MAX_LENGTH,
