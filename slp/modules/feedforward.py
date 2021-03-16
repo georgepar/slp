@@ -4,12 +4,12 @@ from typing import List, Union
 import torch
 import torch.nn as nn
 from loguru import logger
-
 from slp.modules.norm import LayerNorm
 
 # Activation functions to choose
 NON_LINEARITIES = {
     "relu": nn.ReLU,
+    "gelu": nn.GELU,
     "tanh": nn.Tanh,
     "sigmoid": nn.Sigmoid,
     "none": None,
@@ -22,7 +22,7 @@ class FF(nn.Module):
         n_in: int,
         n_out: int,
         activation: str = "relu",
-        layer_norm: bool = True,
+        layer_norm: bool = False,
         bias: bool = True,
         dropout: float = 0.1,
     ):
@@ -39,9 +39,11 @@ class FF(nn.Module):
         super(FF, self).__init__()
         self.fc = nn.Linear(n_in, n_out, bias=bias)
         self.activation = NON_LINEARITIES.get(activation, nn.ReLU)
+
         if self.activation is not None:
             self.activation = self.activation()
         self.layer_norm = None
+
         if layer_norm:
             self.layer_norm = LayerNorm(n_out)
         self.drop = nn.Dropout(dropout)
@@ -57,17 +59,20 @@ class FF(nn.Module):
         """
         out = self.fc(x)
         out = self.drop(out)
+
         if self.layer_norm is not None:
             out = self.layer_norm(out)
+
         if self.activation is not None:
             out = self.activation(out)
+
         return out  # type: ignore
 
 
 class PositionwiseFF(nn.Module):
     """Some Information about PositionwiseFF"""
 
-    def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1):
+    def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1, gelu=False):
         """Transformer Position-wise feed-forward layer
 
         Linear -> LayerNorm -> ReLU -> Linear
@@ -78,10 +83,10 @@ class PositionwiseFF(nn.Module):
             dropout (float): Dropout probability. Defaults to 0.1.
         """
         super(PositionwiseFF, self).__init__()
-        self.ff1 = FF(d_model, d_ff, activation="relu")
+        self.ff1 = nn.Linear(d_model, d_ff)
         self.ff2 = nn.Linear(d_ff, d_model)
         self.drop = nn.Dropout(dropout)
-        self.net = nn.Sequential(self.ff1, self.drop, self.ff2)
+        self.activation = nn.ReLU() if not gelu else nn.GELU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""Position-wise FF forward pass
@@ -100,7 +105,7 @@ class PositionwiseFF(nn.Module):
         Returns:
             torch.Tensor: [B, *, D] Output features
         """
-        out: torch.Tensor = self.net(x)
+        out: torch.Tensor = self.ff2(self.drop(self.activation(self.ff1(x))))
         return out
 
 
