@@ -14,8 +14,9 @@ from slp.util.log import configure_logging
 
 if __name__ == "__main__":
 
+    pl.utilities.seed.seed_everything(seed=42)
     MAX_LENGTH = 1024
-    collate_fn = SequenceClassificationCollator(device="cpu")
+    collate_fn = SequenceClassificationCollator(device="cpu", max_length=MAX_LENGTH)
 
     EXPERIMENT_NAME = "imdb-words-sentiment-classification"
 
@@ -36,7 +37,6 @@ if __name__ == "__main__":
         test_labels=labels_test,
         batch_size=64,
         batch_size_eval=64,
-        max_length=MAX_LENGTH,
         collate_fn=collate_fn,
         pin_memory=True,
         num_workers=1,
