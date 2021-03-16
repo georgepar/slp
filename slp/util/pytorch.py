@@ -4,8 +4,9 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 import torch
 import torch.nn as nn
 from loguru import logger
-from slp.util import system, types
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
+from slp.util import system, types
 
 
 class PadPackedSequence(nn.Module):
@@ -338,7 +339,7 @@ def moore_penrose_pinv(x, num_iter=6):
     abs_x = torch.abs(x)
     col = abs_x.sum(dim=-1)
     row = abs_x.sum(dim=-2)
-    z = x.transpose(-1, -2).contiguous()
+    z = x.transpose(-1, -2)
     z = z / (torch.max(col) * torch.max(row))
 
     I = torch.eye(x.shape[-1], device=x.device).unsqueeze(0)

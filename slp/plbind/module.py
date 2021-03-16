@@ -7,12 +7,13 @@ import torch
 import torch.nn as nn
 from loguru import logger
 from omegaconf import DictConfig
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
+
 from slp.config.omegaconf import OmegaConf
 from slp.util.pytorch import pad_mask, subsequent_mask
 from slp.util.system import print_separator
 from slp.util.types import Configuration, LossType
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 
 
 class _Predictor(ABC):

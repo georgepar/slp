@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from slp.util.pytorch import moore_penrose_pinv
 
 
@@ -185,6 +186,8 @@ def nystrom_attention(
     training: bool = True,
 ):
     """Calculate attention using nystrom approximation
+
+    Implementation heavily based on: https://github.com/lucidrains/nystrom-attention
 
     Reference: https://arxiv.org/abs/2102.03902
     * B: Batch size

@@ -5,12 +5,13 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
+from loguru import logger
+from tqdm import tqdm
+
 import slp.util.system as system
 import slp.util.types as types
-from loguru import logger
 from slp.config.nlp import SPECIAL_TOKENS
 from slp.data.transforms import HuggingFaceTokenizer, SpacyTokenizer, ToTokenIds
-from tqdm import tqdm
 
 
 def create_vocab(

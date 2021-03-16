@@ -4,6 +4,7 @@ from typing import List, Union
 import torch
 import torch.nn as nn
 from loguru import logger
+
 from slp.modules.norm import LayerNorm
 
 # Activation functions to choose
