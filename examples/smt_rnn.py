@@ -1,9 +1,6 @@
 import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
-from torch.optim import Adam
-from torchnlp.datasets import smt_dataset  # type: ignore
-
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
@@ -12,13 +9,14 @@ from slp.plbind.helpers import FromLogits
 from slp.plbind.module import RnnPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
+from torch.optim import Adam
+from torchnlp.datasets import smt_dataset  # type: ignore
 
 collate_fn = SequenceClassificationCollator(device="cpu")
 
 
 if __name__ == "__main__":
     EXPERIMENT_NAME = "smt-words-sentiment-classification"
-
     configure_logging(f"logs/{EXPERIMENT_NAME}")
 
     train, dev, test = smt_dataset(
@@ -45,13 +43,14 @@ if __name__ == "__main__":
         batch_size_eval=32,
         collate_fn=collate_fn,
         pin_memory=True,
-        num_workers=1,
+        num_workers=0,
         tokens="words",
         embeddings_file="./cache/glove.6B.50d.txt",
         embeddings_dim=50,
         lower=True,
         lang="en_core_web_md",
     )
+    ldm.setup()
 
     encoder = WordRNN(
         128,
@@ -61,7 +60,7 @@ if __name__ == "__main__":
         merge_bi="sum",
         packed_sequence=True,
         finetune_embeddings=True,
-        attention=True,
+        attention="single-head",
     )
 
     model = Classifier(encoder, encoder.out_size, 3)

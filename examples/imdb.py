@@ -1,9 +1,6 @@
 import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
-from torch.optim import Adam
-from torchnlp.datasets import imdb_dataset  # type: ignore
-
 from slp.data.collators import SequenceClassificationCollator
 from slp.modules.classifier import Classifier
 from slp.modules.rnn import WordRNN
@@ -12,8 +9,12 @@ from slp.plbind.helpers import FromLogits
 from slp.plbind.module import RnnPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
+from torch.optim import Adam
+from torchnlp.datasets import imdb_dataset  # type: ignore
 
-collate_fn = SequenceClassificationCollator(device="cpu")
+MAX_LENGTH = 1024
+collate_fn = SequenceClassificationCollator(device="cpu", max_length=MAX_LENGTH)
+# collate_fn = SequenceClassificationCollator(device="cpu")
 
 
 if __name__ == "__main__":
@@ -34,7 +35,7 @@ if __name__ == "__main__":
         labels_train,
         test=raw_test,
         test_labels=labels_test,
-        batch_size=8,
+        batch_size=64,
         batch_size_eval=32,
         collate_fn=collate_fn,
         pin_memory=True,
@@ -43,10 +44,11 @@ if __name__ == "__main__":
         embeddings_file="./cache/glove.6B.50d.txt",
         embeddings_dim=50,
         lower=True,
+        max_length=MAX_LENGTH,
         limit_vocab_size=-1,
         lang="en_core_web_md",
     )
-
+    ldm.setup()
     encoder = WordRNN(
         256,
         embeddings=ldm.embeddings,
@@ -55,7 +57,9 @@ if __name__ == "__main__":
         merge_bi="sum",
         packed_sequence=True,
         finetune_embeddings=True,
-        attention=True,
+        attention="nystrom",
+        max_length=MAX_LENGTH,
+        extra_attention_args={"num_landmarks": 32, "num_heads": 2},
     )
 
     model = Classifier(encoder, encoder.out_size, 3)

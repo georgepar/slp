@@ -1,11 +1,10 @@
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 from loguru import logger
-
-from slp.modules.attention import Attention
+from slp.modules.attention import MultiheadSelfAttention, SelfAttention
 from slp.modules.embed import Embed
 from slp.util.pytorch import PackSequence, PadPackedSequence, pad_mask
 
@@ -22,6 +21,7 @@ class RNN(nn.Module):
         dropout: float = 0.0,
         rnn_type: str = "lstm",
         packed_sequence: bool = True,
+        max_length: int = -1,
     ):
         """LSTM - GRU wrapper with packed sequence support and handling for bidirectional / last output states
 
@@ -68,7 +68,9 @@ class RNN(nn.Module):
 
         if packed_sequence:
             self.pack = PackSequence(batch_first=batch_first)
-            self.unpack = PadPackedSequence(batch_first=batch_first)
+            self.unpack = PadPackedSequence(
+                batch_first=batch_first, max_length=max_length
+            )
 
     @property
     def out_size(cls) -> int:
@@ -196,6 +198,8 @@ class RNN(nn.Module):
 
 
 class WordRNN(nn.Module):
+    available_attention_mechanisms = ["nystrom", "single-head", "multi-head"]
+
     def __init__(
         self,
         hidden_size: int,
@@ -211,7 +215,9 @@ class WordRNN(nn.Module):
         dropout: float = 0.1,
         rnn_type: str = "lstm",
         packed_sequence: bool = True,
-        attention: bool = False,
+        attention: Optional[str] = None,
+        max_length: int = -1,
+        extra_attention_args: Optional[Dict[str, Any]] = None,
     ):
         """RNN with embedding layer and optional attention mechanism
 
@@ -231,9 +237,19 @@ class WordRNN(nn.Module):
             dropout (float): Dropout probability. Defaults to 0.0.
             rnn_type (str): lstm or gru. Defaults to "lstm".
             packed_sequence (bool): Use packed sequences. Defaults to True.
-            attention (bool): Use attention mechanism on RNN outputs. Defaults to False.
+            attention (Optional[str]): Select attention mechanism to use on RNN outputs. Defaults to None
+                Available choices:
+                    * nystrom: Nystrom approximation of scaled-dot-product multihead attention
+                    * single-head: Single headed scaled dot product attention
+                    * multi-head: Multi headed scaled dot product attention
+
         """
         super(WordRNN, self).__init__()
+
+        if attention:
+            assert (
+                attention in self.available_attention_mechanisms
+            ), f"attention should be one of {self.available_attention_mechanisms} or None"
 
         if embeddings is None:
             finetune_embeddings = True
@@ -252,6 +268,7 @@ class WordRNN(nn.Module):
             embeddings_dim,  # type: ignore
             embeddings=embeddings,
             dropout=embeddings_dropout,
+            scale=hidden_size ** 0.5,
             trainable=finetune_embeddings,
         )
         self.rnn = RNN(
@@ -264,16 +281,51 @@ class WordRNN(nn.Module):
             dropout=dropout,
             rnn_type=rnn_type,
             packed_sequence=packed_sequence,
+            max_length=max_length,
         )
         self.out_size = (
             hidden_size
             if not (bidirectional and merge_bi == "cat")
             else 2 * hidden_size
         )
+        self.batch_first = batch_first
+
         self.attention = None
 
-        if attention:
-            self.attention = Attention(attention_size=self.out_size, dropout=dropout)
+        if attention == "single-head":
+            self.attention = SelfAttention(
+                attention_size=self.out_size, dropout=dropout
+            )
+        elif attention == "multi-head":
+            if extra_attention_args is None:
+                extra_attention_args = {
+                    "num_heads": 2,
+                    "kernel_size": None,
+                }
+
+            self.attention = MultiheadSelfAttention(  # type: ignore
+                attention_size=self.out_size,
+                num_heads=extra_attention_args.get("num_heads", 2),
+                kernel_size=extra_attention_args.get("kernel_size", None),
+                dropout=dropout,
+            )
+        elif attention == "nystrom":
+            if extra_attention_args is None:
+                extra_attention_args = {
+                    "num_heads": 2,
+                    "num_landmarks": 32,
+                    "inverse_iterations": 6,
+                    "kernel_size": 33,
+                }
+            self.attention = MultiheadSelfAttention(  # type: ignore
+                attention_size=self.out_size,
+                num_heads=extra_attention_args.get("num_heads", 2),
+                dropout=dropout,
+                nystrom=True,
+                num_landmarks=extra_attention_args.get("num_landmarks", 32),
+                inverse_iterations=extra_attention_args.get("inverse_iterations", 6),
+                kernel_size=extra_attention_args.get("kernel_size", 33),
+            )
 
     def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
         """Word RNN forward pass
@@ -292,7 +344,12 @@ class WordRNN(nn.Module):
         out, last_hidden, _ = self.rnn(x, lengths)
 
         if self.attention is not None:
-            out, _ = self.attention(out, attention_mask=pad_mask(lengths))
+            out, _ = self.attention(
+                out,
+                attention_mask=pad_mask(
+                    lengths, max_length=out.size(1) if self.batch_first else out.size(0)
+                ),
+            )
             out = out.sum(1)
         else:
             out = last_hidden
