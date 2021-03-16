@@ -463,6 +463,8 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
         )
 
     def setup(self):
+        super(PLDataModuleFromCorpus, self).setup()
+
         train_corpus, train_labels = zip(*self.train)  # type: ignore
         val_corpus, val_labels = zip(*self.val)  # type: ignore
 
