@@ -187,7 +187,7 @@ class _TransformerClassification(_Predictor):
         inputs = batch[0]
         targets = batch[1]
         lengths = batch[2]
-        attention_mask = pad_mask(lengths)
+        attention_mask = pad_mask(lengths, max_length=inputs.size(1))
 
         return inputs, targets, attention_mask
 
@@ -230,19 +230,16 @@ class _Transformer(_Predictor):
         lengths_inputs = batch[2]
         lengths_targets = batch[3]
 
-        max_length_inputs = torch.max(lengths_inputs)
-        max_length_targets = torch.max(lengths_targets)
-
         pad_inputs = pad_mask(
             lengths_inputs,
-            max_length=max_length_inputs,
-        ).unsqueeze(-2)
+            max_length=inputs.size(1),
+        )
         pad_targets = pad_mask(
             lengths_targets,
-            max_length=max_length_targets,
-        ).unsqueeze(-2)
-        sub_m = subsequent_mask(max_length_targets)  # type: ignore
-        pad_targets = pad_targets * sub_m.to(pad_targets.device)
+            max_length=targets.size(1),
+        )
+        sub_m = subsequent_mask(targets.size(1))  # type: ignore
+        pad_targets = pad_targets.unsqueeze(-2) * sub_m.to(pad_targets.device)
 
         return inputs, targets, pad_inputs, pad_targets
 
@@ -289,7 +286,7 @@ class _BertSequenceClassification(_Predictor):
         targets = batch[1]
         lengths = batch[2]
 
-        attention_mask = pad_mask(lengths)
+        attention_mask = pad_mask(lengths, inputs.size(1))
 
         return inputs, targets, attention_mask
 
