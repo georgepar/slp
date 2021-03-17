@@ -53,7 +53,6 @@ class MMDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         dat = {m: self.data[idx][m] for m in self.modalities}
-
         for m in self.modalities:
             if len(self.transforms[m]) == 0:
                 continue
@@ -102,7 +101,7 @@ class MOSEI(MMDataset):
         super(MOSEI, self).__init__(data, modalities)
 
         def default_label_selector(l):
-            return l[0]
+            return l[0][0]
 
         if label_selector is None:
             label_selector = default_label_selector
