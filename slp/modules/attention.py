@@ -158,7 +158,7 @@ def pad_for_nystrom(
 
     _, seq_length, _ = x.size()
 
-    div, remainder = (
+    _, remainder = (
         math.ceil(seq_length / num_landmarks),
         seq_length % num_landmarks,
     )
@@ -560,10 +560,10 @@ class MultiheadSelfAttention(nn.Module):
 
         if self.conv is not None:
             if attention_mask is None or attention_mask.ndim > 2:
-                out += self.conv(v)
+                out = out + self.conv(v)
             else:
                 attention_mask = attention_mask.squeeze()
-                out += self.conv(v * attention_mask[:, None, :, None])
+                out = out + self.conv(v * attention_mask[:, None, :, None])
 
         # out => (B, H, L, A/H)
         out = merge_heads(out)
