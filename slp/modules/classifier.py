@@ -3,7 +3,6 @@ from typing import Optional
 import numpy as np
 import torch
 import torch.nn as nn
-
 from slp.modules.embed import PositionalEncoding
 from slp.modules.rnn import AttentiveRNN, TokenRNN
 from slp.modules.transformer import (
@@ -226,3 +225,131 @@ class RNNTokenSequenceClassifier(Classifier):
         super(RNNTokenSequenceClassifier, self).__init__(
             encoder, encoder.out_size, num_classes, dropout=dropout
         )
+
+
+class TransformerLateFusionClassifier(nn.Module):
+    def __init__(
+        self,
+        modality_feature_sizes,
+        num_classes,
+        num_layers=2,
+        hidden_size=100,
+        num_heads=4,
+        max_length=512,
+        inner_size=400,
+        dropout=0.1,
+        nystrom=True,
+        num_landmarks=32,
+        kernel_size=33,
+        prenorm=True,
+        scalenorm=True,
+    ):
+        super(TransformerLateFusionClassifier, self).__init__()
+        self.modalities = modality_feature_sizes.keys()
+        self.modality_encoders = nn.ModuleDict(
+            {
+                m: TransformerSequenceEncoder(
+                    modality_feature_sizes[m],
+                    feature_normalization=True if m == "audio" else False,
+                    num_layers=num_layers,
+                    hidden_size=hidden_size,
+                    num_heads=num_heads,
+                    max_length=max_length,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                    nystrom=nystrom,
+                    num_landmarks=num_landmarks,
+                    kernel_size=kernel_size,
+                    prenorm=prenorm,
+                    scalenorm=scalenorm,
+                )
+                for m in self.modalities
+            }
+        )
+        self.out_size = sum([e.out_size for e in self.modality_encoders.values()])
+        self.clf = nn.Linear(self.out_size, num_classes)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, inputs, attention_masks=None):
+        if attention_masks is None:
+            attention_masks = dict(
+                zip(self.modalities, [None for _ in self.modalities])
+            )
+
+        encoded = [
+            self.modality_encoders[m](inputs[m], attention_mask=attention_masks[m])
+            for m in self.modalities
+        ]
+
+        fused = torch.cat(encoded, dim=-1)
+        fused = self.drop(fused)
+        out = self.clf(fused)
+
+        return out
+
+
+class RNNLateFusionClassifier(nn.Module):
+    def __init__(
+        self,
+        modality_feature_sizes,
+        num_classes,
+        num_layers=2,
+        batch_first=True,
+        bidirectional=True,
+        packed_sequence=True,
+        merge_bi="cat",
+        rnn_type="lstm",
+        attention=True,
+        hidden_size=100,
+        num_heads=4,
+        max_length=-1,
+        dropout=0.1,
+        nystrom=True,
+        num_landmarks=32,
+        kernel_size=33,
+    ):
+        super(RNNLateFusionClassifier, self).__init__()
+        self.modalities = modality_feature_sizes.keys()
+        self.modality_encoders = nn.ModuleDict(
+            {
+                m: AttentiveRNN(
+                    modality_feature_sizes[m],
+                    hidden_size=hidden_size,
+                    batch_first=batch_first,
+                    layers=num_layers,
+                    bidirectional=bidirectional,
+                    merge_bi=merge_bi,
+                    dropout=dropout,
+                    rnn_type=rnn_type,
+                    packed_sequence=packed_sequence,
+                    attention=attention,
+                    max_length=max_length,
+                    num_heads=num_heads,
+                    nystrom=nystrom,
+                    num_landmarks=num_landmarks,
+                    kernel_size=kernel_size,
+                )
+                for m in self.modalities
+            }
+        )
+        self.out_size = sum([e.out_size for e in self.modality_encoders.values()])
+        self.clf = nn.Linear(self.out_size, num_classes)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, inputs, lengths):
+        encoded = [
+            self.modality_encoders[m](inputs[m], lengths[m]) for m in self.modalities
+        ]
+
+        fused = torch.cat(encoded, dim=-1)
+        fused = self.drop(fused)
+        out = self.clf(fused)
+
+        return out
+
+
+class MOSEITextClassifier(RNNSequenceClassifier):
+    def forward(self, x, lengths):
+        x = x["text"]
+        lengths = lengths["text"]
+        return super().forward(x, lengths)
