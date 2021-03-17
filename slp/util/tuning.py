@@ -66,8 +66,8 @@ def run_tuning(
     output_config_file: str,
     train_fn: Callable[[Dict[str, Any], Any, Any], None],
     config_fn: Callable[[Dict[str, Any]], Dict[str, Any]],
-    train: Any,
-    val: Any,
+    train: Any = None,
+    val: Any = None,
 ):
     """Run distributed hyperparameter tuning using ray tune
 
@@ -140,9 +140,12 @@ def run_tuning(
             "gpu": cfg["tune"]["gpus_per_trial"],
         },
         config=cfg,
+        max_failures=10,
         num_samples=cfg["tune"]["num_trials"],
         search_alg=OptunaSearch(metric=metric, mode=mode),
-        scheduler=tune.schedulers.ASHAScheduler(metric=metric, mode=mode),
+        metric=metric,
+        mode=mode,
+        # scheduler=tune.schedulers.ASHAScheduler(metric=metric, mode=mode, reduction_factor=2),
         name=f"{cfg['trainer']['experiment_name']}-tuning",
     )
     best_config = analysis.get_best_config(metric, mode)
