@@ -133,7 +133,6 @@ def attention(
     scores = attention_scores(
         k, q, dk, attention_mask=attention_mask, dropout=dropout, training=training
     )
-
     out = torch.matmul(scores, v)
 
     return out, scores

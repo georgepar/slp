@@ -1,9 +1,9 @@
 import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
-from slp.data.cmusdk import mosi
+from slp.data.cmusdk import mosei
 from slp.data.collators import MultimodalSequenceClassificationCollator
-from slp.data.multimodal import MOSI
+from slp.data.multimodal import MOSEI
 from slp.modules.classifier import TransformerLateFusionClassifier
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.helpers import FromLogits
@@ -12,9 +12,8 @@ from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
 from torch.optim import AdamW
 
-
 if __name__ == "__main__":
-    EXPERIMENT_NAME = "mosi-transformer"
+    EXPERIMENT_NAME = "mosei-transformer"
 
     configure_logging(f"logs/{EXPERIMENT_NAME}")
 
@@ -22,17 +21,33 @@ if __name__ == "__main__":
     max_length = 1024
     collate_fn = MultimodalSequenceClassificationCollator(device="cpu")
 
-    train_data, dev_data, test_data, w2v = mosi(
+    train_data, dev_data, test_data, w2v = mosei(
         "data/mosi_final_aligned/",
+        pad_back=False,
         pad_front=True,
+        max_length=-1,
         modalities=modalities,
+        remove_pauses=False,
         already_aligned=True,
         align_features=False,
+        cache="./cache/mosei.p",
     )
 
-    train = MOSI(train_data, modalities=modalities, binary=False, text_is_tokens=False)
-    dev = MOSI(dev_data, modalities=modalities, binary=False, text_is_tokens=False)
-    test = MOSI(test_data, modalities=modalities, binary=False, text_is_tokens=False)
+    for x in train_data:
+        if "glove" in x:
+            x["text"] = x["glove"]
+
+    for x in dev_data:
+        if "glove" in x:
+            x["text"] = x["glove"]
+
+    for x in test_data:
+        if "glove" in x:
+            x["text"] = x["glove"]
+
+    train = MOSEI(train_data, modalities=modalities, text_is_tokens=False)
+    dev = MOSEI(dev_data, modalities=modalities, text_is_tokens=False)
+    test = MOSEI(test_data, modalities=modalities, text_is_tokens=False)
 
     ldm = PLDataModuleFromDatasets(
         train,
