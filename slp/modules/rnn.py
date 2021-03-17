@@ -4,10 +4,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 from loguru import logger
-
-from slp.modules.attention import MultiheadSelfAttention, SelfAttention
+from slp.modules.attention import MultiheadSelfAttention as MultiheadAttention
+from slp.modules.attention import SelfAttention as Attention
 from slp.modules.embed import Embed
 from slp.util.pytorch import PackSequence, PadPackedSequence, pad_mask
+
+# from slp.modules.attention import (
+#     Attention,
+#     MultiheadAttention,
+# )
 
 
 class RNN(nn.Module):
@@ -266,11 +271,11 @@ class AttentiveRNN(nn.Module):
 
         if attention:
             if num_heads == 1:
-                self.attention = SelfAttention(
+                self.attention = Attention(
                     attention_size=self.out_size, dropout=dropout
                 )
             else:
-                self.attention = MultiheadSelfAttention(  # type: ignore
+                self.attention = MultiheadAttention(  # type: ignore
                     attention_size=self.out_size,
                     num_heads=num_heads,
                     kernel_size=kernel_size,
