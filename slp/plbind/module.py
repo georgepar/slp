@@ -425,7 +425,13 @@ class SimplePLModule(pl.LightningModule):
         """
 
         if self.lr_scheduler is not None:
-            return self.optimizer, self.lr_scheduler
+            scheduler = {
+                "scheduler": self.lr_scheduler,
+                "interval": "epoch",
+                "monitor": "val_loss",
+            }
+
+            return [self.optimizer], [scheduler]
 
         return self.optimizer
 
@@ -552,6 +558,10 @@ class SimplePLModule(pl.LightningModule):
             self.val_metrics, loss, y_hat, targets, mode="val"
         )
 
+        metrics[
+            "best_score"
+        ] = self.trainer.early_stopping_callback.best_score.detach().cpu()
+
         return metrics
 
     def validation_epoch_end(self, outputs):
@@ -561,6 +571,14 @@ class SimplePLModule(pl.LightningModule):
             outputs (List[Dict[str, torch.Tensor]]): Aggregated outputs from validation_step
         """
         outputs = self.aggregate_epoch_metrics(outputs, mode="Validation")
+
+        if torch.isnan(outputs["val_loss"]) or torch.isinf(outputs["val_loss"]):
+            outputs["val_loss"] = 1000000
+
+        outputs["best_score"] = min(
+            outputs[self.trainer.early_stopping_callback.monitor].detach().cpu(),
+            self.trainer.early_stopping_callback.best_score.detach().cpu(),
+        )
 
     def test_step(self, batch, batch_idx):
         """Compute loss for a single test step and log metrics to loggers

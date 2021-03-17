@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import numpy as np
@@ -56,7 +57,7 @@ class MMDataset(Dataset):
         for m in self.modalities:
             if len(self.transforms[m]) == 0:
                 continue
-            dat[m] = pipe(dat[m], *self.transforms[m])
+            dat[m] = pipe(copy.deepcopy(dat[m]), *self.transforms[m])
 
         return dat
 
