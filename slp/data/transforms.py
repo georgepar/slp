@@ -74,7 +74,6 @@ class HuggingFaceTokenizer(object):
             add_special_tokens (bool): Insert special tokens to tokenized string. Defaults to True.
         """
         self.tokenizer = AutoTokenizer.from_pretrained(model, do_lower_case=lower)
-        self.tokenizer.max_len = 65536  # hack to suppress warnings
         self.vocab_size = len(self.tokenizer.vocab)
         self.add_special_tokens = add_special_tokens
 
@@ -100,7 +99,7 @@ class HuggingFaceTokenizer(object):
             List[int]: List of token ids
         """
         out: List[int] = self.tokenizer.encode(
-            x, add_special_tokens=self.add_special_tokens
+            x, add_special_tokens=self.add_special_tokens, max_length=65536
         )
         return out
 
