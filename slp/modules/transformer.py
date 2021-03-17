@@ -1,7 +1,6 @@
 import math
 
 import torch.nn as nn
-
 from slp.modules.attention import MultiheadAttention
 from slp.modules.embed import Embed, PositionalEncoding
 from slp.modules.feedforward import PositionwiseFF
@@ -9,16 +8,16 @@ from slp.modules.norm import LayerNorm, ScaleNorm
 from slp.util.pytorch import repeat_layer
 
 
-def reset_parameters(named_parameters):
+def reset_parameters(named_parameters, gain=1.0):
     """Initialize parameters in the transformer model."""
 
     for name, p in named_parameters:
         if p.dim() > 1:
-            # if "weight" in name:
-            nn.init.xavier_uniform_(p)
+            if "weight" in name:
+                nn.init.xavier_normal_(p, gain=gain)
 
-            # if "bias" in name:
-            #    nn.init.constant_(p, 0.0)
+            if "bias" in name:
+                nn.init.constant_(p, 0.0)
 
 
 class Sublayer1(nn.Module):
@@ -373,7 +372,7 @@ class Transformer(nn.Module):
         )
         self.drop = nn.Dropout(dropout)
         self.predict = nn.Linear(hidden_size, vocab_size)
-        reset_parameters(self.named_parameters())
+        reset_parameters(self.named_parameters(), gain=(2.5 * hidden_size) ** -0.5)
         # nn.init.normal_(self.embed.embedding.weight, mean=0, std=hidden_size**-0.5)
 
     def forward(self, source, target, source_mask=None, target_mask=None):
@@ -395,6 +394,7 @@ class Transformer(nn.Module):
 class TransformerSequenceEncoder(nn.Module):
     def __init__(
         self,
+        input_size,
         num_layers=6,
         hidden_size=512,
         num_heads=8,
@@ -406,9 +406,15 @@ class TransformerSequenceEncoder(nn.Module):
         kernel_size=None,
         prenorm=True,
         scalenorm=True,
+        feature_normalization=False,
     ):
         super(TransformerSequenceEncoder, self).__init__()
+        self.embed = nn.Linear(input_size, hidden_size)
         self.pe = PositionalEncoding(embedding_dim=hidden_size, max_len=max_length)
+        self.feature_norm = None
+
+        if feature_normalization:
+            self.feature_norm = ScaleNorm(hidden_size)
         self.transformer_block = Encoder(
             num_layers=num_layers,
             hidden_size=hidden_size,
@@ -421,9 +427,14 @@ class TransformerSequenceEncoder(nn.Module):
             prenorm=prenorm,
             scalenorm=scalenorm,
         )
-        reset_parameters(self.named_parameters())
+        self.out_size = hidden_size
+        reset_parameters(self.named_parameters(), gain=(2.5 * hidden_size) ** -0.5)
 
     def forward(self, x, attention_mask=None):
+        if self.feature_norm:
+            x = self.feature_norm(x)
+
+        x = self.embed(x)
         x = self.pe(x)
         out = self.transformer_block(x, attention_mask=attention_mask).mean(dim=1)
 
@@ -454,9 +465,9 @@ class TransformerTokenSequenceEncoder(nn.Module):
             dropout=dropout,
             trainable=True,
         )
-        self.encoder = TransformerSequenceEncoder(
+        self.pe = PositionalEncoding(embedding_dim=hidden_size, max_len=max_length)
+        self.transformer_block = Encoder(
             num_layers=num_layers,
-            max_length=max_length,
             hidden_size=hidden_size,
             num_heads=num_heads,
             inner_size=inner_size,
@@ -467,11 +478,13 @@ class TransformerTokenSequenceEncoder(nn.Module):
             prenorm=prenorm,
             scalenorm=scalenorm,
         )
-        reset_parameters(self.named_parameters())
+        self.out_size = hidden_size
+        reset_parameters(self.named_parameters(), gain=(2.5 * hidden_size) ** -0.5)
         # nn.init.normal_(self.embed.embedding.weight, mean=0, std=hidden_size**-0.5)
 
     def forward(self, x, attention_mask=None):
         x = self.embed(x)
-        out = self.encoder(x, attention_mask=attention_mask)
+        x = self.pe(x)
+        out = self.transformer_block(x, attention_mask=attention_mask).mean(dim=1)
 
         return out
