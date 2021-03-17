@@ -75,7 +75,7 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
     parser.add_argument(
         "--config",
         dest="config",
-        type=dir_path,
+        type=str,  # dir_path,
         default=None,
         help="Path to YAML configuration file",
     )
