@@ -1,9 +1,10 @@
 import argparse
+import pathlib
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import IO, Any, Dict, List, Optional, Tuple, Union
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 def _nest(
@@ -50,6 +51,22 @@ class OmegaConfExtended(OmegaConf):
     Unfortunately the original authors are not interested into providing integration with argparse
     (https://github.com/omry/omegaconf/issues/569), so we have to get by with this extension
     """
+
+    @staticmethod
+    def from_yaml(
+        file_: Union[str, pathlib.Path, IO[Any]]
+    ) -> Union[DictConfig, ListConfig]:
+        """Alias for OmegaConf.load
+        OmegaConf.from_yaml got removed at some point. Bring it back
+
+        Args:
+            file_ (Union[str, pathlib.Path, IO[Any]]): file to load or file descriptor
+
+        Returns:
+            Union[DictConfig, ListConfig]: The loaded configuration
+
+        """
+        return OmegaConfExtended.load(file_)
 
     @staticmethod
     def from_argparse(
