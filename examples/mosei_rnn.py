@@ -1,5 +1,7 @@
 import pytorch_lightning as pl
+import torch
 import torch.nn as nn
+import torchmetrics
 from loguru import logger
 from slp.data.cmusdk import mosei
 from slp.data.collators import MultimodalSequenceClassificationCollator
@@ -7,17 +9,18 @@ from slp.data.multimodal import MOSEI
 from slp.modules.classifier import MOSEITextClassifier, RNNLateFusionClassifier
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.helpers import FromLogits
+from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7
 from slp.plbind.module import RnnPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
-from torch.optim import Adam
+from torch.optim import AdamW
 
 if __name__ == "__main__":
     EXPERIMENT_NAME = "mosei-rnn"
 
     configure_logging(f"logs/{EXPERIMENT_NAME}")
 
-    modalities = {"text"}  # {"text", "audio", "visual"}
+    modalities = {"text", "audio", "visual"}
     collate_fn = MultimodalSequenceClassificationCollator(
         device="cpu", modalities=modalities
     )
@@ -54,11 +57,11 @@ if __name__ == "__main__":
         train,
         val=dev,
         test=test,
-        batch_size=16,
-        batch_size_eval=16,
+        batch_size=8,
+        batch_size_eval=8,
         collate_fn=collate_fn,
         pin_memory=True,
-        num_workers=0,
+        num_workers=2,
     )
     ldm.setup()
 
@@ -74,16 +77,31 @@ if __name__ == "__main__":
         num_heads=1,
         dropout=0.1,
         hidden_size=100,
+        use_mmdrop=True,
+        mmdrop_mode="soft",
     )
 
-    optimizer = Adam([p for p in model.parameters() if p.requires_grad], lr=1e-3)
-    criterion = nn.MSELoss()
+    optimizer = AdamW(
+        [p for p in model.parameters() if p.requires_grad], lr=1e-4, weight_decay=5e-4
+    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, factor=0.2, patience=5
+    )
+
+    criterion = nn.L1Loss()
 
     lm = RnnPLModule(
         model,
         optimizer,
         criterion,
-        # metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
+        lr_scheduler=scheduler,
+        metrics={
+            "acc2": MoseiAcc2(exclude_non_zero=True),
+            "acc2_zero": MoseiAcc2(exclude_non_zero=False),
+            "acc5": MoseiAcc5(),
+            "acc7": MoseiAcc7(),
+            "mae": torchmetrics.MeanAbsoluteError(),
+        },
     )
 
     trainer = make_trainer(

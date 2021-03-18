@@ -1,5 +1,6 @@
 import pytorch_lightning as pl
 import torch.nn as nn
+import torchmetrics
 from loguru import logger
 from slp.data.cmusdk import mosei
 from slp.data.collators import MultimodalSequenceClassificationCollator
@@ -7,6 +8,7 @@ from slp.data.multimodal import MOSEI
 from slp.modules.classifier import TransformerLateFusionClassifier
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.helpers import FromLogits
+from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7
 from slp.plbind.module import MultimodalTransformerClassificationPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
@@ -19,10 +21,12 @@ if __name__ == "__main__":
 
     modalities = {"text", "audio", "visual"}
     max_length = 1024
-    collate_fn = MultimodalSequenceClassificationCollator(device="cpu")
+    collate_fn = MultimodalSequenceClassificationCollator(
+        device="cpu", modalities=modalities
+    )
 
     train_data, dev_data, test_data, w2v = mosei(
-        "data/mosi_final_aligned/",
+        "data/mosei_final_aligned/",
         pad_back=False,
         pad_front=True,
         max_length=-1,
@@ -57,7 +61,7 @@ if __name__ == "__main__":
         batch_size_eval=8,
         collate_fn=collate_fn,
         pin_memory=True,
-        num_workers=0,
+        num_workers=2,
     )
     ldm.setup()
 
@@ -67,25 +71,36 @@ if __name__ == "__main__":
         feature_sizes,
         1,
         max_length=2 * max_length,
-        nystrom=False,
-        kernel_size=None,
-        num_layers=2,
-        num_heads=2,
+        nystrom=True,
+        kernel_size=33,
+        num_landmarks=32,
+        num_layers=3,
+        num_heads=4,
         dropout=0.3,
         hidden_size=100,
         inner_size=200,
         prenorm=True,
         scalenorm=True,
+        use_mmdrop=True,
+        mmdrop_mode="soft",
     )
 
-    optimizer = AdamW([p for p in model.parameters() if p.requires_grad], lr=1e-4)
-    criterion = nn.MSELoss()
+    optimizer = AdamW(
+        [p for p in model.parameters() if p.requires_grad], lr=1e-4, weight_decay=5e-4
+    )
+    criterion = nn.L1Loss()
 
     lm = MultimodalTransformerClassificationPLModule(
         model,
         optimizer,
         criterion,
-        # metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
+        metrics={
+            "acc2": MoseiAcc2(exclude_non_zero=True),
+            "acc2_zero": MoseiAcc2(exclude_non_zero=False),
+            "acc5": MoseiAcc5(),
+            "acc7": MoseiAcc7(),
+            "mae": torchmetrics.MeanAbsoluteError(),
+        },
     )
 
     trainer = make_trainer(

@@ -500,9 +500,9 @@ class SimplePLModule(pl.LightningModule):
 
         keys = list(outputs[0].keys())
         aggregated = {fmt(k): torch.stack([x[k] for x in outputs]).mean() for k in keys}
-        self.log_to_console(aggregated, mode=mode)
         aggregated["epoch"] = self.current_epoch + 1
-        self.log_dict(aggregated, logger=True, prog_bar=True, on_epoch=True)
+
+        self.log_dict(aggregated, logger=True, prog_bar=False, on_epoch=True)
 
         return aggregated
 
@@ -541,6 +541,7 @@ class SimplePLModule(pl.LightningModule):
             outputs (List[Dict[str, torch.Tensor]]): Aggregated outputs from train_step
         """
         outputs = self.aggregate_epoch_metrics(outputs, mode="Training")
+        self.log_to_console(outputs, mode="Training")
 
     def validation_step(self, batch, batch_idx):
         """Compute loss for a single validation step and log metrics to loggers
@@ -579,6 +580,7 @@ class SimplePLModule(pl.LightningModule):
             outputs[self.trainer.early_stopping_callback.monitor].detach().cpu(),
             self.trainer.early_stopping_callback.best_score.detach().cpu(),
         )
+        self.log_to_console(outputs, mode="Validation")
 
     def test_step(self, batch, batch_idx):
         """Compute loss for a single test step and log metrics to loggers
@@ -605,6 +607,7 @@ class SimplePLModule(pl.LightningModule):
             outputs (List[Dict[str, torch.Tensor]]): Aggregated outputs from test_step
         """
         outputs = self.aggregate_epoch_metrics(outputs, mode="Test")
+        self.log_to_console(outputs, mode="Test")
 
 
 def _make_specialized_pl_module(predictor_cls):
