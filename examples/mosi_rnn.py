@@ -17,13 +17,13 @@ if __name__ == "__main__":
 
     configure_logging(f"logs/{EXPERIMENT_NAME}")
 
-    modalities = {"text"}  # {"text", "audio", "visual"}
+    modalities = {"text", "audio", "visual"}
     collate_fn = MultimodalSequenceClassificationCollator(
         device="cpu", modalities=modalities
     )
 
     train_data, dev_data, test_data, w2v = mosi(
-        "data/mosi_final_aligned",
+        "data/mosi",
         pad_back=False,
         max_length=-1,
         pad_front=True,
@@ -62,29 +62,29 @@ if __name__ == "__main__":
     )
     ldm.setup()
 
-    model = MOSEITextClassifier(
-        300,
-        1,
-        hidden_size=100,
-        layers=1,
-        attention=True,
-        nystrom=False,
-        kernel_size=None,
-    )
-
-    # feature_sizes = {"audio": 74, "visual": 35, "text": 300}
-
-    # model = RNNLateFusionClassifier(
-    #     feature_sizes,
+    # model = MOSEITextClassifier(
+    #     300,
     #     1,
+    #     hidden_size=100,
+    #     layers=1,
     #     attention=True,
     #     nystrom=False,
     #     kernel_size=None,
-    #     num_layers=1,
-    #     num_heads=1,
-    #     dropout=0.1,
-    #     hidden_size=100,
     # )
+
+    feature_sizes = {"audio": 74, "visual": 35, "text": 300}
+
+    model = RNNLateFusionClassifier(
+        feature_sizes,
+        1,
+        attention=True,
+        nystrom=False,
+        kernel_size=None,
+        num_layers=1,
+        num_heads=1,
+        dropout=0.1,
+        hidden_size=100,
+    )
 
     optimizer = Adam([p for p in model.parameters() if p.requires_grad], lr=1e-3)
     criterion = nn.MSELoss()

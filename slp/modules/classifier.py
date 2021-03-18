@@ -244,7 +244,7 @@ class TransformerLateFusionClassifier(nn.Module):
         kernel_size=33,
         prenorm=True,
         scalenorm=True,
-        use_mmdrop=False,
+        multi_modal_drop="mmdrop",
         p_mmdrop=0.5,
         p_drop_modalities=None,
         mmdrop_mode="hard",
@@ -271,17 +271,40 @@ class TransformerLateFusionClassifier(nn.Module):
                 for m in self.modalities
             }
         )
+        self.modality_drop = None
         self.mmdrop = None
-        if use_mmdrop:
+        if multi_modal_drop == "mmdrop":
             self.mmdrop = MultimodalDropout(
                 p=p_mmdrop,
                 n_modalities=len(self.modalities),
                 p_mod=p_drop_modalities,
                 mode=mmdrop_mode,
             )
+        elif multi_modal_drop == "dropout":
+            self.modality_drop = nn.Dropout(dropout)
+        elif multi_modal_drop == "both":
+            self.mmdrop = MultimodalDropout(
+                p=p_mmdrop,
+                n_modalities=len(self.modalities),
+                p_mod=p_drop_modalities,
+                mode=mmdrop_mode,
+            )
+            self.modality_drop = nn.Dropout(dropout)
+        elif multi_modal_drop == "none":
+            pass
+        else:
+            raise ValueError(
+                "Not a specified mmdrop value given. Pls check your config file."
+            )
+
         self.out_size = sum([e.out_size for e in self.modality_encoders.values()])
-        self.clf = nn.Linear(self.out_size, num_classes)
-        self.drop = nn.Dropout(dropout)
+        self.clf = nn.Sequential(
+            nn.Linear(self.out_size, self.out_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(self.out_size, num_classes),
+        )
+        # self.drop = nn.Dropout(dropout)
 
     def forward(self, inputs, attention_masks=None):
         if attention_masks is None:
@@ -293,11 +316,13 @@ class TransformerLateFusionClassifier(nn.Module):
             self.modality_encoders[m](inputs[m], attention_mask=attention_masks[m])
             for m in self.modalities
         ]
+
         if self.mmdrop is not None:
             encoded = self.mmdrop(*encoded)
-
         fused = torch.cat(encoded, dim=-1)
-        fused = self.drop(fused)
+        if self.modality_drop is not None:
+            fused = self.modality_drop(fused)
+
         out = self.clf(fused)
 
         return out
