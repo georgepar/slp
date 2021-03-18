@@ -41,7 +41,7 @@ lr_schedule:  # ReduceLROnPlateau parameters
 
 trainer:
   experiment_name: mosei-transformer
-  experiment description: |
+  experiment_description: |
     A vanilla transformer architecture is used for each modality and the final represenatations
     are concatenated (late-fusion) and fed to a feedforward net to perform the regression task (L1).
   experiments_folder: experiments  # Local folder to save the logs

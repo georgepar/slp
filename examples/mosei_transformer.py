@@ -12,7 +12,7 @@ from slp.modules.classifier import TransformerLateFusionClassifier
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.plbind.helpers import FromLogits
-from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7
+from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7, MoseiF1
 from slp.plbind.module import MultimodalTransformerClassificationPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
@@ -262,22 +262,17 @@ if __name__ == "__main__":
         optimizer,
         criterion,
         metrics={
-            "acc2": MoseiAcc2(exclude_non_zero=True),
-            "acc2_zero": MoseiAcc2(exclude_non_zero=False),
+            "acc2": MoseiAcc2(exclude_neutral=True),
+            "acc2_zero": MoseiAcc2(exclude_neutral=False),
             "acc5": MoseiAcc5(),
             "acc7": MoseiAcc7(),
+            "f1": MoseiF1(exclude_neutral=True),
+            "f1_zero": MoseiF1(exclude_neutral=False),
             "mae": torchmetrics.MeanAbsoluteError(),
         },
     )
 
-    trainer = make_trainer(
-        config.trainer.experiment_name,
-        # max_epochs=config.trainer.max_epochs,
-        max_epochs=1,
-        gpus=config.trainer.gpus,
-        save_top_k=config.trainer.save_top_k,
-        gradient_clip_val=config.trainer.gradient_clip_val,
-    )
+    trainer = make_trainer(**config.trainer)
     watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)
