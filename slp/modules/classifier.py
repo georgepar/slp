@@ -247,7 +247,6 @@ class TransformerLateFusionClassifier(nn.Module):
         multi_modal_drop="mmdrop",
         p_mmdrop=0.5,
         p_drop_modalities=None,
-        mmdrop_mode="hard",
     ):
         super(TransformerLateFusionClassifier, self).__init__()
         self.modalities = modality_feature_sizes.keys()
@@ -273,23 +272,30 @@ class TransformerLateFusionClassifier(nn.Module):
         )
         self.modality_drop = None
         self.mmdrop = None
-        if multi_modal_drop == "mmdrop":
+        if multi_modal_drop == "mmdrop_hard":
             self.mmdrop = MultimodalDropout(
                 p=p_mmdrop,
                 n_modalities=len(self.modalities),
                 p_mod=p_drop_modalities,
-                mode=mmdrop_mode,
+                mode="hard",
+            )
+        elif multi_modal_drop == "mmdrop_soft":
+            self.mmdrop = MultimodalDropout(
+                p=p_mmdrop,
+                n_modalities=len(self.modalities),
+                p_mod=p_drop_modalities,
+                mode="soft",
             )
         elif multi_modal_drop == "dropout":
-            self.modality_drop = nn.Dropout(dropout)
+            self.modality_drop = nn.Dropout(p_mmdrop)
         elif multi_modal_drop == "both":
             self.mmdrop = MultimodalDropout(
                 p=p_mmdrop,
                 n_modalities=len(self.modalities),
                 p_mod=p_drop_modalities,
-                mode=mmdrop_mode,
+                mode="hard",
             )
-            self.modality_drop = nn.Dropout(dropout)
+            self.modality_drop = nn.Dropout(p_mmdrop)
         elif multi_modal_drop == "none":
             pass
         else:
