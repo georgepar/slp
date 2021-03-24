@@ -1,0 +1,9 @@
+tune:
+  num_trials: 1000
+  gpus_per_trial: !!float 0.15
+  metric: validation_loss
+  mode: min
+
+trainer:
+  max_epochs: 100
+  patience: 10

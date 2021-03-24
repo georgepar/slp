@@ -1,0 +1,89 @@
+debug: false  # Run in debug mode
+seed: null  # Deterministic run
+optimizer: Adam  # Which optimizer class to use
+lr_scheduler: false  # Use ReduceLROnPlateau scheduler
+
+modalities:
+ - text
+ - audio
+ - visual
+
+model:
+  feature_sizes:
+      audio: 74
+      visual: 35
+      text: 300
+  max_length: -1
+  kernel_size: 33 # used for cnn residual trick
+  batch_first: true
+  bidirectional: true
+  packed_sequence: true
+  merge_bi: "sum"
+  rnn_type: "lstm"
+  attention: true
+  nystrom: false
+  num_landmarks: 32
+  num_layers: 1
+  num_heads: 1
+  dropout: 0.2
+  hidden_size: 100
+  multi_modal_drop: "none" # other options are "dropout", "mmdrop_soft", "mmdrop_hard"
+  mmdrop_before_fuse: false
+  mmdrop_after_fuse: false
+  p_mmdrop: 0.33
+  p_drop_modalities: [0.33, 0.33, 0.33]
+
+optim:  # optimizer parameters
+  lr: 5e-4
+  # weight_decay: 1e-4
+
+lr_schedule:  # ReduceLROnPlateau parameters
+  factor: 0.5 # multiply lr by factor when hit plateau
+  patience: 2 # in epochs
+  cooldown: 2
+  min_lr: 25e-6
+
+trainer:
+  experiment_name: mosei-rnn-mmlatch-baseline
+  experiment_description: |
+    MOSEI MMLatch baseline architecture
+  experiments_folder: rnn_experiments  # Local folder to save the logs
+  save_top_k: 1  # Keep k best checkpoints
+  patience: 10  # Early stopping patience
+  tags: ["mosei", "transformer", "dropout", "late-fusion"]
+  stochastic_weight_avg: false  # Experimental. Use stochastic weight averaging https://pytorch.org/blog/stochastic-weight-averaging-in-pytorch/
+  gpus: 0  # How many gpus to use. 0 means cpu run
+  check_val_every_n_epoch: 1  # How often to calculate metrics on validation set
+  gradient_clip_val: 0  # 0 means no grad clipping
+  max_epochs: 100
+  force_wandb_offline: false  # Use offline execution
+  early_stop_on: val_loss  # Metric to track for early_stopping / checkpointing
+  early_stop_mode: min
+
+data:
+  val_percent: 0.2  # Split validation set with this percentage if no default validation set is provided
+  test_percent: 0.2  # Split test set with this percentage if no default test set is provided
+  batch_size: 32
+  batch_size_eval: 32  # batch size for validation / testing
+  num_workers: 1  # Dataloader parameters
+  pin_memory: true
+  drop_last: false
+  shuffle_eval: false
+
+
+preprocessing:
+  max_length: -1
+  pad_front: True
+  pad_back: False
+  remove_pauses: True
+  already_aligned: True
+  align_features: False
+
+
+# If we perform hyperparameter tuning use this configuration
+#tune:
+#  num_trials: 1000
+#  gpus_per_trial: !float 0.12
+#  cpus_per_trial: 1
+#  metric: "accuracy"
+#  mode: "max"

@@ -7,13 +7,22 @@ import torch.nn.functional as F
 
 from slp.util.pytorch import moore_penrose_pinv
 
+def reset_parameters(named_parameters, method="uniform"):
+    """Initialize parameters in the transformer model
+    - Xavier uniform
+    - Xavier normal
 
-def reset_parameters(named_parameters):
-    """Initialize parameters in the transformer model."""
+    Args:
+        named_parameters (torch.Tensor)
+        method (str): ["uniform" | "normal"]
+    """
 
     for name, p in named_parameters:
         if "weight" in name:
-            nn.init.xavier_normal_(p)
+            if method == "uniform":
+                nn.init.xavier_uniform_(p)
+            else:
+                nn.init.xavier_normal_(p)
 
         if "bias" in name:
             nn.init.constant_(p, 0.0)

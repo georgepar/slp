@@ -1,7 +1,6 @@
 from typing import Dict, List, Tuple
 
 import torch
-
 from slp.util.pytorch import mktensor, pad_sequence
 from slp.util.types import Label
 
@@ -172,10 +171,10 @@ class MultimodalSequenceClassificationCollator(object):
 
         for m in self.modalities:
             seq = self.extract_sequence(batch, m)
-            lengths[m] = torch.tensor([s.size(0) for s in seq], device=self.device)
+            # lengths[m] = torch.tensor([s.size(0) for s in seq], device=self.device)
 
-            if self.max_length > 0:
-                lengths[m] = torch.clamp(lengths[m], min=0, max=self.max_length)
+            #if self.max_length > 0:
+            #    lengths[m] = torch.clamp(lengths[m], min=0, max=self.max_length)
 
             inputs[m] = pad_sequence(
                 seq,
@@ -183,6 +182,13 @@ class MultimodalSequenceClassificationCollator(object):
                 padding_value=self.pad_indx,
                 max_length=self.max_length,
             ).to(self.device)
+
+            lengths[m] = torch.tensor(
+                [inputs[m].size(1) for s in range(inputs[m].size(0))], device=self.device
+            )
+
+            if self.max_length > 0:
+                lengths[m] = torch.clamp(lengths[m], min=0, max=self.max_length)
 
         targets: List[Label] = [b[self.label_key] for b in batch]
 

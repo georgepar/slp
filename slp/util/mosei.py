@@ -3,6 +3,36 @@
 # - models: [rnn, transformer]
 from argparse import ArgumentParser
 
+import torch
+from slp.util.mosei_metrics import eval_mosei_senti
+
+
+def test_mosei(lm, ldm, trainer, modalities):
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    ckpt = torch.load(ckpt_path, map_location="cpu")
+    lm.load_state_dict(ckpt["state_dict"])
+    lm = lm.cuda()
+
+    preds = []
+    labels = []
+
+    for batch in ldm.test_dataloader():
+        for m in modalities:
+            batch[0][m] = batch[0][m].cuda()
+            batch[2][m] = batch[2][m].cuda()
+        batch[1] = batch[1].cuda()
+        y_hat, targets = lm.predictor.get_predictions_and_targets(lm.model, batch)
+        preds.append(y_hat.detach().cpu())
+        labels.append(targets.detach().cpu())
+
+    preds = torch.cat(preds, dim=0)
+    labels = torch.cat(labels, dim=0)
+
+    results = eval_mosei_senti(preds, labels, exclude_zero=True)
+
+    return results
+
+
 def get_mosei_parser():
     parser = ArgumentParser("Transformer-MOSEI example")
 
@@ -94,6 +124,20 @@ def get_mosei_parser():
         help="Which dropout is applied to the late fusion stage",
     )
     parser.add_argument(
+        "--use-mmdrop-before",
+        dest="model.mmdrop_before_fuse",
+        default=False,
+        action="store_true",
+        help="apply mmdrop at early unimodal representations",
+    )
+    parser.add_argument(
+        "--use-mmdrop-after",
+        dest="model.mmdrop_after_fuse",
+        default=False,
+        action="store_true",
+        help="apply mmdrop at late crossmodal representations",
+    )
+    parser.add_argument(
         "--p-mmdrop",
         dest="model.p_mmdrop",
         type=float,
@@ -131,7 +175,7 @@ def get_mosei_parser():
         dest="preprocessing.max_length",
         default=-1,
         type=int,
-        help="Crop feature sequences during data ingestion from cmusdk"
+        help="Crop feature sequences during data ingestion from cmusdk",
     )
     parser.add_argument(
         "--already-unaligned",
@@ -148,5 +192,3 @@ def get_mosei_parser():
     )
 
     return parser
-
-

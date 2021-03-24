@@ -87,6 +87,7 @@ class RNN(nn.Module):
         """
         out: int = (
             2 * cls.hidden_size
+
             if cls.bidirectional and cls.merge_bi == "cat"
             else cls.hidden_size
         )
@@ -222,6 +223,7 @@ class AttentiveRNN(nn.Module):
         num_landmarks: int = 32,
         kernel_size: Optional[int] = 33,
         inverse_iterations: int = 6,
+        return_hidden: bool = False,
     ):
         """RNN with embedding layer and optional attention mechanism
 
@@ -246,6 +248,10 @@ class AttentiveRNN(nn.Module):
             kernel_size (int): Kernel size for multihead attention output residual convolution
             inverse_iterations (int): Number of iterations for moore-penrose inverse approximation
                 in nystrom attention. 6 is a good value
+            return_hidden (bool): Return all hidden states or a single state. If attention is
+                used the weighted mean of hidden states is returned. If no attention is used and
+                return_hidden is False the last hidden state is returned. If return_hidden is true
+                all hidden states are returned (weighted by attention scores if attention is used).
         """
         super(AttentiveRNN, self).__init__()
         self.rnn = RNN(
@@ -262,12 +268,14 @@ class AttentiveRNN(nn.Module):
         )
         self.out_size = (
             hidden_size
+
             if not (bidirectional and merge_bi == "cat")
             else 2 * hidden_size
         )
         self.batch_first = batch_first
 
         self.attention = None
+        self.return_hidden = return_hidden
 
         if attention:
             if num_heads == 1:
@@ -307,11 +315,19 @@ class AttentiveRNN(nn.Module):
                     lengths, max_length=out.size(1) if self.batch_first else out.size(0)
                 ),
             )
-            out = out.mean(dim=1)
-        else:
-            out = last_hidden
 
-        return out  # type: ignore
+            if self.return_hidden:
+                outputs = out
+            else:
+                outputs = out.mean(dim=1)
+                # outputs = out.sum(dim=1)
+        else:
+            if self.return_hidden:
+                outputs = out
+            else:
+                outputs = last_hidden
+
+        return outputs  # type: ignore
 
 
 class TokenRNN(nn.Module):

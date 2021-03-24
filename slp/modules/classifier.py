@@ -5,11 +5,10 @@ import torch
 import torch.nn as nn
 from slp.modules.embed import PositionalEncoding
 from slp.modules.mmdrop import MultimodalDropout
+from slp.modules.multimodal import AttentionFuser
 from slp.modules.rnn import AttentiveRNN, TokenRNN
-from slp.modules.transformer import (
-    TransformerSequenceEncoder,
-    TransformerTokenSequenceEncoder,
-)
+from slp.modules.transformer import (TransformerSequenceEncoder,
+                                     TransformerTokenSequenceEncoder)
 
 
 class Classifier(nn.Module):
@@ -267,11 +266,13 @@ class TransformerLateFusionClassifier(nn.Module):
                     prenorm=prenorm,
                     scalenorm=scalenorm,
                 )
+
                 for m in self.modalities
             }
         )
-        self.modality_drop = None
+        self.dropout = None
         self.mmdrop = None
+
         if multi_modal_drop == "mmdrop_hard":
             self.mmdrop = MultimodalDropout(
                 p=p_mmdrop,
@@ -287,7 +288,7 @@ class TransformerLateFusionClassifier(nn.Module):
                 mode="soft",
             )
         elif multi_modal_drop == "dropout":
-            self.modality_drop = nn.Dropout(p_mmdrop)
+            self.dropout = nn.Dropout(p_mmdrop)
         elif multi_modal_drop == "both":
             self.mmdrop = MultimodalDropout(
                 p=p_mmdrop,
@@ -295,7 +296,7 @@ class TransformerLateFusionClassifier(nn.Module):
                 p_mod=p_drop_modalities,
                 mode="hard",
             )
-            self.modality_drop = nn.Dropout(p_mmdrop)
+            self.dropout = nn.Dropout(p_mmdrop)
         elif multi_modal_drop == "none":
             pass
         else:
@@ -305,9 +306,9 @@ class TransformerLateFusionClassifier(nn.Module):
 
         self.out_size = sum([e.out_size for e in self.modality_encoders.values()])
         self.clf = nn.Sequential(
-            nn.Linear(self.out_size, self.out_size),
-            nn.ReLU(),
-            nn.Dropout(dropout),
+            # nn.Linear(self.out_size, self.out_size),
+            # nn.ReLU(),
+            # nn.Dropout(dropout),
             nn.Linear(self.out_size, num_classes),
         )
         # self.drop = nn.Dropout(dropout)
@@ -320,15 +321,100 @@ class TransformerLateFusionClassifier(nn.Module):
 
         encoded = [
             self.modality_encoders[m](inputs[m], attention_mask=attention_masks[m])
+
             for m in self.modalities
         ]
 
         if self.mmdrop is not None:
             encoded = self.mmdrop(*encoded)
         fused = torch.cat(encoded, dim=-1)
-        if self.modality_drop is not None:
-            fused = self.modality_drop(fused)
 
+        if self.dropout is not None:
+            fused = self.dropout(fused)
+
+        fused = fused.mean(dim=1)
+        out = self.clf(fused)
+
+        return out
+
+
+class TransformerSymmetricAttnFusionClassifier(nn.Module):
+    def __init__(
+        self,
+        modality_feature_sizes,
+        num_classes,
+        num_layers=2,
+        hidden_size=100,
+        num_heads=4,
+        max_length=512,
+        inner_size=400,
+        dropout=0.1,
+        nystrom=True,
+        num_landmarks=32,
+        kernel_size=33,
+        prenorm=True,
+        scalenorm=True,
+        multi_modal_drop="mmdrop",
+        p_mmdrop=0.5,
+        mmdrop_before_fuse=True,
+        mmdrop_after_fuse=True,
+        p_drop_modalities=None,
+    ):
+        super(TransformerSymmetricAttnFusionClassifier, self).__init__()
+        self.modalities = modality_feature_sizes.keys()
+        self.modality_encoders = nn.ModuleDict(
+            {
+                m: TransformerSequenceEncoder(
+                    modality_feature_sizes[m],
+                    feature_normalization=True if m == "audio" else False,
+                    num_layers=num_layers,
+                    hidden_size=hidden_size,
+                    num_heads=num_heads,
+                    max_length=max_length,
+                    inner_size=inner_size,
+                    dropout=dropout,
+                    nystrom=nystrom,
+                    num_landmarks=num_landmarks,
+                    kernel_size=kernel_size,
+                    prenorm=prenorm,
+                    scalenorm=scalenorm,
+                )
+
+                for m in self.modalities
+            }
+        )
+        self.fuser = AttentionFuser(
+            proj_sz=hidden_size,
+            residual=1,
+            return_hidden=True,
+            p_dropout=dropout,
+            p_mmdrop=p_mmdrop,
+            p_drop_modalities=p_drop_modalities,
+            multi_modal_drop=multi_modal_drop,
+            mmdrop_before_fuse=mmdrop_before_fuse,
+            mmdrop_after_fuse=mmdrop_after_fuse,
+        )
+        self.clf = nn.Sequential(
+            # nn.Linear(self.out_size, self.out_size),
+            # nn.ReLU(),
+            # nn.Dropout(dropout),
+            nn.Linear(self.fuser.out_size, num_classes),
+        )
+        # self.drop = nn.Dropout(dropout)
+
+    def forward(self, inputs, attention_masks=None):
+        if attention_masks is None:
+            attention_masks = dict(
+                zip(self.modalities, [None for _ in self.modalities])
+            )
+
+        encoded = {
+            m: self.modality_encoders[m](inputs[m], attention_mask=attention_masks[m])
+
+            for m in self.modalities
+        }
+        fused = self.fuser(encoded["text"], encoded["audio"], encoded["visual"])
+        fused = fused.mean(dim=1)
         out = self.clf(fused)
 
         return out
@@ -379,10 +465,12 @@ class RNNLateFusionClassifier(nn.Module):
                     num_landmarks=num_landmarks,
                     kernel_size=kernel_size,
                 )
+
                 for m in self.modalities
             }
         )
         self.mmdrop = None
+
         if use_mmdrop:
             self.mmdrop = MultimodalDropout(
                 p=p_mmdrop,
@@ -398,10 +486,110 @@ class RNNLateFusionClassifier(nn.Module):
         encoded = [
             self.modality_encoders[m](inputs[m], lengths[m]) for m in self.modalities
         ]
+
         if self.mmdrop is not None:
             encoded = self.mmdrop(*encoded)
         fused = torch.cat(encoded, dim=-1)
         fused = self.drop(fused)
+        out = self.clf(fused)
+
+        return out
+
+
+class RNNSymAttnFusionRNNClassifier(nn.Module):
+    def __init__(
+        self,
+        modality_feature_sizes,
+        num_classes,
+        num_layers=2,
+        batch_first=True,
+        bidirectional=True,
+        packed_sequence=True,
+        merge_bi="cat",
+        rnn_type="lstm",
+        attention=True,
+        hidden_size=100,
+        num_heads=4,
+        max_length=-1,
+        dropout=0.1,
+        nystrom=True,
+        num_landmarks=32,
+        kernel_size=33,
+        multi_modal_drop="mmdrop",
+        p_mmdrop=0.5,
+        mmdrop_before_fuse=True,
+        mmdrop_after_fuse=True,
+        p_drop_modalities=None,
+    ):
+        super(RNNSymAttnFusionRNNClassifier, self).__init__()
+        self.modalities = modality_feature_sizes.keys()
+        self.modality_encoders = nn.ModuleDict(
+            {
+                m: AttentiveRNN(
+                    modality_feature_sizes[m],
+                    hidden_size=hidden_size,
+                    batch_first=batch_first,
+                    layers=num_layers,
+                    bidirectional=bidirectional,
+                    merge_bi=merge_bi,
+                    dropout=dropout,
+                    rnn_type=rnn_type,
+                    packed_sequence=packed_sequence,
+                    attention=attention,
+                    max_length=max_length,
+                    num_heads=num_heads,
+                    nystrom=nystrom,
+                    num_landmarks=num_landmarks,
+                    kernel_size=kernel_size,
+                    return_hidden=True,
+                )
+
+                for m in self.modalities
+            }
+        )
+        self.fuser = AttentionFuser(
+            proj_sz=hidden_size,
+            residual=1,
+            return_hidden=True,
+            p_dropout=0.1,
+            p_mmdrop=p_mmdrop,
+            p_drop_modalities=p_drop_modalities,
+            multi_modal_drop=multi_modal_drop,
+            mmdrop_before_fuse=mmdrop_before_fuse,
+            mmdrop_after_fuse=mmdrop_after_fuse,
+        )
+        self.rnn = AttentiveRNN(
+            self.fuser.out_size,
+            hidden_size=hidden_size,
+            batch_first=batch_first,
+            layers=num_layers,
+            bidirectional=bidirectional,
+            merge_bi="cat",
+            dropout=0.1,
+            rnn_type=rnn_type,
+            packed_sequence=packed_sequence,
+            attention=attention,
+            num_heads=num_heads,
+            nystrom=False,
+            return_hidden=True,
+        )
+        self.clf = nn.Sequential(
+            # nn.Linear(self.out_size, self.out_size),
+            # nn.ReLU(),
+            # nn.Dropout(dropout),
+            nn.Linear(self.rnn.out_size, num_classes),
+        )
+        # self.drop = nn.Dropout(dropout)
+
+    def forward(self, inputs, lengths):
+        encoded = {
+            m: self.modality_encoders[m](inputs[m], lengths[m]) for m in self.modalities
+        }
+
+        fused = self.fuser(encoded["text"], encoded["audio"], encoded["visual"])
+        fused = self.rnn(fused, lengths["text"])
+        fused = fused.mean(dim=1)
+        # fused = fused.sum(dim=1)
         out = self.clf(fused)
 
         return out

@@ -436,7 +436,9 @@ class TransformerSequenceEncoder(nn.Module):
 
         x = self.embed(x)
         x = self.pe(x)
-        out = self.transformer_block(x, attention_mask=attention_mask).mean(dim=1)
+        # original geopar's implementation contains mean
+        # out = self.transformer_block(x, attention_mask=attention_mask).mean(dim=1)
+        out = self.transformer_block(x, attention_mask=attention_mask)
 
         return out
 

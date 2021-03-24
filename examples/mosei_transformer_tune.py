@@ -10,8 +10,13 @@ from slp.data.cmusdk import mosei
 from slp.data.collators import MultimodalSequenceClassificationCollator
 from slp.data.multimodal import MOSEI
 from slp.modules.classifier import TransformerLateFusionClassifier
-from slp.plbind import (FromLogits, PLDataModuleFromDatasets, PLModule,
-                        make_trainer, make_trainer_for_ray_tune)
+from slp.plbind import (
+    FromLogits,
+    PLDataModuleFromDatasets,
+    PLModule,
+    make_trainer,
+    make_trainer_for_ray_tune,
+)
 from slp.plbind.dm import PLDataModuleFromDatasets, split_data
 from slp.plbind.helpers import FromLogits
 from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7, MoseiF1
@@ -161,11 +166,13 @@ def train_mosei(config, train=None, val=None):
     # )
 
     # Map Lightning metrics to ray tune metris.
-    metrics_map = {"validation_loss": "best_score",
-                   "val_accuracy": "acc2",
-                   "val_f1": "f1",
-                   "acc5": "acc5",
-                   "acc7": "acc7"}
+    metrics_map = {
+        "validation_loss": "best_score",
+        "val_accuracy": "acc2",
+        "val_f1": "f1",
+        "acc5": "acc5",
+        "acc7": "acc7",
+    }
     assert (
         config["tune"]["metric"] in metrics_map.keys()
     ), "Metrics mapping should contain the metric you are trying to optimize"
@@ -259,7 +266,9 @@ if __name__ == "__main__":
     #     "mode": "max",
     # }
     config["wandb"] = {}
-    config["wandb"]["project"] = "tuning-mosei-transformer-architecture-tareted-bottleneck"
+    config["wandb"][
+        "project"
+    ] = "tuning-mosei-transformer-architecture-tareted-bottleneck"
     # config["trainer"]["max_epochs"] = 15
     config = OmegaConf.create(config)
 

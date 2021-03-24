@@ -1,0 +1,139 @@
+data:
+  batch_size: 8
+  batch_size_eval: 32
+  drop_last: false
+  num_workers: 1
+  pin_memory: true
+  shuffle_eval: true
+  test_percent: 0.2
+  val_percent: 0.2
+debug: false
+lr_schedule:
+  cooldown: 0
+  factor: 0.1
+  min_lr: 0
+  patience: 2
+lr_scheduler: true
+model:
+  dropout: 0.3514145459068182
+  hidden_size: 16
+  inner_size: 32
+  kernel_size: 33
+  num_heads: 8
+  num_layers: 4
+  prenorm: true
+  scalenorm: false
+optim:
+  lr: 0.003747889114691659
+  weight_decay: 0.001777423468219861
+optimizer: AdamW
+trainer:
+  check_val_every_n_epoch: 1
+  early_stop_mode: min
+  early_stop_on: val_loss
+  experiment_name: mosi-tuning
+  experiments_folder: experiments
+  force_wandb_offline: false
+  gpus: 1
+  gradient_clip_val: 1.0
+  max_epochs: 100
+  patience: 10
+  save_top_k: 3
+  stochastic_weight_avg: false
+  tags: []
+tune:
+  cpus_per_trial: 1
+  gpus_per_trial: 0.15
+  metric: validation_loss
+  mode: min
+  num_trials: 3
+  result:
+    config:
+      data:
+        batch_size: 8
+        batch_size_eval: 32
+        drop_last: false
+        num_workers: 1
+        pin_memory: true
+        shuffle_eval: true
+        test_percent: 0.2
+        val_percent: 0.2
+      debug: false
+      lr_schedule:
+        cooldown: 0
+        factor: 0.1
+        min_lr: 0
+        patience: 2
+      lr_scheduler: true
+      model:
+        dropout: 0.3514145459068182
+        hidden_size: 16
+        inner_size: 32
+        kernel_size: 33
+        num_heads: 8
+        num_layers: 4
+        prenorm: true
+        scalenorm: false
+      optim:
+        lr: 0.003747889114691659
+        weight_decay: 0.001777423468219861
+      optimizer: AdamW
+      trainer:
+        check_val_every_n_epoch: 1
+        early_stop_mode: min
+        early_stop_on: val_loss
+        experiment_name: mosi-tuning
+        experiments_folder: experiments
+        force_wandb_offline: false
+        gpus: 1
+        gradient_clip_val: 1.0
+        max_epochs: 100
+        patience: 10
+        save_top_k: 3
+        stochastic_weight_avg: false
+        tags: []
+      tune:
+        cpus_per_trial: 1
+        gpus_per_trial: 0.15
+        metric: validation_loss
+        mode: min
+        num_trials: 3
+      wandb:
+        anonymous: never
+        entity: null
+        group: tune-20210317-144342
+        mode: online
+        name: mosi-tuning
+        notes: Tuning for mosi-tuning
+        project: null
+        save_code: true
+        tags: []
+    date: 2021-03-17_14-47-14
+    done: true
+    episodes_total: null
+    experiment_id: d5c7b285dac0455ea572a22568b0b514
+    experiment_tag: 1_batch_size=8,batch_size_eval=32,drop_last=False,num_workers=1,pin_memory=True,shuffle_eval=True,test_percent=0.2,val_percent=0.2,debug=False,cooldown=0,factor=0.1,min_lr=0,patience=2,lr_scheduler=True,dropout=0.35141,hidden_size=16,inner_size=32,kernel_size=33,num_heads=8,num_layers=4,prenorm=True,scalenorm=False,lr=0.0037479,weight_decay=0.0017774,optimizer=AdamW,check_val_every_n_epoch=1,early_stop_mode=min,early_stop_on=val_loss,experiment_name=mosi-tuning,experiments_folder=experiments,force_wandb_offline=False,gpus=1,gradient_clip_val=1.0,max_epochs=100,patience=10,save_top_k=3,stochastic_weight_avg=False,tags=[],cpus_per_trial=1,gpus_per_trial=0.15,metric=validation_loss,mode=min,num_trials=3,anonymous=never,entity=None,group=tune-20210317-144342,mode=online,name=mosi-tuning,notes=Tuning
+      for mosi-tuning,project=None,save_code=True,tags=[]
+    hostname: asimov
+    iterations_since_restore: 16
+    node_ip: 195.251.3.210
+    pid: 2426283
+    time_since_restore: 208.34864854812622
+    time_this_iter_s: 12.549523115158081
+    time_total_s: 208.34864854812622
+    timestamp: 1615985234
+    timesteps_since_restore: 0
+    timesteps_total: null
+    training_iteration: 16
+    trial_id: 68bdf6d2
+    validation_loss: 1.7797095775604248
+wandb:
+  anonymous: never
+  entity: null
+  group: tune-20210317-144342
+  mode: online
+  name: mosi-tuning
+  notes: Tuning for mosi-tuning
+  project: null
+  save_code: true
+  tags: []

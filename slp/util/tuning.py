@@ -6,7 +6,6 @@ from omegaconf import DictConfig
 from ray import tune
 from ray.tune.integration.wandb import WandbLogger
 from ray.tune.suggest.optuna import OptunaSearch
-
 from slp.config.omegaconf import OmegaConfExtended as OmegaConf
 from slp.util.system import date_fname, has_internet_connection, yaml_dump
 
@@ -142,10 +141,12 @@ def run_tuning(
         config=cfg,
         max_failures=10,
         num_samples=cfg["tune"]["num_trials"],
-        search_alg=OptunaSearch(metric=metric, mode=mode),
+        # search_alg=OptunaSearch(metric=metric, mode=mode),
         metric=metric,
         mode=mode,
-        # scheduler=tune.schedulers.ASHAScheduler(metric=metric, mode=mode, reduction_factor=2),
+        # scheduler=tune.schedulers.ASHAScheduler(
+        #    metric=metric, mode=mode, reduction_factor=2
+        # ),
         name=f"{cfg['trainer']['experiment_name']}-tuning",
     )
     best_config = analysis.get_best_config(metric, mode)
