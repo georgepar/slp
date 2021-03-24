@@ -87,7 +87,6 @@ class RNN(nn.Module):
         """
         out: int = (
             2 * cls.hidden_size
-
             if cls.bidirectional and cls.merge_bi == "cat"
             else cls.hidden_size
         )
@@ -268,7 +267,6 @@ class AttentiveRNN(nn.Module):
         )
         self.out_size = (
             hidden_size
-
             if not (bidirectional and merge_bi == "cat")
             else 2 * hidden_size
         )

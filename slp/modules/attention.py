@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 from slp.util.pytorch import moore_penrose_pinv
 
+
 def reset_parameters(named_parameters, method="uniform"):
     """Initialize parameters in the transformer model
     - Xavier uniform

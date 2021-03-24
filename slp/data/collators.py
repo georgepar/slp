@@ -173,7 +173,7 @@ class MultimodalSequenceClassificationCollator(object):
             seq = self.extract_sequence(batch, m)
             # lengths[m] = torch.tensor([s.size(0) for s in seq], device=self.device)
 
-            #if self.max_length > 0:
+            # if self.max_length > 0:
             #    lengths[m] = torch.clamp(lengths[m], min=0, max=self.max_length)
 
             inputs[m] = pad_sequence(
@@ -184,7 +184,8 @@ class MultimodalSequenceClassificationCollator(object):
             ).to(self.device)
 
             lengths[m] = torch.tensor(
-                [inputs[m].size(1) for s in range(inputs[m].size(0))], device=self.device
+                [inputs[m].size(1) for s in range(inputs[m].size(0))],
+                device=self.device,
             )
 
             if self.max_length > 0:

@@ -11,8 +11,9 @@ class MultiDropout(nn.Module):
     def __init__(self, p=0.5, inplace=False):
         super(MultiDropout, self).__init__()
         if p < 0 or p > 1:
-            raise ValueError(f"dropout probability has to be between 0 and 1, "
-                             "but got {p}")
+            raise ValueError(
+                f"dropout probability has to be between 0 and 1, " "but got {p}"
+            )
         self.p = p
         self.inplace = inplace
 
@@ -25,10 +26,8 @@ class MultiDropout(nn.Module):
         return mods
 
     def __repr__(self):
-        inplace_str = ', inplace' if self.inplace else ''
-        return self.__class__.__name__ + '(' \
-            + 'p=' + str(self.p) \
-            + inplace_str + ')'
+        inplace_str = ", inplace" if self.inplace else ""
+        return self.__class__.__name__ + "(" + "p=" + str(self.p) + inplace_str + ")"
 
 
 class SymmetricAttention(nn.Module):
@@ -181,7 +180,7 @@ class AttentionFuser(nn.Module):
                 self.mmdrop_after = MultimodalDropout(
                     p=p_mmdrop,
                     n_modalities=7,
-                    p_mod=[1/7, 1/7, 1/7, 1/7, 1/7, 1/7, 1/7],
+                    p_mod=[1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7],
                     mode="hard",
                 )
 
@@ -198,7 +197,7 @@ class AttentionFuser(nn.Module):
                 self.mmdrop_after = MultimodalDropout(
                     p=p_mmdrop,
                     n_modalities=7,
-                    p_mod=[1/7, 1/7, 1/7, 1/7, 1/7, 1/7, 1/7],
+                    p_mod=[1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7],
                     mode="soft",
                 )
         elif multi_modal_drop == "dropout":
@@ -243,8 +242,9 @@ class AttentionFuser(nn.Module):
             tav = tav.sum(1)
 
         if self.mmdrop_after is not None:
-            txt, au, vi, ta, av, tv, tav = \
-                self.mmdrop_after(txt, au, vi, ta, av, tv, tav)
+            txt, au, vi, ta, av, tv, tav = self.mmdrop_after(
+                txt, au, vi, ta, av, tv, tav
+            )
 
         # B x L x 7*D
         fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)

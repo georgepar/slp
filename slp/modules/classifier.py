@@ -7,8 +7,10 @@ from slp.modules.embed import PositionalEncoding
 from slp.modules.mmdrop import MultimodalDropout
 from slp.modules.multimodal import AttentionFuser
 from slp.modules.rnn import AttentiveRNN, TokenRNN
-from slp.modules.transformer import (TransformerSequenceEncoder,
-                                     TransformerTokenSequenceEncoder)
+from slp.modules.transformer import (
+    TransformerSequenceEncoder,
+    TransformerTokenSequenceEncoder,
+)
 
 
 class Classifier(nn.Module):
@@ -266,7 +268,6 @@ class TransformerLateFusionClassifier(nn.Module):
                     prenorm=prenorm,
                     scalenorm=scalenorm,
                 )
-
                 for m in self.modalities
             }
         )
@@ -321,7 +322,6 @@ class TransformerLateFusionClassifier(nn.Module):
 
         encoded = [
             self.modality_encoders[m](inputs[m], attention_mask=attention_masks[m])
-
             for m in self.modalities
         ]
 
@@ -379,7 +379,6 @@ class TransformerSymmetricAttnFusionClassifier(nn.Module):
                     prenorm=prenorm,
                     scalenorm=scalenorm,
                 )
-
                 for m in self.modalities
             }
         )
@@ -410,7 +409,6 @@ class TransformerSymmetricAttnFusionClassifier(nn.Module):
 
         encoded = {
             m: self.modality_encoders[m](inputs[m], attention_mask=attention_masks[m])
-
             for m in self.modalities
         }
         fused = self.fuser(encoded["text"], encoded["audio"], encoded["visual"])
@@ -465,7 +463,6 @@ class RNNLateFusionClassifier(nn.Module):
                     num_landmarks=num_landmarks,
                     kernel_size=kernel_size,
                 )
-
                 for m in self.modalities
             }
         )
@@ -543,7 +540,6 @@ class RNNSymAttnFusionRNNClassifier(nn.Module):
                     kernel_size=kernel_size,
                     return_hidden=True,
                 )
-
                 for m in self.modalities
             }
         )
