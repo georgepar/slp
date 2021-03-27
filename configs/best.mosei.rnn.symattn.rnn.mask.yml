@@ -1,7 +1,7 @@
 debug: false  # Run in debug mode
 seed: null  # Deterministic run
 optimizer: Adam  # Which optimizer class to use
-lr_scheduler: false  # Use ReduceLROnPlateau scheduler
+lr_scheduler: true  # Use ReduceLROnPlateau scheduler
 
 modalities:
  - text
@@ -44,10 +44,10 @@ lr_schedule:  # ReduceLROnPlateau parameters
   min_lr: 25e-6
 
 trainer:
-  experiment_name: mosei-fixed-rnn-baseline
+  experiment_name: mosei-fixed-rnn-M3
   experiment_description: |
-    MOSEI Corrected RNN baseline architecture
-  experiments_folder: iter_2_fixed_rnn_experiments # Local folder to save the logs
+    MOSEI Corrected RNN baseline architecture M3
+  experiments_folder: iter_2_M3_fixed_rnn_experiments # Local folder to save the logs
   save_top_k: 1  # Keep k best checkpoints
   patience: 10  # Early stopping patience
   tags: ["mosei", "transformer", "dropout", "late-fusion"]
@@ -68,7 +68,7 @@ data:
   num_workers: 1  # Dataloader parameters
   pin_memory: true
   drop_last: false
-  shuffle_eval: true
+  shuffle_eval: false
 
 
 preprocessing:

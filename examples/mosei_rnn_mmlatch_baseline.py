@@ -9,6 +9,7 @@ from slp.data.cmusdk import mosei
 from slp.data.collators import MultimodalSequenceClassificationCollator
 from slp.data.multimodal import MOSEI
 from slp.modules.classifier import RNNSymAttnFusionRNNClassifier
+from slp.modules.baseline import AudioVisualTextClassifier
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.helpers import FromLogits
 from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7, MoseiF1
@@ -81,7 +82,28 @@ if __name__ == "__main__":
 
     feature_sizes = config.model.feature_sizes
 
-    model = RNNSymAttnFusionRNNClassifier(
+    # model = RNNSymAttnFusionRNNClassifier(
+    #     feature_sizes,
+    #     1,
+    #     num_layers=config.model.num_layers,
+    #     batch_first=config.model.batch_first,
+    #     bidirectional=config.model.bidirectional,
+    #     packed_sequence=config.model.packed_sequence,
+    #     merge_bi=config.model.merge_bi,
+    #     rnn_type=config.model.rnn_type,
+    #     attention=config.model.attention,
+    #     hidden_size=config.model.hidden_size,
+    #     num_heads=config.model.num_heads,
+    #     max_length=config.model.max_length,
+    #     dropout=config.model.dropout,
+    #     nystrom=False,
+    #     multi_modal_drop=config.model.multi_modal_drop,
+    #     p_mmdrop=config.model.p_mmdrop,
+    #     mmdrop_before_fuse=config.model.mmdrop_before_fuse,
+    #     mmdrop_after_fuse=config.model.mmdrop_after_fuse,
+    #     p_drop_modalities=config.model.p_drop_modalities,
+
+    model = AudioVisualTextClassifier(
         feature_sizes,
         1,
         num_layers=config.model.num_layers,

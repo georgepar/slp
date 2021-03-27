@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from slp.util.pytorch import moore_penrose_pinv
+from slp.util.pytorch import moore_penrose_pinv 
 
 
 def reset_parameters(named_parameters, method="uniform"):

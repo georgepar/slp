@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from slp.modules.attention import Attention
-from slp.modules.mmdrop import MultimodalDropout
+from slp.modules.mmdrop import MultimodalDropout, MultimodalMasking
 from slp.modules.norm import LayerNorm
 
 
@@ -195,6 +195,134 @@ class AttentionFuser(nn.Module):
 
             if mmdrop_after_fuse:
                 self.mmdrop_after = MultimodalDropout(
+                    p=p_mmdrop,
+                    n_modalities=7,
+                    p_mod=[1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7],
+                    mode="soft",
+                )
+        elif multi_modal_drop == "dropout":
+            if mmdrop_before_fuse:
+                # self.mmdrop_before = nn.Dropout(p_mmdrop)
+                self.mmdrop_before = MultiDropout(p_mmdrop)
+
+            if mmdrop_after_fuse:
+                # self.mmdrop_after = nn.Dropout(p_mmdrop)
+                self.mmdrop_after = MultiDropout(p_mmdrop)
+        elif multi_modal_drop == "none":
+            pass
+        else:
+            raise ValueError(
+                "Not a specified mmdrop value given. Pls check your config file."
+            )
+
+        self.out_size = 7 * proj_sz
+
+    def forward(self, txt, au, vi):
+        if self.mmdrop_before is not None:
+            txt, au, vi = self.mmdrop_before(txt, au, vi)
+        ta, at = self.ta(txt, au)
+        va, av = self.va(vi, au)
+        tv, vt = self.tv(txt, vi)
+
+        av = va + av
+        tv = vt + tv
+        ta = ta + at
+
+        tav, _ = self.tav(txt, queries=av)
+
+        # Sum weighted attention hidden states
+
+        if not self.return_hidden:
+            txt = txt.sum(1)
+            au = au.sum(1)
+            vi = vi.sum(1)
+            ta = ta.sum(1)
+            av = av.sum(1)
+            tv = tv.sum(1)
+            tav = tav.sum(1)
+
+        if self.mmdrop_after is not None:
+            txt, au, vi, ta, av, tv, tav = self.mmdrop_after(
+                txt, au, vi, ta, av, tv, tav
+            )
+
+        # B x L x 7*D
+        fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
+
+        return fused
+
+class AttentionMaskedFuser(nn.Module):
+    def __init__(
+        self,
+        proj_sz=None,
+        residual=1,
+        return_hidden=True,
+        p_dropout=0.1,
+        p_mmdrop=0.3,
+        p_drop_modalities=None,
+        multi_modal_drop="mmdrop_hard",
+        mmdrop_before_fuse=True,
+        mmdrop_after_fuse=True,
+    ):
+        super(AttentionMaskedFuser, self).__init__()
+        self.return_hidden = return_hidden
+        self.ta = SymmetricAttention(
+            attention_size=proj_sz,
+            dropout=p_dropout,
+            residual=residual,
+            layernorm=False,
+        )
+
+        self.va = SymmetricAttention(
+            attention_size=proj_sz,
+            dropout=p_dropout,
+            residual=residual,
+            layernorm=False,
+        )
+
+        self.tv = SymmetricAttention(
+            attention_size=proj_sz,
+            dropout=p_dropout,
+            residual=residual,
+            layernorm=False,
+        )
+
+        self.tav = Attention(
+            attention_size=proj_sz,
+            dropout=p_dropout,
+        )
+
+        self.mmdrop_before = None
+        self.mmdrop_after = None
+
+        if multi_modal_drop == "mmdrop_hard":
+            if mmdrop_before_fuse:
+                self.mmdrop_before = MultimodalMasking(
+                    p=p_mmdrop,
+                    n_modalities=3,
+                    p_mod=p_drop_modalities,
+                    mode="hard",
+                )
+
+            if mmdrop_after_fuse:
+                self.mmdrop_after = MultimodalMasking(
+                    p=p_mmdrop,
+                    n_modalities=7,
+                    p_mod=[1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7],
+                    mode="hard",
+                )
+
+        elif multi_modal_drop == "mmdrop_soft":
+            if mmdrop_before_fuse:
+                self.mmdrop_before = MultimodalMasking(
+                    p=p_mmdrop,
+                    n_modalities=3,
+                    p_mod=p_drop_modalities,
+                    mode="soft",
+                )
+
+            if mmdrop_after_fuse:
+                self.mmdrop_after = MultimodalMasking(
                     p=p_mmdrop,
                     n_modalities=7,
                     p_mod=[1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7],
