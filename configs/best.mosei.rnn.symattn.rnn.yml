@@ -49,7 +49,7 @@ trainer:
   experiment_name: mosei-fixed-rnn-baseline
   experiment_description: |
     MOSEI Corrected RNN baseline architecture
-  experiments_folder: iter_2_fixed_rnn_experiments # Local folder to save the logs
+  experiments_folder: rnn_m3_seq_mask # Local folder to save the logs
   save_top_k: 1  # Keep k best checkpoints
   patience: 10  # Early stopping patience
   tags: ["mosei", "transformer", "dropout", "late-fusion"]

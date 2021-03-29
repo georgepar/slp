@@ -7,8 +7,12 @@ import torch.nn as nn
 
 class HardMultimodalDropout(nn.Module):
     def __init__(
-        self, p: float = 0.5, n_modalities: int = 3, p_mod: Optional[List[float]] = None,
-        masking: bool = False, m3_sequential: bool = False
+        self,
+        p: float = 0.5,
+        n_modalities: int = 3,
+        p_mod: Optional[List[float]] = None,
+        masking: bool = False,
+        m3_sequential: bool = False,
     ):
         """MMDrop initial implementation
 
@@ -61,11 +65,12 @@ class HardMultimodalDropout(nn.Module):
                     #         )[0]
                     #     mods[m][batch, timestep, :] = 0.0
                     bsz, seqlen = mods[0].size(0), mods[0].size(1)
-                    p_modal = \
-                        torch.distributions.categorical.Categorical(torch.tensor(self.p_mod))
+                    p_modal = torch.distributions.categorical.Categorical(
+                        torch.tensor(self.p_mod)
+                    )
                     m_cat = p_modal.sample((bsz, seqlen)).to(mods[0].device)
                     for m in range(self.n_modalities):
-                        mask = torch.where(m_cat==m, 0, 1).unsqueeze(2)
+                        mask = torch.where(m_cat == m, 0, 1).unsqueeze(2)
                         mods[m] = mods[m] * mask
 
                 else:
@@ -79,7 +84,7 @@ class HardMultimodalDropout(nn.Module):
                         mask[batch] = 0.0
                         mods[m] = mods[m] * mask
 
-        if self.masking:
+        if not self.masking:
             if self.p > 0:
                 for m in range(len(mods)):
                     keep_prob = 1 - (self.p / self.n_modalities)
@@ -90,8 +95,12 @@ class HardMultimodalDropout(nn.Module):
 
 class SoftMultimodalDropout(nn.Module):
     def __init__(
-        self, p: float = 0.5, n_modalities: int = 3, p_mod: Optional[List[float]] = None,
-        masking: bool = False, m3_sequential: bool = False
+        self,
+        p: float = 0.5,
+        n_modalities: int = 3,
+        p_mod: Optional[List[float]] = None,
+        masking: bool = False,
+        m3_sequential: bool = False,
     ):
         """Soft mmdrop implementation
 
@@ -131,23 +140,26 @@ class SoftMultimodalDropout(nn.Module):
         if self.training:
             if self.m3_sequential:
                 for timestep in range(mods[0].size(1)):
-                    m = random.choices(list(range(self.n_modalities)), weights=self.p_mod, k=1)[
-                        0
-                    ]
+                    m = random.choices(
+                        list(range(self.n_modalities)), weights=self.p_mod, k=1
+                    )[0]
                     binomial = torch.distributions.binomial.Binomial(probs=1 - self.p)
-                    mods[m][timestep] = \
-                        mods[m][timstep] * binomial.sample(mods[m][timestep].size()).to(mods[m].device)
-                    import pdb; pdb.set_trace()
+                    mods[m][timestep] = mods[m][timstep] * binomial.sample(
+                        mods[m][timestep].size()
+                    ).to(mods[m].device)
+                    import pdb
+
+                    pdb.set_trace()
             else:
                 # m = random.randint(0, self.n_modalities - 1)
-                m = random.choices(list(range(self.n_modalities)), weights=self.p_mod, k=1)[
-                    0
-                ]
+                m = random.choices(
+                    list(range(self.n_modalities)), weights=self.p_mod, k=1
+                )[0]
 
                 binomial = torch.distributions.binomial.Binomial(probs=1 - self.p)
                 mods[m] = mods[m] * binomial.sample(mods[m].size()).to(mods[m].device)
 
-        if self.masking:
+        if not self.masking:
             for m in range(self.n_modalities):
                 mods[m] = mods[m] * (1.0 / (1 - self.p / self.n_modalities))
 
@@ -271,7 +283,7 @@ class MultimodalDropout(nn.Module):
         p_mod: Optional[List[float]] = None,
         mode: str = "hard",
         masking: bool = False,
-        m3_sequential: bool = False
+        m3_sequential: bool = False,
     ):
         """mmdrop wrapper class
 
@@ -294,13 +306,18 @@ class MultimodalDropout(nn.Module):
 
         if mode == "hard":
             self.mmdrop = HardMultimodalDropout(
-                p=p, n_modalities=n_modalities,
-                p_mod=p_mod, masking=masking,
+                p=p,
+                n_modalities=n_modalities,
+                p_mod=p_mod,
+                masking=masking,
                 m3_sequential=m3_sequential,
             )
         else:
             self.mmdrop = SoftMultimodalDropout(  # type: ignore
-                p=p, n_modalities=n_modalities, p_mod=p_mod, masking=masking,
+                p=p,
+                n_modalities=n_modalities,
+                p_mod=p_mod,
+                masking=masking,
                 m3_sequential=m3_sequential,
             )
 
