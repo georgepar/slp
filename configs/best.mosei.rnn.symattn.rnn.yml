@@ -32,6 +32,8 @@ model:
   mmdrop_after_fuse: false
   p_mmdrop: 0.33
   p_drop_modalities: [0.33, 0.33, 0.33]
+  use_m3_masking: false
+  use_m3_sequential: false
 
 optim:  # optimizer parameters
   lr: 5e-4

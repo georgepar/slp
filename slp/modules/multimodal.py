@@ -135,6 +135,8 @@ class AttentionFuser(nn.Module):
         multi_modal_drop="mmdrop_hard",
         mmdrop_before_fuse=True,
         mmdrop_after_fuse=True,
+        masking=False,
+        m3_sequential=False,
     ):
         super(AttentionFuser, self).__init__()
         self.return_hidden = return_hidden
@@ -174,6 +176,8 @@ class AttentionFuser(nn.Module):
                     n_modalities=3,
                     p_mod=p_drop_modalities,
                     mode="hard",
+                    masking=masking,
+                    m3_sequential=m3_sequential,
                 )
 
             if mmdrop_after_fuse:
@@ -182,6 +186,8 @@ class AttentionFuser(nn.Module):
                     n_modalities=7,
                     p_mod=[1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7],
                     mode="hard",
+                    masking=masking,
+                    m3_sequential=m3_sequential,
                 )
 
         elif multi_modal_drop == "mmdrop_soft":
@@ -191,6 +197,8 @@ class AttentionFuser(nn.Module):
                     n_modalities=3,
                     p_mod=p_drop_modalities,
                     mode="soft",
+                    masking=masking,
+                    m3_sequential=m3_sequential,
                 )
 
             if mmdrop_after_fuse:
@@ -199,6 +207,8 @@ class AttentionFuser(nn.Module):
                     n_modalities=7,
                     p_mod=[1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7, 1 / 7],
                     mode="soft",
+                    masking=masking,
+                    m3_sequential=m3_sequential,
                 )
         elif multi_modal_drop == "dropout":
             if mmdrop_before_fuse:
@@ -250,6 +260,7 @@ class AttentionFuser(nn.Module):
         fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
 
         return fused
+
 
 class AttentionMaskedFuser(nn.Module):
     def __init__(

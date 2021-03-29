@@ -234,6 +234,8 @@ class AttRnnFuser(nn.Module):
         mmdrop_before_fuse=True,
         mmdrop_after_fuse=False,
         return_hidden=False,
+        masking=False,
+        m3_sequential=False,
     ):
         super(AttRnnFuser, self).__init__()
         self.att_fuser = AttentionFuser(
@@ -246,6 +248,8 @@ class AttRnnFuser(nn.Module):
             multi_modal_drop=multi_modal_drop,
             mmdrop_before_fuse=mmdrop_before_fuse,
             mmdrop_after_fuse=mmdrop_after_fuse,
+            masking=masking,
+            m3_sequential=m3_sequential,
         )
         self.rnn = AttentiveRNN(
             self.att_fuser.out_size,
@@ -263,6 +267,7 @@ class AttRnnFuser(nn.Module):
         out = self.rnn(att, lengths)  # B x L x 2 * D
 
         return out
+
 
 class AttRnnMaskedFuser(nn.Module):
     def __init__(
@@ -423,6 +428,8 @@ class AudioVisualTextEncoder(nn.Module):
         multi_modal_drop="mmdrop_hard",
         mmdrop_before_fuse=True,
         mmdrop_after_fuse=False,
+        masking=False,
+        m3_sequential=False,
     ):
         super(AudioVisualTextEncoder, self).__init__()
 
@@ -469,6 +476,8 @@ class AudioVisualTextEncoder(nn.Module):
             mmdrop_before_fuse=mmdrop_before_fuse,
             mmdrop_after_fuse=mmdrop_after_fuse,
             return_hidden=False,
+            masking=masking,
+            m3_sequential=m3_sequential,
         )
 
         self.out_size = self.fuser.out_size
@@ -592,6 +601,8 @@ class AudioVisualTextClassifier(nn.Module):
         multi_modal_drop="mmdrop_hard",
         mmdrop_before_fuse=True,
         mmdrop_after_fuse=False,
+        masking=False,
+        m3_sequential=False,
         **kwargs,
     ):
         super(AudioVisualTextClassifier, self).__init__()
@@ -609,6 +620,8 @@ class AudioVisualTextClassifier(nn.Module):
             multi_modal_drop=multi_modal_drop,
             mmdrop_before_fuse=mmdrop_before_fuse,
             mmdrop_after_fuse=mmdrop_after_fuse,
+            masking=masking,
+            m3_sequential=m3_sequential,
         )
 
         self.classifier = nn.Linear(self.encoder.out_size, num_classes)

@@ -150,6 +150,20 @@ def get_mosei_parser():
         default=[0.33, 0.33, 0.33],
         help="Per modal drop rate",
     )
+    parser.add_argument(
+        "--m3_masking",
+        dest="model.use_m3_masking",
+        default=False,
+        action="store_true",
+        help="Use M3 Masking scheme",
+    )
+    parser.add_argument(
+        "--m3_sequential",
+        dest="model.use_m3_sequential",
+        default=False,
+        action="store_true",
+        help="Use M3 Sequential Masking scheme",
+    )
 
     # dataset specifications
     parser.add_argument(

@@ -123,6 +123,8 @@ if __name__ == "__main__":
         mmdrop_before_fuse=config.model.mmdrop_before_fuse,
         mmdrop_after_fuse=config.model.mmdrop_after_fuse,
         p_drop_modalities=config.model.p_drop_modalities,
+        masking=config.model.use_m3_masking,
+        m3_sequential=config.model.use_m3_sequential,
     )
     # model = TransformerSymmetricAttnFusionClassifier(
     #     feature_sizes,
