@@ -7,8 +7,31 @@ import torch
 from slp.util.mosei_metrics import eval_mosei_senti
 
 
+def patch_mosei_pickle(train_data, dev_data, test_data):
+    for x in train_data:
+        if "glove" in x:
+            x["text"] = x["glove"]
+
+    for x in dev_data:
+        if "glove" in x:
+            x["text"] = x["glove"]
+
+    for x in test_data:
+        if "glove" in x:
+            x["text"] = x["glove"]
+
+    return train_data, dev_data, test_data
+
+
 def test_mosei(lm, ldm, trainer, modalities):
     ckpt_path = trainer.checkpoint_callback.best_model_path
+    test_loader = ldm.test_dataloader()
+    results = mosei_run_test(lm, test_loader, ckpt_path, modalities)
+
+    return results
+
+
+def mosei_run_test(lm, test_loader, ckpt_path, modalities):
     ckpt = torch.load(ckpt_path, map_location="cpu")
     lm.load_state_dict(ckpt["state_dict"])
     lm = lm.cuda()
@@ -16,7 +39,9 @@ def test_mosei(lm, ldm, trainer, modalities):
     preds = []
     labels = []
 
-    for batch in ldm.test_dataloader():
+    for batch in test_loader:
+        lm.eval()
+
         for m in modalities:
             batch[0][m] = batch[0][m].cuda()
             batch[2][m] = batch[2][m].cuda()
