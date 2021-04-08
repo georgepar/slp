@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import torch.nn as nn
 from loguru import logger
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
-
 from slp.plbind.helpers import EarlyStoppingWithLogs, FixedWandbLogger
 from slp.util.system import date_fname, has_internet_connection, safe_mkdirs
 from slp.util.types import dir_path
@@ -181,6 +180,14 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
     )
 
     parser.add_argument(
+        "--num-nodes",
+        dest="trainer.num_nodes",
+        type=int,
+        default=1,
+        help="Number of nodes to run",
+    )
+
+    parser.add_argument(
         "--steps",
         dest="trainer.max_steps",
         type=int,
@@ -338,6 +345,7 @@ def make_trainer(
     check_val_every_n_epoch: int = 1,
     gradient_clip_val: float = 0,
     precision: int = 32,
+    num_nodes: int = 1,
     max_epochs: Optional[int] = 100,
     max_steps: Optional[int] = None,
     truncated_bptt_steps: Optional[int] = None,
@@ -377,6 +385,7 @@ def make_trainer(
         check_val_every_n_epoch (int, optional): Run validation every n epochs. Defaults to 1.
         gradient_clip_val (float, optional): Clip gradient norm value. Defaults to 0 (no clipping).
         precision (int, optional): Floating point precision. Defaults to 32.
+        num_nodes (int): Number of nodes to run on
         max_epochs (Optional[int], optional): Maximum number of epochs for training. Defaults to 100.
         max_steps (Optional[int], optional): Maximum number of steps for training. Defaults to None.
         truncated_bptt_steps (Optional[int], optional): Truncated back prop breaks performs backprop every k steps of much longer
@@ -427,7 +436,7 @@ def make_trainer(
 
     loggers = [
         pl.loggers.CSVLogger(logging_dir, name="csv_logs", version=run_id),
-        FixedWandbLogger(
+        FixedWandbLogger(  # type: ignore
             name=experiment_name,
             project=wandb_project,
             anonymous=False,
@@ -443,6 +452,11 @@ def make_trainer(
             tags=tags,
         ),
     ]
+
+    if gpus > 1:
+        del loggers[
+            1
+        ]  # https://github.com/PyTorchLightning/pytorch-lightning/issues/6106
 
     logger.info("Configured wandb and CSV loggers.")
     logger.info(
@@ -497,6 +511,7 @@ def make_trainer(
         terminate_on_nan=terminate_on_nan,
         progress_bar_refresh_rate=10,
         profiler=profiler,
+        num_nodes=num_nodes,
     )
 
     return trainer
@@ -587,6 +602,9 @@ def watch_model(trainer: pl.Trainer, model: nn.Module) -> None:
         trainer (pl.Trainer): Trainer
         model (nn.Module): Module to watch
     """
+
+    if trainer.num_gpus > 1:
+        return
 
     if isinstance(trainer.logger.experiment, list):
         for log in trainer.logger.experiment:

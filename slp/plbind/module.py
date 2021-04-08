@@ -607,50 +607,169 @@ class SimplePLModule(pl.LightningModule):
         outputs = self.aggregate_epoch_metrics(outputs, mode="Test")
 
 
-def _make_specialized_pl_module(predictor_cls):
-    """Create a LightningModule wrapper using the provided predictor class
-
-    Args:
-        predictor_cls: Class that defines parse_batch and get_predictions_and_targets
-
-    Returns:
-        pl.LightningModule: Configured LightningModule
-    """
-
-    class Module(SimplePLModule):
-        def __init__(
-            self,
-            model: nn.Module,
-            optimizer: Union[Optimizer, List[Optimizer]],
-            criterion: LossType,
-            lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
-            hparams: Configuration = None,
-            metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
-            calculate_perplexity=False,
-        ):
-            """Pass arguments through to base class"""
-            super(Module, self).__init__(
-                model,
-                optimizer,
-                criterion,
-                predictor_cls=predictor_cls,
-                lr_scheduler=lr_scheduler,
-                hparams=hparams,
-                metrics=metrics,
-                calculate_perplexity=calculate_perplexity,
-            )
-
-    return Module
+class PLModule(SimplePLModule):
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Union[Optimizer, List[Optimizer]],
+        criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        calculate_perplexity=False,
+    ):
+        """Pass arguments through to base class"""
+        super(PLModule, self).__init__(
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_Classification,
+            lr_scheduler=lr_scheduler,
+            hparams=hparams,
+            metrics=metrics,
+            calculate_perplexity=calculate_perplexity,
+        )
 
 
-PLModule = _make_specialized_pl_module(_Classification)
-AutoEncoderPLModule = _make_specialized_pl_module(_AutoEncoder)
-RnnPLModule = _make_specialized_pl_module(_RnnClassification)
-TransformerClassificationPLModule = _make_specialized_pl_module(
-    _TransformerClassification
-)
-TransformerPLModule = _make_specialized_pl_module(_Transformer)
-BertPLModule = _make_specialized_pl_module(_BertSequenceClassification)
-MultimodalTransformerClassificationPLModule = _make_specialized_pl_module(
-    _MultimodalTransformerClassification
-)
+class AutoEncoderPLModule(SimplePLModule):
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Union[Optimizer, List[Optimizer]],
+        criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        calculate_perplexity=False,
+    ):
+        """Pass arguments through to base class"""
+        super(AutoEncoderPLModule, self).__init__(
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_AutoEncoder,
+            lr_scheduler=lr_scheduler,
+            hparams=hparams,
+            metrics=metrics,
+            calculate_perplexity=calculate_perplexity,
+        )
+
+
+class RnnPLModule(SimplePLModule):
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Union[Optimizer, List[Optimizer]],
+        criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        calculate_perplexity=False,
+    ):
+        """Pass arguments through to base class"""
+        super(RnnPLModule, self).__init__(
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_RnnClassification,
+            lr_scheduler=lr_scheduler,
+            hparams=hparams,
+            metrics=metrics,
+            calculate_perplexity=calculate_perplexity,
+        )
+
+
+class TransformerClassificationPLModule(SimplePLModule):
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Union[Optimizer, List[Optimizer]],
+        criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        calculate_perplexity=False,
+    ):
+        """Pass arguments through to base class"""
+        super(TransformerClassificationPLModule, self).__init__(
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_TransformerClassification,
+            lr_scheduler=lr_scheduler,
+            hparams=hparams,
+            metrics=metrics,
+            calculate_perplexity=calculate_perplexity,
+        )
+
+
+class TransformerPLModule(SimplePLModule):
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Union[Optimizer, List[Optimizer]],
+        criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        calculate_perplexity=False,
+    ):
+        """Pass arguments through to base class"""
+        super(TransformerPLModule, self).__init__(
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_Transformer,
+            lr_scheduler=lr_scheduler,
+            hparams=hparams,
+            metrics=metrics,
+            calculate_perplexity=calculate_perplexity,
+        )
+
+
+class BertPLModule(SimplePLModule):
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Union[Optimizer, List[Optimizer]],
+        criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        calculate_perplexity=False,
+    ):
+        """Pass arguments through to base class"""
+        super(BertPLModule, self).__init__(
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_BertSequenceClassification,
+            lr_scheduler=lr_scheduler,
+            hparams=hparams,
+            metrics=metrics,
+            calculate_perplexity=calculate_perplexity,
+        )
+
+
+class MultimodalTransformerClassificationPLModule(SimplePLModule):
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Union[Optimizer, List[Optimizer]],
+        criterion: LossType,
+        lr_scheduler: Union[_LRScheduler, List[_LRScheduler]] = None,
+        hparams: Configuration = None,
+        metrics: Optional[Dict[str, pl.metrics.Metric]] = None,
+        calculate_perplexity=False,
+    ):
+        """Pass arguments through to base class"""
+        super(MultimodalTransformerClassificationPLModule, self).__init__(
+            model,
+            optimizer,
+            criterion,
+            predictor_cls=_MultimodalTransformerClassification,
+            lr_scheduler=lr_scheduler,
+            hparams=hparams,
+            metrics=metrics,
+            calculate_perplexity=calculate_perplexity,
+        )
