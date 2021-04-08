@@ -1,3 +1,4 @@
+# python examples/smpt_bert.py --tokenizer bert-base-uncased --bsz 32 --gpus 1
 from argparse import ArgumentParser
 
 import pytorch_lightning as pl
