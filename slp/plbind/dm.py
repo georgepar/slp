@@ -109,7 +109,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             ValueError: If both mutually exclusive sampler_test and batch_sampler_test are provided
         """
         super(PLDataModuleFromDatasets, self).__init__()
-
+        self.setup_has_run = False
         if batch_sampler_train is not None and sampler_train is not None:
             raise ValueError(
                 "You provided both a sampler and a batch sampler for the train set. These are mutually exclusive"
@@ -214,6 +214,8 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
 
         if not self.no_test_set:
             logger.info(f"Using {len(self.test)} samples for testing")  # type: ignore
+
+        self.setup_has_run = True
 
     def train_dataloader(self) -> DataLoader:
         """Configure train DataLoader
@@ -462,8 +464,11 @@ class PLDataModuleFromCorpus(PLDataModuleFromDatasets):
             no_test_set=no_test_set,
         )
 
-    def setup(self):
-        super(PLDataModuleFromCorpus, self).setup()
+    def setup(self, stage=None):
+        if self.setup_has_run:
+            return
+
+        super(PLDataModuleFromCorpus, self).setup(stage=stage)
 
         train_corpus, train_labels = zip(*self.train)  # type: ignore
         val_corpus, val_labels = zip(*self.val)  # type: ignore
