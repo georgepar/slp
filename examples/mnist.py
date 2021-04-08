@@ -8,9 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from loguru import logger
-from torchvision.datasets import MNIST  # type: ignore
-from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
-
 from slp.config.config_parser import make_cli_parser, parse_config
 from slp.plbind import (
     FromLogits,
@@ -20,6 +17,8 @@ from slp.plbind import (
     watch_model,
 )
 from slp.util.log import configure_logging
+from torchvision.datasets import MNIST  # type: ignore
+from torchvision.transforms import Compose, Normalize, ToTensor  # type: ignore
 
 # Could be read from yaml with OmegaConf.from_yaml
 CONFIG = {
@@ -45,21 +44,36 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
+
         return x
 
 
 def get_data():
-    # Bug from torch vision https://github.com/pytorch/vision/issues/1938
-    from six.moves import urllib
-
-    opener = urllib.request.build_opener()
-    opener.addheaders = [("User-agent", "Mozilla/5.0")]
-    urllib.request.install_opener(opener)
+    # Fix: https://stackoverflow.com/a/66820249
+    MNIST.resources = [
+        (
+            "https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz",
+            "f68b3c2dcbeaaa9fbdd348bbdeb94873",
+        ),
+        (
+            "https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz",
+            "d53e105ee54ea40749a09fcbcd1e9432",
+        ),
+        (
+            "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz",
+            "9fb629c4189551a2d022fa330f9573f3",
+        ),
+        (
+            "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz",
+            "ec29112dd5afa0611ce80d1b7f02629c",
+        ),
+    ]
 
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
     train = MNIST(download=True, root=".", transform=data_transform, train=True)
 
     val = MNIST(download=False, root=".", transform=data_transform, train=False)
+
     return train, val
 
 
@@ -72,6 +86,7 @@ def get_parser():
         default=12,
         help="Intermediate hidden layers for linear module",
     )
+
     return parser
 
 
@@ -103,6 +118,7 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
 
     lr_scheduler = None
+
     if config.lr_scheduler:
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, **config.lr_schedule
@@ -119,6 +135,7 @@ if __name__ == "__main__":
     )
 
     # Run debugging session or fit & test the model ############
+
     if config.debug:
         logger.info("Running in debug mode: Fast run on 5 batches")
         trainer = make_trainer(fast_dev_run=5)
