@@ -568,7 +568,7 @@ class MultiheadSelfAttention(nn.Module):
         # out => (B, H, L, A/H)
         out = merge_heads(out)
         if out.size(1) != seq_length:
-            out = out[:, :seq_length, :]
+            out = out[:, -seq_length:, :]
         out = self.output(out)
 
         return out, scores
