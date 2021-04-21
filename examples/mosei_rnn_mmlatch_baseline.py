@@ -193,7 +193,7 @@ if __name__ == "__main__":
     import os
 
     csv_folder_path = os.path.join(
-        config.trainer.experiments_folder, config.trainer.experiment_name, "results_csv"
+        config.trainer.experiments_folder, config.trainer.experiment_name, "correct_results_csv"
     )
 
     csv_name = os.path.join(csv_folder_path, "results.csv")

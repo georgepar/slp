@@ -92,6 +92,13 @@ class HardMultimodalDropout(nn.Module):
 
         return mods
 
+    def __repr__(self):
+        shout = \
+            self.__class__.__name__ + "(" + "p=" + str(self.p) \
+            + ", masking=" + str(self.masking) + ", sequential=" \
+            + str(self.m3_sequential) + ", p_mod=" + str(self.p_mod) + ")"
+        return shout
+
 
 class SoftMultimodalDropout(nn.Module):
     def __init__(
