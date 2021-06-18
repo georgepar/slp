@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from slp.modules.embed import PositionalEncoding
+from slp.modules.mmdrop import MultimodalDropout
 from slp.modules.rnn import AttentiveRNN, TokenRNN
 from slp.modules.transformer import (
     TransformerSequenceEncoder,
@@ -243,6 +244,9 @@ class TransformerLateFusionClassifier(nn.Module):
         kernel_size=33,
         prenorm=True,
         scalenorm=True,
+        multi_modal_drop="mmdrop",
+        p_mmdrop=0.5,
+        p_drop_modalities=None,
     ):
         super(TransformerLateFusionClassifier, self).__init__()
         self.modalities = modality_feature_sizes.keys()
@@ -266,9 +270,47 @@ class TransformerLateFusionClassifier(nn.Module):
                 for m in self.modalities
             }
         )
+        self.modality_drop = None
+        self.mmdrop = None
+        if multi_modal_drop == "mmdrop_hard":
+            self.mmdrop = MultimodalDropout(
+                p=p_mmdrop,
+                n_modalities=len(self.modalities),
+                p_mod=p_drop_modalities,
+                mode="hard",
+            )
+        elif multi_modal_drop == "mmdrop_soft":
+            self.mmdrop = MultimodalDropout(
+                p=p_mmdrop,
+                n_modalities=len(self.modalities),
+                p_mod=p_drop_modalities,
+                mode="soft",
+            )
+        elif multi_modal_drop == "dropout":
+            self.modality_drop = nn.Dropout(p_mmdrop)
+        elif multi_modal_drop == "both":
+            self.mmdrop = MultimodalDropout(
+                p=p_mmdrop,
+                n_modalities=len(self.modalities),
+                p_mod=p_drop_modalities,
+                mode="hard",
+            )
+            self.modality_drop = nn.Dropout(p_mmdrop)
+        elif multi_modal_drop == "none":
+            pass
+        else:
+            raise ValueError(
+                "Not a specified mmdrop value given. Pls check your config file."
+            )
+
         self.out_size = sum([e.out_size for e in self.modality_encoders.values()])
-        self.clf = nn.Linear(self.out_size, num_classes)
-        self.drop = nn.Dropout(dropout)
+        self.clf = nn.Sequential(
+            nn.Linear(self.out_size, self.out_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(self.out_size, num_classes),
+        )
+        # self.drop = nn.Dropout(dropout)
 
     def forward(self, inputs, attention_masks=None):
         if attention_masks is None:
@@ -281,8 +323,12 @@ class TransformerLateFusionClassifier(nn.Module):
             for m in self.modalities
         ]
 
+        if self.mmdrop is not None:
+            encoded = self.mmdrop(*encoded)
         fused = torch.cat(encoded, dim=-1)
-        fused = self.drop(fused)
+        if self.modality_drop is not None:
+            fused = self.modality_drop(fused)
+
         out = self.clf(fused)
 
         return out
@@ -307,6 +353,10 @@ class RNNLateFusionClassifier(nn.Module):
         nystrom=True,
         num_landmarks=32,
         kernel_size=33,
+        use_mmdrop=False,
+        p_mmdrop=0.5,
+        p_drop_modalities=None,
+        mmdrop_mode="hard",
     ):
         super(RNNLateFusionClassifier, self).__init__()
         self.modalities = modality_feature_sizes.keys()
@@ -332,6 +382,14 @@ class RNNLateFusionClassifier(nn.Module):
                 for m in self.modalities
             }
         )
+        self.mmdrop = None
+        if use_mmdrop:
+            self.mmdrop = MultimodalDropout(
+                p=p_mmdrop,
+                n_modalities=len(self.modalities),
+                p_mod=p_drop_modalities,
+                mode=mmdrop_mode,
+            )
         self.out_size = sum([e.out_size for e in self.modality_encoders.values()])
         self.clf = nn.Linear(self.out_size, num_classes)
         self.drop = nn.Dropout(dropout)
@@ -340,7 +398,8 @@ class RNNLateFusionClassifier(nn.Module):
         encoded = [
             self.modality_encoders[m](inputs[m], lengths[m]) for m in self.modalities
         ]
-
+        if self.mmdrop is not None:
+            encoded = self.mmdrop(*encoded)
         fused = torch.cat(encoded, dim=-1)
         fused = self.drop(fused)
         out = self.clf(fused)
@@ -352,4 +411,5 @@ class MOSEITextClassifier(RNNSequenceClassifier):
     def forward(self, x, lengths):
         x = x["text"]
         lengths = lengths["text"]
+
         return super().forward(x, lengths)

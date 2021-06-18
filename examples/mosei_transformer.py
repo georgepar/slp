@@ -1,35 +1,51 @@
+import sys
+
 import pytorch_lightning as pl
 import torch.nn as nn
+import torchmetrics
 from loguru import logger
+from slp.config.config_parser import make_cli_parser, parse_config
 from slp.data.cmusdk import mosei
 from slp.data.collators import MultimodalSequenceClassificationCollator
 from slp.data.multimodal import MOSEI
 from slp.modules.classifier import TransformerLateFusionClassifier
 from slp.plbind.dm import PLDataModuleFromDatasets
 from slp.plbind.helpers import FromLogits
+from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7, MoseiF1
 from slp.plbind.module import MultimodalTransformerClassificationPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
+from slp.util.mosei import get_mosei_parser
+from slp.util.system import is_file, safe_mkdirs
 from torch.optim import AdamW
 
+
 if __name__ == "__main__":
-    EXPERIMENT_NAME = "mosei-transformer"
+    # parser
+    parser = get_mosei_parser()
+    parser = make_cli_parser(parser, PLDataModuleFromDatasets)
 
-    configure_logging(f"logs/{EXPERIMENT_NAME}")
+    config = parse_config(parser, parser.parse_args().config)
 
-    modalities = {"text", "audio", "visual"}
-    max_length = 1024
-    collate_fn = MultimodalSequenceClassificationCollator(device="cpu")
+    # if config.trainer.experiment_name != "mosei-transformer":
+    #     config.trainer.experiment_name = "mosei-transformer"
+
+    configure_logging(f"logs/{config.trainer.experiment_name}")
+    modalities = set(config.modalities)
+    max_length = config.model.max_length
+    collate_fn = MultimodalSequenceClassificationCollator(
+        device="cpu", modalities=modalities
+    )
 
     train_data, dev_data, test_data, w2v = mosei(
-        "data/mosi_final_aligned/",
-        pad_back=False,
-        pad_front=True,
-        max_length=-1,
+        "data/mosei_final_aligned/",
         modalities=modalities,
-        remove_pauses=False,
-        already_aligned=True,
-        align_features=False,
+        max_length=-1,
+        pad_back=config.preprocessing.pad_back,
+        pad_front=config.preprocessing.pad_front,
+        remove_pauses=config.preprocessing.remove_pauses,
+        already_aligned=config.preprocessing.already_aligned,
+        align_features=config.preprocessing.align_features,
         cache="./cache/mosei.p",
     )
 
@@ -53,46 +69,87 @@ if __name__ == "__main__":
         train,
         val=dev,
         test=test,
-        batch_size=8,
-        batch_size_eval=8,
+        batch_size=config.data.batch_size,
+        batch_size_eval=config.data.batch_size_eval,
         collate_fn=collate_fn,
-        pin_memory=True,
-        num_workers=0,
+        pin_memory=config.data.pin_memory,
+        num_workers=config.data.num_workers,
     )
     ldm.setup()
 
-    feature_sizes = {"audio": 74, "visual": 35, "text": 300}
+    feature_sizes = config.model.feature_sizes
 
     model = TransformerLateFusionClassifier(
         feature_sizes,
         1,
-        max_length=2 * max_length,
+        max_length=1024,
         nystrom=False,
-        kernel_size=None,
-        num_layers=2,
-        num_heads=2,
-        dropout=0.3,
-        hidden_size=100,
-        inner_size=200,
-        prenorm=True,
-        scalenorm=True,
+        kernel_size=config.model.kernel_size,
+        num_landmarks=config.model.num_landmarks,
+        num_layers=config.model.num_layers,
+        num_heads=config.model.num_heads,
+        dropout=config.model.dropout,
+        hidden_size=config.model.hidden_size,
+        inner_size=config.model.inner_size,
+        prenorm=False,
+        scalenorm=config.model.scalenorm,
+        multi_modal_drop=config.model.multi_modal_drop,
+        p_mmdrop=config.model.p_mmdrop,
+        # p_drop_modalities=config.model.p_drop_modalities,
     )
 
-    optimizer = AdamW([p for p in model.parameters() if p.requires_grad], lr=1e-4)
-    criterion = nn.MSELoss()
+    print(model)
+
+    optimizer = AdamW(
+        [p for p in model.parameters() if p.requires_grad],
+        lr=config.optim.lr,
+        weight_decay=config.optim.weight_decay,
+    )
+    criterion = nn.L1Loss()
 
     lm = MultimodalTransformerClassificationPLModule(
         model,
         optimizer,
         criterion,
-        # metrics={"acc": FromLogits(pl.metrics.classification.Accuracy())},
+        metrics={
+            "acc2": MoseiAcc2(exclude_neutral=True),
+            "acc2_zero": MoseiAcc2(exclude_neutral=False),
+            "acc5": MoseiAcc5(),
+            "acc7": MoseiAcc7(),
+            "f1": MoseiF1(exclude_neutral=True),
+            "f1_zero": MoseiF1(exclude_neutral=False),
+            "mae": torchmetrics.MeanAbsoluteError(),
+        },
     )
 
-    trainer = make_trainer(
-        EXPERIMENT_NAME, max_epochs=100, gpus=1, save_top_k=1, gradient_clip_val=1.0
-    )
+    trainer = make_trainer(**config.trainer)
     watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)
 
-    trainer.test(ckpt_path="best", test_dataloaders=ldm.test_dataloader())
+    results = trainer.test(ckpt_path="best", test_dataloaders=ldm.test_dataloader())
+
+    import csv
+    import os
+
+    csv_folder_path = os.path.join(
+        config.trainer.experiments_folder, config.trainer.experiment_name, "results_csv"
+    )
+
+    csv_name = os.path.join(csv_folder_path, "results.csv")
+    fieldnames = list(results[0].keys())
+
+    if is_file(csv_name):
+        # folder already exits and so does the .csv
+        csv_exists = True
+        print(f"csv already exists")
+    else:
+        csv_exists = False
+        safe_mkdirs(csv_folder_path)
+
+    with open(csv_name, "a") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+        if not csv_exists:
+            writer.writeheader()
+        writer.writerow(results[0])
