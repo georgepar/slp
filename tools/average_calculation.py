@@ -4,6 +4,7 @@ import argparse
 import csv
 from collections import Counter, OrderedDict
 
+
 def average_column(csv_filepath):
     column_totals = {}
     with open(csv_filepath) as f:
@@ -19,8 +20,10 @@ def average_column(csv_filepath):
                     n = float(column_value)
                     column_totals[header[column_idx]].append(n)
                 except ValueError:
-                    print(f"Error -- ({column_value}) Column({column_idx}) could "
-                         "not be converted to float!")
+                    print(
+                        f"Error -- ({column_value}) Column({column_idx}) could "
+                        "not be converted to float!"
+                    )
             row_count += 1.0
     # print(column_totals)
     # row_count is now 1 too many so decrement it back down
@@ -40,6 +43,7 @@ def average_column(csv_filepath):
         # column_totals[h] = column_totals[h] / row_count
     # averages = [column_totals[h]/row_count for h in header]
     return average_totals, std_totals
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="calculate average metrics")

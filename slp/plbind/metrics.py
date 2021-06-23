@@ -34,7 +34,7 @@ class MoseiAcc2(torchmetrics.Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, preds: torch.Tensor, targets: torch.Tensor):
+    def update(self, preds: torch.Tensor, targets: torch.Tensor):  # type: ignore
         if self.exclude_neutral:
             pp = (preds[targets != 0] >= 0).int()
             tt = (targets[targets != 0] >= 0).int()
@@ -71,7 +71,7 @@ class MoseiMulticlassAcc(torchmetrics.Metric):
         self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, preds: torch.Tensor, targets: torch.Tensor):
+    def update(self, preds: torch.Tensor, targets: torch.Tensor):  # type: ignore
         correct, total = _multiclass_accuracy_update(
             torch.clamp(preds, min=-self.clamp, max=self.clamp),
             torch.clamp(targets, min=-self.clamp, max=self.clamp),
@@ -106,7 +106,7 @@ class MoseiF1(torchmetrics.Metric):
         )
         self.add_state("actual_positives", default=torch.zeros(2), dist_reduce_fx="sum")
 
-    def update(self, preds: torch.Tensor, targets: torch.Tensor):
+    def update(self, preds: torch.Tensor, targets: torch.Tensor):  # type: ignore
         if self.exclude_neutral:
             pp = (preds[targets != 0] >= 0).int()
             tt = (targets[targets != 0] >= 0).int()

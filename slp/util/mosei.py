@@ -138,7 +138,7 @@ def get_mosei_parser():
         dest="preprocessing.max_length",
         default=-1,
         type=int,
-        help="Crop feature sequences during data ingestion from cmusdk"
+        help="Crop feature sequences during data ingestion from cmusdk",
     )
     parser.add_argument(
         "--already-unaligned",
