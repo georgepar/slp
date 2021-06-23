@@ -96,8 +96,8 @@ if __name__ == "__main__":
         criterion,
         lr_scheduler=scheduler,
         metrics={
-            "acc2": MoseiAcc2(exclude_non_zero=True),
-            "acc2_zero": MoseiAcc2(exclude_non_zero=False),
+            "acc2": MoseiAcc2(exclude_neutral=True),
+            "acc2_zero": MoseiAcc2(exclude_neutral=False),
             "acc5": MoseiAcc5(),
             "acc7": MoseiAcc7(),
             "mae": torchmetrics.MeanAbsoluteError(),

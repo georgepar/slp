@@ -2,7 +2,6 @@ from typing import Any, Callable, Optional
 
 import torch
 import torchmetrics
-from torchmetrics.functional.classification.accuracy import _accuracy_compute
 from torchmetrics.functional.classification.f_beta import _fbeta_compute
 from torchmetrics.utilities.data import to_onehot
 
@@ -49,7 +48,7 @@ class MoseiAcc2(torchmetrics.Metric):
         self.total += total
 
     def compute(self):
-        return _accuracy_compute(self.correct, self.total)
+        return self.correct.float() / self.total
 
 
 class MoseiMulticlassAcc(torchmetrics.Metric):
@@ -81,7 +80,7 @@ class MoseiMulticlassAcc(torchmetrics.Metric):
         self.total += total
 
     def compute(self):
-        return _accuracy_compute(self.correct, self.total)
+        return self.correct.float() / self.total
 
 
 class MoseiF1(torchmetrics.Metric):
