@@ -222,6 +222,7 @@ class AttentiveRNN(nn.Module):
         num_landmarks: int = 32,
         kernel_size: Optional[int] = 33,
         inverse_iterations: int = 6,
+        return_hidden: bool = False,
     ):
         """RNN with embedding layer and optional attention mechanism
 
@@ -246,6 +247,7 @@ class AttentiveRNN(nn.Module):
             kernel_size (int): Kernel size for multihead attention output residual convolution
             inverse_iterations (int): Number of iterations for moore-penrose inverse approximation
                 in nystrom attention. 6 is a good value
+            return_hidden (bool): Return all hidden states. Defaults to False.
         """
         super(AttentiveRNN, self).__init__()
         self.rnn = RNN(
@@ -266,6 +268,7 @@ class AttentiveRNN(nn.Module):
             else 2 * hidden_size
         )
         self.batch_first = batch_first
+        self.return_hidden = return_hidden
 
         self.attention = None
 
@@ -298,20 +301,21 @@ class AttentiveRNN(nn.Module):
         Returns:
             torch.Tensor: [B, H] or [B, 2*H] Output features to be used for classification
         """
-        out, last_hidden, _ = self.rnn(x, lengths)
+        states, last_hidden, _ = self.rnn(x, lengths)
 
         if self.attention is not None:
-            out, _ = self.attention(
-                out,
+            states, _ = self.attention(
+                states,
                 attention_mask=pad_mask(
-                    lengths, max_length=out.size(1) if self.batch_first else out.size(0)
+                    lengths,
+                    max_length=states.size(1) if self.batch_first else states.size(0),
                 ),
             )
-            out = out.mean(dim=1)
+            out = states.mean(dim=1)
         else:
             out = last_hidden
 
-        return out  # type: ignore
+        return out if not self.return_hidden else out, states  # type: ignore
 
 
 class TokenRNN(nn.Module):
