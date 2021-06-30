@@ -4,9 +4,16 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 import torch
 import torch.nn as nn
 from loguru import logger
+from slp.util import system, types
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-from slp.util import system, types
+
+class NoOp(nn.Module):
+    def __init__(self):
+        super(NoOp, self).__init__()
+
+    def forward(self, x):
+        return x
 
 
 class PadPackedSequence(nn.Module):
