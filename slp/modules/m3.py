@@ -31,7 +31,7 @@ class M3FuseAggregate(BaseFusionPipeline):
         fusion_method: str = "cat",
         timesteps_pooling_method: str = "sum",
         batch_first: bool = True,
-        mmdrop_prob: float = 0.5,
+        mmdrop_prob: float = 0.2,
         mmdrop_individual_mod_prob: Optional[List[float]] = None,
         mmdrop_algorithm: str = "hard",
         **fuser_kwargs,
@@ -127,7 +127,7 @@ class M3(MultimodalBaseline):
             "timesteps_pooling_method": "rnn",
             "residual": cfg.get("residual", True),
             "use_all_trimodal": cfg.get("use_all_trimodal", True),
-            "mmdrop_prob": 0.5,
+            "mmdrop_prob": 0.2,
             "mmdrop_individual_mod_prob": None,
             "mmdrop_algorithm": "hard",
         }
@@ -141,14 +141,28 @@ class M3Classifier(MOSEIClassifier):
         audio_size: int = 74,
         visual_size: int = 35,
         hidden_size: int = 100,
+        dropout: float = 0.2,
+        encoder_layers: float = 1,
+        bidirectional: bool = True,
+        rnn_type: str = "lstm",
+        encoder_attention: bool = True,
+        fuser_residual: bool = True,
+        use_all_trimodal: bool = False,
     ):
         enc = M3(
             text_size=text_size,
             audio_size=audio_size,
             visual_size=visual_size,
             hidden_size=hidden_size,
+            dropout=dropout,
+            encoder_layers=encoder_layers,
+            bidirectional=bidirectional,
+            rnn_type=rnn_type,
+            encoder_attention=encoder_attention,
+            fuser_residual=fuser_residual,
+            use_all_trimodal=use_all_trimodal,
         )
-        super(M3Classifier, self).__init__(enc, num_classes)
+        super(M3Classifier, self).__init__(enc, num_classes, dropout=dropout)
 
     def forward(
         self, mod_dict: Dict[str, torch.Tensor], lengths: Dict[str, torch.Tensor]

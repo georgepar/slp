@@ -494,14 +494,30 @@ class MultimodalBaselineClassifier(MOSEIClassifier):
         audio_size: int = 74,
         visual_size: int = 35,
         hidden_size: int = 100,
+        dropout: float = 0.2,
+        encoder_layers: float = 1,
+        bidirectional: bool = True,
+        rnn_type: str = "lstm",
+        encoder_attention: bool = True,
+        fuser_residual: bool = True,
+        use_all_trimodal: bool = False,
     ):
         enc = MultimodalBaseline(
             text_size=text_size,
             audio_size=audio_size,
             visual_size=visual_size,
             hidden_size=hidden_size,
+            dropout=dropout,
+            encoder_layers=encoder_layers,
+            bidirectional=bidirectional,
+            rnn_type=rnn_type,
+            encoder_attention=encoder_attention,
+            fuser_residual=fuser_residual,
+            use_all_trimodal=use_all_trimodal,
         )
-        super(MultimodalBaselineClassifier, self).__init__(enc, num_classes)
+        super(MultimodalBaselineClassifier, self).__init__(
+            enc, num_classes, dropout=dropout
+        )
 
     def forward(
         self, mod_dict: Dict[str, torch.Tensor], lengths: Dict[str, torch.Tensor]

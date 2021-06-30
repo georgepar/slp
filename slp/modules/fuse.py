@@ -453,6 +453,7 @@ class TimestepsPooler(BaseTimestepsPooler):
     Three methods supported:
         sum: Sum features from all timesteps
         mean: Average features from all timesteps
+        max: Max pool features from all timesteps
         rnn: Use the output from an attentive RNN
 
     Args:
@@ -462,6 +463,7 @@ class TimestepsPooler(BaseTimestepsPooler):
         mode (str): The timestep pooling method
             sum: Sum hidden states
             mean: Average hidden states
+            max: Max pool features from all hidden states
             rnn: Use the output of an Attentive RNN
     """
 
