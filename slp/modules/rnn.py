@@ -288,7 +288,9 @@ class AttentiveRNN(nn.Module):
                     dropout=dropout,
                 )
 
-    def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, lengths: torch.Tensor
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Attentive RNN forward pass
 
         If self.attention=True then the outputs are the weighted sum of the RNN hidden states with the attention score weights
@@ -299,9 +301,14 @@ class AttentiveRNN(nn.Module):
             lengths (torch.Tensor): [B] Original sequence lengths
 
         Returns:
-            torch.Tensor: [B, H] or [B, 2*H] Output features to be used for classification
+            Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+                if return_hidden == False: Returns a tensor [B, H] or [B, 2*H] of output features to be used for classification
+                if return_hidden == True: Returns a tensor [B, H] or [B, 2*H] of output features to
+                    be used for classification, and a tensor of all the hidden states
         """
         states, last_hidden, _ = self.rnn(x, lengths)
+
+        out: torch.Tensor = last_hidden
 
         if self.attention is not None:
             states, _ = self.attention(
@@ -312,10 +319,11 @@ class AttentiveRNN(nn.Module):
                 ),
             )
             out = states.mean(dim=1)
-        else:
-            out = last_hidden
 
-        return out if not self.return_hidden else out, states  # type: ignore
+        if self.return_hidden:
+            return out, states
+        else:
+            return out
 
 
 class TokenRNN(nn.Module):
@@ -341,6 +349,7 @@ class TokenRNN(nn.Module):
         num_landmarks: int = 32,
         kernel_size: Optional[int] = 33,
         inverse_iterations: int = 6,
+        return_hidden=False,
     ):
         """RNN with embedding layer and optional attention mechanism
 
@@ -409,11 +418,14 @@ class TokenRNN(nn.Module):
             num_landmarks=num_landmarks,
             kernel_size=kernel_size,
             inverse_iterations=inverse_iterations,
+            return_hidden=return_hidden,
         )
 
         self.out_size = self.encoder.out_size
 
-    def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, lengths: torch.Tensor
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Token RNN forward pass
 
         If self.attention=True then the outputs are the weighted sum of the RNN hidden states with the attention score weights
