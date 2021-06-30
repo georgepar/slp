@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from typing import List, Optional, Union, cast
 
 import torch
@@ -8,11 +9,7 @@ from slp.modules.rnn import AttentiveRNN
 from slp.modules.symattention import SymmetricAttention
 
 
-def _all_equal(sizes):
-    return all(s == sizes[0] for s in sizes)
-
-
-class Conv1dProj(nn.Module):
+class Conv1dProjection(nn.Module):
     """Project features for N modalities using 1D convolutions
 
     Args:
@@ -32,23 +29,48 @@ class Conv1dProj(nn.Module):
         padding: int = 0,
         bias: bool = False,
     ):
-        super(Conv1dProj, self).__init__()
-        self.p = [
-            nn.Conv1d(
-                sz, projection_size, kernel_size=kernel_size, padding=padding, bias=bias
-            )
-            for sz in modality_sizes
-        ]
+        super(Conv1dProjection, self).__init__()
+        self.p = nn.ModuleList(
+            [
+                nn.Conv1d(
+                    sz,
+                    projection_size,
+                    kernel_size=kernel_size,
+                    padding=padding,
+                    bias=bias,
+                )
+                for sz in modality_sizes
+            ]
+        )
 
-    def forward(self, *mods):
-        mods = [
+    def forward(self, *mods: torch.Tensor) -> List[torch.Tensor]:
+        """Project modality representations to a given number of features using Conv1d layers
+        Example:
+            # Inputs:
+            #    text: (B, L, 300)
+            #    audio: (B, L, 74)
+            #    visual: (B, L, 35)
+            # Outputs:
+            #    text_p: (B, L, 100)
+            #    audio_p: (B, L, 100)
+            #    visual_p: (B, L, 100)
+            c_proj = Conv1dProjection([300, 74, 35], 100)
+            text_p, audio_p, visual_p = c_proj(text, audio, visual)
+
+        Args:
+            *mods: Variable length tensors list
+
+        Returns:
+            List[torch.Tensor]: Variable length projected tensors list
+        """
+        mods_o: List[torch.Tensor] = [
             self.p[i](m.transpose(1, 2)).transpose(1, 2) for i, m in enumerate(mods)
         ]
 
-        return mods
+        return mods_o
 
 
-class LinearProj(nn.Module):
+class LinearProjection(nn.Module):
     """Project features for N modalities using feedforward layers
 
     Args:
@@ -60,13 +82,34 @@ class LinearProj(nn.Module):
     def __init__(
         self, modality_sizes: List[int], projection_size: int, bias: bool = True
     ):
-        super(LinearProj, self).__init__()
-        self.p = [nn.Linear(sz, projection_size, bias=bias) for sz in modality_sizes]
+        super(LinearProjection, self).__init__()
+        self.p = nn.ModuleList(
+            [nn.Linear(sz, projection_size, bias=bias) for sz in modality_sizes]
+        )
 
-    def forward(self, *mods):
-        mods = [self.p[i](m) for i, m in enumerate(mods)]
+    def forward(self, *mods: torch.Tensor) -> List[torch.Tensor]:
+        """Project modality representations to a given number of features using Linear layers
+        Example:
+            # Inputs:
+            #    text: (B, L, 300)
+            #    audio: (B, L, 74)
+            #    visual: (B, L, 35)
+            # Outputs:
+            #    text_p: (B, L, 100)
+            #    audio_p: (B, L, 100)
+            #    visual_p: (B, L, 100)
+            l_proj = LinearProjection([300, 74, 35], 100)
+            text_p, audio_p, visual_p = l_proj(text, audio, visual)
 
-        return mods
+        Args:
+            *mods: Variable length tensor list
+
+        Returns:
+            List[torch.Tensor]: Variable length projected tensors list
+        """
+        mods_o: List[torch.Tensor] = [self.p[i](m) for i, m in enumerate(mods)]
+
+        return mods_o
 
 
 class ModalityProjection(nn.Module):
@@ -80,8 +123,8 @@ class ModalityProjection(nn.Module):
         padding (int): Convlution amount of padding. Used when mode=="conv"
         bias (bool): Use bias
         mode (Optional[str]): Projection method.
-            linear -> LinearProj
-            conv|conv1d|convolutional -> Conv1dProj
+            linear -> LinearProjection
+            conv|conv1d|convolutional -> Conv1dProjection
     """
 
     def __init__(
@@ -96,11 +139,11 @@ class ModalityProjection(nn.Module):
         super(ModalityProjection, self).__init__()
 
         if mode is None:
-            self.p: Optional[Union[LinearProj, Conv1dProj]] = None
+            self.p: Optional[Union[LinearProjection, Conv1dProjection]] = None
         elif mode == "linear":
-            self.p = LinearProj(modality_sizes, projection_size, bias=bias)
+            self.p = LinearProjection(modality_sizes, projection_size, bias=bias)
         elif mode == "conv" or mode == "conv1d" or mode == "convolutional":
-            self.p = Conv1dProj(
+            self.p = Conv1dProjection(
                 modality_sizes,
                 projection_size,
                 kernel_size=kernel_size,
@@ -113,18 +156,53 @@ class ModalityProjection(nn.Module):
                 "conv, conv1d and convolutional are equivalent."
             )
 
-    def forward(self, *mods):
-        if self.p is None:
-            return mods
-        mods = self.p(*mods)
+    def forward(self, *mods: torch.Tensor) -> List[torch.Tensor]:
+        """Project modality representations to a given number of features
+        Example:
+            # Inputs:
+            #    text: (B, L, 300)
+            #    audio: (B, L, 74)
+            #    visual: (B, L, 35)
+            # Outputs:
+            #    text_p: (B, L, 100)
+            #    audio_p: (B, L, 100)
+            #    visual_p: (B, L, 100)
+            l_proj = ModalityProjection([300, 74, 35], 100, mode="linear")
+            text_p, audio_p, visual_p = l_proj(text, audio, visual)
 
-        return mods
+        Example:
+            # Inputs:
+            #    text: (B, L, 300)
+            #    audio: (B, L, 74)
+            #    visual: (B, L, 35)
+            # Outputs:
+            #    text_p: (B, L, 300)
+            #    audio_p: (B, L, 74)
+            #    visual_p: (B, L, 35)
+            l_proj = ModalityProjection([300, 74, 35], 100, mode=None)
+            text_p, audio_p, visual_p = l_proj(text, audio, visual)
+
+
+        Args:
+            *mods: Variable length tensor list
+
+        Returns:
+            List[torch.Tensor]: Variable length projected tensors list
+        """
+
+        if self.p is None:
+            return list(mods)
+        mods_o: List[torch.Tensor] = self.p(*mods)
+
+        return mods_o
 
 
 class ModalityWeights(nn.Module):
     """Multiply each modality features with a learnable weight
 
-    learnable_weight = softmax(Linear(modality_features))
+    i: modality index
+    learnable_weight[i] = softmax(Linear(modality_features[i]))
+    output_modality[i] = learnable_weight * modality_features[i]
 
     Args:
         feature_size (int): All modalities are assumed to be projected into a space with the same
@@ -137,34 +215,175 @@ class ModalityWeights(nn.Module):
 
         self.mod_w = nn.Linear(feature_size, 1)
 
-    def forward(self, *mods):
+    def forward(self, *mods: torch.Tensor) -> List[torch.Tensor]:
+        """Use learnable weights to multiply modality features
+
+        Example:
+            # Inputs:
+            #    text: (B, L, 100)
+            #    audio: (B, L, 100)
+            #    visual: (B, L, 100)
+            # Outputs:
+            #    text_p: (B, L, 100)
+            #    audio_p: (B, L, 100)
+            #    visual_p: (B, L, 100)
+            mw = ModalityWeights(100)
+            text_w, audio_w, visual_w = mw(text, audio, visual)
+
+        The operation is summarized as:
+
+        w_x = softmax(W * x + b)
+        w_y = softmax(W * y + b)
+        x_out = w_x * x
+        y_out = w_y * y
+
+        Args:
+            *mods: Variable length tensor list
+
+        Returns:
+            List[torch.Tensor]: Variable length reweighted tensors list
+        """
         weight = self.mod_w(torch.cat([x.unsqueeze(1) for x in mods], dim=1))
         weight = F.softmax(weight, dim=1)
-        mods = [m * weight[:, i, ...] for i, m in enumerate(mods)]
+        mods_o: List[torch.Tensor] = [m * weight[:, i, ...] for i, m in enumerate(mods)]
 
-        return mods
+        return mods_o
 
 
-class TimestepAggregator(nn.Module):
-    """Aggregate features from all timesteps into a single representation.
+class BaseTimestepsPooler(nn.Module, metaclass=ABCMeta):
+    """Abstract base class for Timesteps Poolers
 
-    Three methods supported:
-        sum: Sum features from all timesteps
-        mean: Average features from all timesteps
-        rnn: Use the output from an attentive RNN
+    Timesteps Poolers aggregate the features for different timesteps
+
+    Given a tensor with dimensions [BatchSize, Length, Dim]
+    they return an aggregated tensor with dimensions [BatchSize, Dim]
+
 
     Args:
-        feature_size (int): The number of features for the input fused representations
-        hidden_size (Optional[int]): The hidden size of the rnn. Used only when mode == rnn
+        feature_size (int): Feature dimension
         batch_first (bool): Input tensors are in batch first configuration. Leave this as true
             except if you know what you are doing
-        bidirectional (bool): Use a bidirectional rnn. Used only when mode == rnn
-        merge_bi (str): Method to fuse the bidirectional hidden states. Used only when mode == rnn
-        attention (bool): Use an attention mechanism in the rnn output. Used only when mode == rnn
-        mode (str): The timestep aggregation method
-            sum: Sum hidden states
-            mean: Average hidden states
-            rnn: Use the output of an Attentive RNN
+        **kwargs: Variable keyword arguments for subclasses
+    """
+
+    def __init__(self, feature_size: int, batch_first: bool = True, **kwargs):
+        super(BaseTimestepsPooler, self).__init__()
+        self.pooling_dim = 0 if not batch_first else 1
+        self.feature_size = feature_size
+
+    @property
+    def out_size(self) -> int:
+        """Define the feature size of the returned tensor
+
+        Returns:
+            int: The feature dimension of the output tensor
+        """
+
+        return self.feature_size
+
+    @abstractmethod
+    def _pool(
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Pool features of input tensor across timesteps
+
+        Abstract method to be implemented by subclasses
+
+        Args:
+            x (torch.Tensor): [B, L, D] Input sequence
+            lengths (Optional[torch.Tensor]): Optional unpadded sequence lengths for input tensor
+
+        Returns:
+            torch.Tensor: [B, D] Output aggregated features across timesteps
+        """
+        pass
+
+    def forward(
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Pool features of input tensor across timesteps
+
+        Args:
+            x (torch.Tensor): [B, L, D] Input sequence
+            lengths (Optional[torch.Tensor]): Optional unpadded sequence lengths for input tensor
+
+        Returns:
+            torch.Tensor: [B, D] Output aggregated features across timesteps
+        """
+
+        if x.ndim == 2:
+            return x
+
+        if x.ndim != 3:
+            raise ValueError("Expected 3 dimensional tensor [B, L, D] or [L, B, D]")
+
+        return self._pool(x, lengths=lengths)
+
+
+class SumPooler(BaseTimestepsPooler):
+    def _pool(
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Sum features of input tensor across timesteps
+
+        Args:
+            x (torch.Tensor): [B, L, D] Input sequence
+            lengths (Optional[torch.Tensor]): Optional unpadded sequence lengths for input tensor
+
+        Returns:
+            torch.Tensor: [B, D] Output aggregated features across timesteps
+        """
+
+        return x.sum(self.pooling_dim)
+
+
+class MeanPooler(BaseTimestepsPooler):
+    def _pool(
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Average features of input tensor across timesteps
+
+        Args:
+            x (torch.Tensor): [B, L, D] Input sequence
+            lengths (Optional[torch.Tensor]): Optional unpadded sequence lengths for input tensor
+
+        Returns:
+            torch.Tensor: [B, D] Output aggregated features across timesteps
+        """
+
+        return x.mean(self.pooling_dim)
+
+
+class MaxPooler(BaseTimestepsPooler):
+    def _pool(
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Max pooling of features of input tensor across timesteps
+
+        Args:
+            x (torch.Tensor): [B, L, D] Input sequence
+            lengths (Optional[torch.Tensor]): Optional unpadded sequence lengths for input tensor
+
+        Returns:
+            torch.Tensor: [B, D] Output aggregated features across timesteps
+        """
+        x, _ = x.max(self.pooling_dim)
+
+        return x
+
+
+class RnnPooler(BaseTimestepsPooler):
+    """Aggregate features of the input tensor using an AttentiveRNN
+
+    Args:
+        feature_size (int): Feature dimension
+        hidden_size (int): Hidden dimension
+        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+            except if you know what you are doing
+        bidirectional (bool): Use bidirectional RNN. Defaults to True
+        merge_bi (str): How bidirectional states are merged. Defaults to "cat"
+        attention (bool): Use attention for the RNN output states
+        **kwargs: Variable keyword arguments
     """
 
     def __init__(
@@ -175,53 +394,129 @@ class TimestepAggregator(nn.Module):
         bidirectional: bool = True,
         merge_bi: str = "cat",
         attention: bool = True,
-        mode: str = "sum",
+        **kwargs,
     ):
-        super(TimestepAggregator, self).__init__()
-        assert mode in ["sum", "mean", "rnn"], "Unsupported timestep aggregation"
-        self.mode = mode
-        self.feature_size = feature_size
+        super(RnnPooler, self).__init__(feature_size, batch_first=batch_first, **kwargs)
         self.hidden_size = hidden_size if hidden_size is not None else feature_size
-        self.aggregation_dim = 0 if not batch_first else 1
+        self.rnn = AttentiveRNN(
+            feature_size,
+            hidden_size=self.hidden_size,
+            batch_first=batch_first,
+            bidirectional=bidirectional,
+            merge_bi=merge_bi,
+            attention=attention,
+            return_hidden=False,  # We want to aggregate all hidden states.
+        )
 
-        if mode == "rnn":
-            self.rnn = AttentiveRNN(
-                feature_size,
-                hidden_size=self.hidden_size,
-                batch_first=batch_first,
-                bidirectional=bidirectional,
-                merge_bi=merge_bi,
-                attention=attention,
-                return_hidden=False,  # We want to aggregate all hidden states.
+    @property
+    def out_size(self) -> int:
+        """Define the feature size of the returned tensor
+
+        Returns:
+            int: The feature dimension of the output tensor
+        """
+
+        return self.rnn.out_size
+
+    def _pool(
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Pass input sequence through an AttentiveRNN and return the weighted average of hidden
+        states.
+
+        Args:
+            x (torch.Tensor): [B, L, D] Input sequence
+            lengths (Optional[torch.Tensor]): Optional unpadded sequence lengths for input tensor
+
+        Returns:
+            torch.Tensor: [B, D] Output aggregated features across timesteps
+        """
+
+        out: torch.Tensor = self.rnn(x, lengths)
+
+        return out
+
+
+SUPPORTED_POOLERS = {
+    "sum": SumPooler,
+    "mean": MeanPooler,
+    "max": MaxPooler,
+    "rnn": RnnPooler,
+}
+"""Supported poolers
+"""
+
+
+class TimestepsPooler(BaseTimestepsPooler):
+    """Aggregate features from all timesteps into a single representation.
+
+    Three methods supported:
+        sum: Sum features from all timesteps
+        mean: Average features from all timesteps
+        rnn: Use the output from an attentive RNN
+
+    Args:
+        feature_size (int): The number of features for the input fused representations
+        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+            except if you know what you are doing
+        mode (str): The timestep pooling method
+            sum: Sum hidden states
+            mean: Average hidden states
+            rnn: Use the output of an Attentive RNN
+    """
+
+    def __init__(
+        self, feature_size: int, mode: str = "sum", batch_first=True, **kwargs
+    ):
+        super(TimestepsPooler, self).__init__(
+            feature_size, batch_first=batch_first, **kwargs
+        )
+        assert (
+            mode is None or mode in SUPPORTED_POOLERS
+        ), "Unsupported timestep pooling method.  Available methods: {SUPPORTED_POOLERS.keys()}"
+
+        self.pooler = None
+
+        if mode is not None:
+            self.pooler = SUPPORTED_POOLERS[mode](
+                feature_size, batch_first=batch_first, **kwargs
             )
 
     @property
     def out_size(self) -> int:
-        if self.mode == "sum" or self.mode == "mean":
-            return self.feature_size
-        elif self.mode == "rnn":
-            return self.rnn.out_size
-        else:
-            raise ValueError("Unsupported timestep aggregation method")
+        """Define the feature size of the returned tensor
 
-    def forward(self, x, lengths=None):
-        if x.ndim == 2:
+        Returns:
+            int: The feature dimension of the output tensor
+        """
+
+        if self.pooler is not None:
+            return cast(int, self.pooler.out_size)
+        else:
+            return super(TimestepsPooler, self).out_size
+
+    def _pool(
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Pool features of input tensor across timesteps
+
+        Args:
+            x (torch.Tensor): [B, L, D] Input sequence
+            lengths (Optional[torch.Tensor]): Optional unpadded sequence lengths for input tensor
+
+        Returns:
+            torch.Tensor: [B, D] Output aggregated features across timesteps
+        """
+
+        if self.pooler is None:
             return x
 
-        if x.ndim != 3:
-            raise ValueError("Expected 3 dimensional tensor [B, L, D] or [L, B, D]")
+        out: torch.Tensor = self.pooler(x, lengths=lengths)
 
-        if self.mode == "sum":
-            return x.sum(self.aggregation_dim)
-        elif self.mode == "mean":
-            return x.mean(self.aggregation_dim)
-        elif self.mode == "rnn":
-            return self.rnn(x, lengths)
-        else:
-            raise ValueError("Unsupported timestep aggregation method")
+        return out
 
 
-class BaseFuser(nn.Module):
+class BaseFuser(nn.Module, metaclass=ABCMeta):
     """Base fuser class.
 
     Our fusion methods are separated in direct and combinatorial.
@@ -248,43 +543,56 @@ class BaseFuser(nn.Module):
         self.feature_size = feature_size
         self.n_modalities = n_modalities
 
-    def _check_3_modalities(self, aux_log="This fuser"):
+    def _check_n_modalities(self, n=3):
         """Check if this fuser is created for 3 modalities
 
         Some fusers are implemented particularly for 3 modalities (txt, audio, visual).
         Check at instantiation time if they are misused
-
-        Args:
-            aux_log (str): Auxiliary log to prepend to error log
-
         """
 
-        if self.n_modalities != 3:
+        if self.n_modalities != n:
             raise ValueError(
-                f"{aux_log} implemented for 3 modalities [text, audio, visual]"
+                f"{self.__class__.__name__} is implemented for 3 modalities, e.g. [text, audio, visual]"
             )
 
     @property
+    @abstractmethod
     def out_size(self) -> int:
         """Output feature size.
 
         Each fuser specifies its output feature size
         """
-        raise NotImplementedError
+        pass
 
-    def fuse(self, *mods, lengths=None):
+    @abstractmethod
+    def fuse(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Abstract method to fuse the modality representations
 
         Children classes should implement this method
 
         Args:
-            *mods (vararg): List of modality tensors
+            *mods: List of modality tensors
             lengths (Optional[Tensor]): Lengths of each modality
 
+        Returns:
+            torch.Tensor: Fused tensor
         """
-        raise NotImplementedError
+        pass
 
-    def forward(self, *mods, lengths=None):
+    def forward(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Fuse the modality representations
+
+        Args:
+            *mods: List of modality tensors [B, L, D]
+            lengths (Optional[Tensor]): Lengths of each modality
+
+        Returns:
+            torch.Tensor: Fused tensor [B, L, self.out_size]
+        """
         fused = self.fuse(*mods, lengths=lengths)
 
         return fused
@@ -302,18 +610,39 @@ class CatFuser(BaseFuser):
             classes
     """
 
-    def __init__(self, feature_size, n_modalities, **extra_kwargs):
-        super(CatFuser, self).__init__(feature_size, n_modalities, **extra_kwargs)
-
     @property
     def out_size(self) -> int:
+        """d_out = n_modalities * d_in
+
+        Returns:
+            int: output feature size
+        """
+
         return self.n_modalities * self.feature_size
 
-    def fuse(self, *mods, lengths=None):
-        return torch.cat(mods, dim=1)
+    def fuse(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Concatenate input tensors into a single tensor
+
+        Example:
+            fuser = CatFuser(5, 2)
+            x = torch.rand(16, 6, 5)  # (B, L, D)
+            y = torch.rand(16, 6, 5)  # (B, L, D)
+            out = fuser(x, y)  # (B, L, 2 * D)
+
+        Args:
+            *mods: Variable number of input tensors
+
+        Returns:
+            torch.Tensor: Concatenated input tensors
+
+        """
+
+        return torch.cat(mods, dim=-1)
 
 
-class AddFuser(BaseFuser):
+class SumFuser(BaseFuser):
     """Fuse by adding modality representations
 
     o = m1 + m2 + m3 ...
@@ -325,206 +654,459 @@ class AddFuser(BaseFuser):
             classes
     """
 
-    def __init__(self, feature_size, n_modalities, **kwargs):
-        super(AddFuser, self).__init__(feature_size, n_modalities, **kwargs)
-
     @property
     def out_size(self) -> int:
+        """d_out = d_in
+
+        Returns:
+            int: output feature size
+        """
+
         return self.feature_size
 
-    def fuse(self, *mods, lengths=None):
-        out = torch.zeros_like(mods[0])
+    def fuse(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Sum input tensors into a single tensor
 
-        for m in mods:
-            out = out + m
+        Example:
+            fuser = SumFuser(5, 2)
+            x = torch.rand(16, 6, 5)  # (B, L, D)
+            y = torch.rand(16, 6, 5)  # (B, L, D)
+            out = fuser(x, y)  # (B, L, D)
 
-        return out
+        Args:
+            *mods: Variable number of input tensors
+
+        Returns:
+            torch.Tensor: Summed input tensors
+
+        """
+
+        return torch.cat([m.unsqueeze(-1) for m in mods], dim=-1).sum(-1)
 
 
-class BilinearFuser(BaseFuser):
-    """Bilinear combinatorial fusion
+class BimodalCombinatorialFuser(BaseFuser, metaclass=ABCMeta):
+    """Fuse all combinations of three modalities using a base module
 
-    Obtain all crossmodal relations with bilinear transformation
+    If input modalities are x, y, then the output is
+    o = x || y || f(x, y)
+
+    Where f is a network module (e.g. attention)
 
     Args:
-        feature_size (int): Assume all modality representations have the same feature_size
-        n_modalities (int): Number of input modalities
-        use_all_trimodal (bool): Represent all trimodal interactions (t -> av, a -> tv, v -> ta).
-            If False only t -> av is used. Default value is False.
-        **extra_kwargs (dict): Extra keyword arguments to maintain interoperability of children
-            classes
+        feature_size (int): Number of feature dimensions
+        n_modalities (int): Number of input modalities (should be 3)
     """
 
-    def __init__(self, feature_size, n_modalities, use_all_trimodal=False, **kwargs):
-        super(BilinearFuser, self).__init__(feature_size, n_modalities, **kwargs)
-        self._check_3_modalities(aux_log="BilinearFuser")
-        sz = feature_size
-        self.use_all_trimodal = use_all_trimodal
-        self.ta = nn.Bilinear(sz, sz, sz)
-        self.at = nn.Bilinear(sz, sz, sz)
-        self.va = nn.Bilinear(sz, sz, sz)
-        self.av = nn.Bilinear(sz, sz, sz)
-        self.tv = nn.Bilinear(sz, sz, sz)
-        self.vt = nn.Bilinear(sz, sz, sz)
-        self.tav = nn.Bilinear(sz, sz, sz)
+    def __init__(
+        self,
+        feature_size: int,
+        n_modalities: int,
+        **kwargs,
+    ):
+        super(BimodalCombinatorialFuser, self).__init__(
+            feature_size, n_modalities, **kwargs
+        )
+        self._check_n_modalities(n=2)
+        self.xy = self._bimodal_fusion_module(feature_size, **kwargs)
 
-        if use_all_trimodal:
-            self.vat = nn.Bilinear(sz, sz, sz)
-            self.atv = nn.Bilinear(sz, sz, sz)
+    @abstractmethod
+    def _bimodal_fusion_module(self, feature_size: int, **kwargs) -> nn.Module:
+        """Module to use to fuse bimodal combinations
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            **kwargs: Extra kwargs to pass to nn.Module
+
+        Returns:
+            nn.Module: The module to use for fusion
+        """
+        pass
 
     @property
     def out_size(self) -> int:
-        if self.use_all_trimodal:
-            return 9 * self.feature_size
-        else:
-            return 7 * self.feature_size
+        """Fused vector feature dimension
 
-    def fuse(self, *mods, lengths=None):
+        Returns:
+            int: 3 * feature_size
+
+        """
+
+        return 3 * self.feature_size
+
+
+class BimodalBilinearFuser(BimodalCombinatorialFuser):
+    def _bimodal_fusion_module(self, feature_size: int, **kwargs) -> nn.Module:
+        return nn.Bilinear(feature_size, feature_size, feature_size)
+
+    def fuse(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Perform bilinear fusion on input modalities
+
+        Args:
+            *mods: Input tensors to fuse. This module accepts 2 input modalities. [B, L, D]
+            lengths (Optional[torch.Tensor]): Unpadded tensors lengths
+
+        Returns:
+            torch.Tensor: fused output vector [B, L, 3*D]
+
+        """
+        x, y = mods
+        xy = self.xy(x, y)
+
+        # B x L x 3*D
+        fused = torch.cat([x, y, xy], dim=-1)
+
+        return fused
+
+
+class BimodalAttentionFuser(BimodalCombinatorialFuser):
+    def _bimodal_fusion_module(self, feature_size: int, **kwargs) -> nn.Module:
+        return SymmetricAttention(
+            attention_size=feature_size,
+            dropout=kwargs.get("dropout", 0.1),
+            residual=kwargs.get("residual", True),
+        )
+
+    def fuse(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Perform attention fusion on input modalities
+
+        Args:
+            *mods: Input tensors to fuse. This module accepts 2 input modalities. [B, L, D]
+            lengths (Optional[torch.Tensor]): Unpadded tensors lengths
+
+        Returns:
+            torch.Tensor: fused output vector [B, L, 3*D]
+
+        """
+        x, y = mods
+        xy, yx = self.xy(x, y)
+        xy = xy + yx
+        # B x L x 3*D
+        fused = torch.cat([x, y, xy], dim=-1)
+
+        return fused
+
+
+class TrimodalCombinatorialFuser(BaseFuser, metaclass=ABCMeta):
+    """Fuse all combinations of three modalities using a base module
+
+    If input modalities are a, t, v, then the output is
+    o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
+
+    Where f and g network modules (e.g. attention) and values with [] are optional
+
+    Args:
+        feature_size (int): Number of feature dimensions
+        n_modalities (int): Number of input modalities (should be 3)
+        use_all_trimodal (bool): Use all optional trimodal combinations
+    """
+
+    def __init__(
+        self,
+        feature_size: int,
+        n_modalities: int,
+        use_all_trimodal: bool = False,
+        **kwargs,
+    ):
+        super(TrimodalCombinatorialFuser, self).__init__(
+            feature_size, n_modalities, **kwargs
+        )
+        self._check_n_modalities(n=3)
+        self.use_all_trimodal = use_all_trimodal
+
+        self.ta = self._bimodal_fusion_module(feature_size, **kwargs)
+        self.va = self._bimodal_fusion_module(feature_size, **kwargs)
+        self.tv = self._bimodal_fusion_module(feature_size, **kwargs)
+
+        self.tav = self._trimodal_fusion_module(feature_size, **kwargs)
+
+        if use_all_trimodal:
+            self.vat = self._trimodal_fusion_module(feature_size, **kwargs)
+            self.atv = self._trimodal_fusion_module(feature_size, **kwargs)
+
+    @abstractmethod
+    def _bimodal_fusion_module(self, feature_size: int, **kwargs) -> nn.Module:
+        """Module to use to fuse bimodal combinations
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            **kwargs: Extra kwargs to pass to nn.Module
+
+        Returns:
+            nn.Module: The module to use for fusion
+        """
+        pass
+
+    @abstractmethod
+    def _trimodal_fusion_module(self, feature_size: int, **kwargs) -> nn.Module:
+        """Module to use to fuse trimodal combinations
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            **kwargs: Extra kwargs to pass to nn.Module
+
+        Returns:
+            nn.Module: The module to use for fusion
+        """
+        pass
+
+    @property
+    def out_size(self) -> int:
+        """Fused vector feature dimension
+
+        Returns:
+            int: 7 * feature_size if use_all_trimodal==False else 9*feature_size
+
+        """
+        multiplier = 7
+
+        if self.use_all_trimodal:
+            multiplier += 2
+
+        return multiplier * self.feature_size
+
+
+class BilinearFuser(TrimodalCombinatorialFuser):
+    """Fuse all combinations of three modalities using a base module using bilinear fusion
+
+    If input modalities are a, t, v, then the output is
+    o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
+
+    Where f and g are the nn.Bilinear function and values with [] are optional
+
+    Args:
+        feature_size (int): Number of feature dimensions
+        n_modalities (int): Number of input modalities (should be 3)
+        use_all_trimodal (bool): Use all optional trimodal combinations
+    """
+
+    def __init__(
+        self,
+        feature_size: int,
+        n_modalities: int,
+        use_all_trimodal: bool = False,
+        **kwargs,
+    ):
+        super(BilinearFuser, self).__init__(
+            feature_size,
+            n_modalities,
+            use_all_trimodal=use_all_trimodal,
+            **kwargs,
+        )
+
+    def _bimodal_fusion_module(self, feature_size: int, **kwargs):
+        """nn.Bilinear module to use to fuse bimodal combinations
+
+        Args:
+            feature_size (int): Number of feature dimensions
+
+        Returns:
+            nn.Module: nn.Bilinear module to use for fusion
+        """
+
+        return nn.Bilinear(feature_size, feature_size, feature_size)
+
+    def _trimodal_fusion_module(self, feature_size: int, **kwargs):
+        """nn.Bilinear module to use to fuse trimodal combinations
+
+        Args:
+            feature_size (int): Number of feature dimensions
+
+        Returns:
+            nn.Module: nn.Bilinear module to use for fusion
+        """
+
+        return nn.Bilinear(feature_size, feature_size, feature_size)
+
+    def fuse(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Perform bilinear fusion on input modalities
+
+        Args:
+            *mods: Input tensors to fuse. This module accepts 3 input modalities. [B, L, D]
+            lengths (Optional[torch.Tensor]): Unpadded tensors lengths
+
+        Returns:
+            torch.Tensor: fused output vector [B, L, 7*D] or [B, L, 9*D]
+
+        """
         txt, au, vi = mods
         ta = self.ta(txt, au)
-        at = self.at(au, txt)
-        av = self.av(au, vi)
         va = self.va(vi, au)
-        vt = self.vt(vi, txt)
         tv = self.tv(txt, vi)
 
-        av = va + av
-        tv = vt + tv
-        ta = ta + at
+        tav = self.tav(txt, va)
 
-        tav = self.tav(txt, av)
+        out_list = [txt, au, vi, ta, tv, va, tav]
 
         if self.use_all_trimodal:
             vat = self.vat(vi, ta)
             atv = self.atv(au, tv)
 
-        if not self.use_all_trimodal:
-            # B x L x 7*D
-            fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
-        else:
-            # B x L x 9*D
-            fused = torch.cat([txt, au, vi, ta, tv, av, tav, vat, atv], dim=-1)
+            out_list = out_list + [vat, atv]
+
+        # B x L x 7*D or B x L x 9*D
+        fused = torch.cat(out_list, dim=-1)
 
         return fused
 
 
-class AttentionFuser(BaseFuser):
-    """Attention combinatorial fusion
+class AttentionFuser(TrimodalCombinatorialFuser):
+    """Fuse all combinations of three modalities using a base module using bilinear fusion
 
-    Obtain all crossmodal relations using attention mechanisms
+    If input modalities are a, t, v, then the output is
+
+    Where f is SymmetricAttention and g is Attention modules and values with [] are optional
+    o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
 
     Args:
-        feature_size (int): Assume all modality representations have the same feature_size
-        n_modalities (int): Number of input modalities
-        residual (bool): Use Vilbert-like residual connection in SymmetricAttention mechanisms
-        use_all_trimodal (bool): Represent all trimodal interactions (t -> av, a -> tv, v -> ta).
-            If False only t -> av is used. Default value is False.
-        **extra_kwargs (dict): Extra keyword arguments to maintain interoperability of children
-            classes
+        feature_size (int): Number of feature dimensions
+        n_modalities (int): Number of input modalities (should be 3)
+        use_all_trimodal (bool): Use all optional trimodal combinations
+        residual (bool): Use residual connection in SymmetricAttention. Defaults to True
+        dropout (float): Dropout probability
     """
 
     def __init__(
         self,
-        feature_size,
-        n_modalities,
-        residual=True,
-        use_all_trimodal=False,
+        feature_size: int,
+        n_modalities: int,
+        use_all_trimodal: bool = False,
+        residual: bool = True,
+        dropout: float = 0.1,
         **kwargs,
     ):
-        super(AttentionFuser, self).__init__(feature_size, n_modalities, **kwargs)
-        self._check_3_modalities(aux_log="AttentionFuser")
-        sz = feature_size
-        self.ta = SymmetricAttention(
-            attention_size=sz,
-            dropout=0.1,
-            residual=residual,
-            layernorm=False,
+        kwargs["dropout"] = dropout
+        kwargs["residual"] = residual
+        super(AttentionFuser, self).__init__(
+            feature_size,
+            n_modalities,
+            use_all_trimodal=use_all_trimodal,
+            **kwargs,
         )
 
-        self.va = SymmetricAttention(
-            attention_size=sz,
-            dropout=0.1,
-            residual=residual,
-            layernorm=False,
+    def _bimodal_fusion_module(self, feature_size: int, **kwargs):
+        """SymmetricAttention module to fuse bimodal combinations
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            **kwargs: dropout and residual parameters
+
+        Returns:
+            nn.Module: SymmetricAttention module to use for fusion
+        """
+
+        return SymmetricAttention(
+            attention_size=feature_size,
+            dropout=kwargs.get("dropout", 0.1),
+            residual=kwargs.get("residual", True),
         )
 
-        self.tv = SymmetricAttention(
-            attention_size=sz,
-            dropout=0.1,
-            residual=residual,
-            layernorm=False,
+    def _trimodal_fusion_module(self, feature_size: int, **kwargs):
+        """Attention module to fuse trimodal combinations
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            **kwargs: dropout and parameters
+
+        Returns:
+            nn.Module: Attention module to use for fusion
+        """
+
+        return Attention(
+            attention_size=feature_size,
+            dropout=kwargs.get("dropout", 0.1),
         )
 
-        self.tav = Attention(
-            attention_size=sz,
-            dropout=0.1,
-        )
+    def fuse(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Perform attention fusion on input modalities
 
-        self.use_all_trimodal = use_all_trimodal
+        Args:
+            *mods: Input tensors to fuse. This module accepts 3 input modalities. [B, L, D]
+            lengths (Optional[torch.Tensor]): Unpadded tensors lengths
 
-        if use_all_trimodal:
+        Returns:
+            torch.Tensor: fused output vector [B, L, 7*D] or [B, L, 9*D]
 
-            self.vat = Attention(
-                attention_size=sz,
-                dropout=0.1,
-            )
-
-            self.atv = Attention(
-                attention_size=sz,
-                dropout=0.1,
-            )
-
-    @property
-    def out_size(self) -> int:
-        if self.use_all_trimodal:
-            return 9 * self.feature_size
-        else:
-            return 7 * self.feature_size
-
-    def fuse(self, *mods, lengths=None):
+        """
         txt, au, vi = mods
         ta, at = self.ta(txt, au)
         va, av = self.va(vi, au)
         tv, vt = self.tv(txt, vi)
 
-        av = va + av
+        va = va + av
         tv = vt + tv
         ta = ta + at
 
-        tav, _ = self.tav(txt, queries=av)
+        tav, _ = self.tav(txt, queries=va)
+
+        out_list = [txt, au, vi, ta, tv, va, tav]
 
         if self.use_all_trimodal:
             vat, _ = self.vat(vi, queries=ta)
             atv, _ = self.atv(au, queries=tv)
 
-        if not self.use_all_trimodal:
-            # B x L x 7*D
-            fused = torch.cat([txt, au, vi, ta, tv, av, tav], dim=-1)
-        else:
-            # B x L x 9*D
-            fused = torch.cat([txt, au, vi, ta, tv, av, tav, vat, atv], dim=-1)
+            out_list = out_list + [vat, atv]
+
+        # B x L x 7*D or B x L x 9*D
+        fused = torch.cat(out_list, dim=-1)
 
         return fused
 
 
 SUPPORTED_FUSERS = {
     "cat": CatFuser,
-    "add": AddFuser,
-    "sum": AddFuser,
+    "add": SumFuser,
+    "sum": SumFuser,
     "bilinear": BilinearFuser,
     "attention": AttentionFuser,
-    "attn": AttentionFuser,
 }
+"""Currently implemented fusers"""
 
 
-def make_fuser(fusion_method, feature_size, n_modalities, **kwargs):
+def make_fuser(fusion_method: str, feature_size: int, n_modalities: int, **kwargs):
+    """Helper function to instantiate a fuser given a string fusion_method parameter
+
+    Args:
+        fusion_method (str): One of the supported fusion methods [cat|add|bilinear|attention]
+        feature_size (int): The input modality representations dimension
+        n_modalities (int): Number of input modalities
+        **kwargs: Variable keyword arguments to pass to the instantiated fuser
+    """
+
     if fusion_method not in SUPPORTED_FUSERS.keys():
-        raise NotImplementedError(f"The supported fusers are {SUPPORTED_FUSERS.keys()}")
+        raise NotImplementedError(
+            f"The supported fusers are {SUPPORTED_FUSERS.keys()}. You provided {fusion_method}"
+        )
+
+    if fusion_method == "bilinear":
+        if n_modalities == 2:
+            return BimodalBilinearFuser(feature_size, n_modalities, **kwargs)
+        elif n_modalities == 3:
+            return BilinearFuser(feature_size, n_modalities, **kwargs)
+        else:
+            raise ValueError("bilinear implemented for 2 or 3 modalities")
+
+    if fusion_method == "attention":
+        if n_modalities == 2:
+            return BimodalAttentionFuser(feature_size, n_modalities, **kwargs)
+        elif n_modalities == 3:
+            return AttentionFuser(feature_size, n_modalities, **kwargs)
+        else:
+            raise ValueError("attention implemented for 2 or 3 modalities")
 
     return SUPPORTED_FUSERS[fusion_method](feature_size, n_modalities, **kwargs)
 
 
-class BaseFusionPipeline(nn.Module):
+class BaseFusionPipeline(nn.Module, metaclass=ABCMeta):
     """Base class for a fusion pipeline
 
     Inherit this class to implement a fusion pipeline
@@ -535,14 +1117,20 @@ class BaseFusionPipeline(nn.Module):
         super(BaseFusionPipeline, self).__init__()
 
     @property
+    @abstractmethod
     def out_size(self) -> int:
-        raise NotImplementedError
+        """Define the feature size of the returned tensor
+
+        Returns:
+            int: The feature dimension of the output tensor
+        """
+        pass
 
 
 class FuseAggregateTimesteps(BaseFusionPipeline):
     """Fuse input feature sequences and aggregate across timesteps
 
-    Fuser -> TimestepAggregator
+    Fuser -> TimestepsPooler
 
     Args:
         feature_size (int): The input modality representations dimension
@@ -550,7 +1138,7 @@ class FuseAggregateTimesteps(BaseFusionPipeline):
         output_size (Optional[int]): Required output size. If not provided,
             output_size = fuser.out_size
         fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
-        timestep_aggregation_method (str): TimestepAggregator method [cat|sum|rnn]
+        timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
         batch_first (bool): Input tensors are in batch first configuration. Leave this as true
             except if you know what you are doing
         **fuser_kwargs (dict): Extra keyword arguments to instantiate fuser
@@ -562,7 +1150,7 @@ class FuseAggregateTimesteps(BaseFusionPipeline):
         n_modalities: int,
         output_size: Optional[int] = None,
         fusion_method: str = "cat",
-        timestep_aggregation_method: str = "sum",
+        timesteps_pooling_method: str = "sum",
         batch_first: bool = True,
         **fuser_kwargs,
     ):
@@ -575,35 +1163,52 @@ class FuseAggregateTimesteps(BaseFusionPipeline):
         output_size = (  # bidirectional rnn. fused_size / 2 results to fused_size outputs
             output_size if output_size is not None else self.fuser.out_size // 2
         )
-        self.timestep_aggregator = TimestepAggregator(
+        self.timesteps_pooler = TimestepsPooler(
             self.fuser.out_size,
             hidden_size=output_size,
-            mode=timestep_aggregation_method,
+            mode=timesteps_pooling_method,
             batch_first=batch_first,
         )
 
     @property
     def out_size(self) -> int:
-        return cast(int, self.timestep_aggregator.out_size)
+        """Define the feature size of the returned tensor
 
-    def forward(self, *mods, lengths=None):
+        Returns:
+            int: The feature dimension of the output tensor
+        """
+
+        return cast(int, self.timesteps_pooler.out_size)
+
+    def forward(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Fuse the modality representations and aggregate across timesteps
+
+        Args:
+            *mods: List of modality tensors [B, L, D]
+            lengths (Optional[Tensor]): Lengths of each modality
+
+        Returns:
+            torch.Tensor: Fused tensor [B, self.out_size]
+        """
         fused = self.fuser(*mods, lengths=lengths)
-        out = self.timestep_aggregator(fused, lengths=lengths)
+        out: torch.Tensor = self.timesteps_pooler(fused, lengths=lengths)
 
         return out
 
 
-class ProjectFuseAggregate(nn.Module):
+class ProjectFuseAggregate(BaseFusionPipeline):
     """Project input feature sequences, fuse and aggregate across timesteps
 
-    ModalityProjection -> Optional[ModalityWeights] -> Fuser -> TimestepAggregator
+    ModalityProjection -> Optional[ModalityWeights] -> Fuser -> TimestepsPooler
 
     Args:
         modality_sizes (List[int]): List of input modality representations dimensions
         projection_size (int): Project all modalities to have this feature size
-        projection_type (str): Projection method [linear|conv]
+        projection_type (Optional[str]): Optional projection method [linear|conv]
         fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
-        timestep_aggregation_method (str): TimestepAggregator method [cat|sum|rnn]
+        timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
         modality_weights (bool): Multiply projected modality representations with learnable
             weights. Default value is False.
         batch_first (bool): Input tensors are in batch first configuration. Leave this as true
@@ -615,42 +1220,74 @@ class ProjectFuseAggregate(nn.Module):
         self,
         modality_sizes: List[int],
         projection_size: int,
-        projection_type: str,
+        projection_type: Optional[str] = None,
         fusion_method="cat",
-        timestep_aggregation_method="sum",
+        timesteps_pooling_method="sum",
         modality_weights: bool = False,
         batch_first: bool = True,
         **fuser_kwargs,
     ):
         super(ProjectFuseAggregate, self).__init__()
         n_modalities = len(modality_sizes)
-        self.projection = ModalityProjection(
-            modality_sizes, projection_size, mode=projection_type
-        )
+
+        self.projection = None
         self.modality_weights = None
 
-        if modality_weights:
-            self.modality_weights = ModalityWeights(projection_size)
+        if projection_type is not None:
+            self.projection = ModalityProjection(
+                modality_sizes, projection_size, mode=projection_type
+            )
 
-        self.fuser = make_fuser(
-            fuser_kwargs, projection_size, n_modalities, **fuser_kwargs
-        )
+            if modality_weights:
+                self.modality_weights = ModalityWeights(projection_size)
 
-        self.timestep_aggregator = TimestepAggregator(
-            self.fuser.out_size,
-            hidden_size=projection_size,
-            batch_first=batch_first,
-            mode=timestep_aggregation_method,
+        fuser_kwargs["output_size"] = projection_size
+        fuser_kwargs["fusion_method"] = fusion_method
+        fuser_kwargs["timesteps_pooling_method"] = timesteps_pooling_method
+        fuser_kwargs["batch_first"] = batch_first
+
+        if "n_modalities" in fuser_kwargs:
+            del fuser_kwargs["n_modalities"]
+
+        if "projection_size" in fuser_kwargs:
+            del fuser_kwargs["projection_size"]
+
+        self.fuse_aggregate = FuseAggregateTimesteps(
+            projection_size,
+            n_modalities,
+            **fuser_kwargs,
         )
 
     @property
     def out_size(self) -> int:
-        return self.timestep_aggregator.out_size
+        """Define the feature size of the returned tensor
 
-    def forward(self, *mods, lengths=None):
-        mods = self.projection(*mods)
-        mods = self.modality_weights(*mods)
-        fused = self.fuser(*mods, lengths=lengths)
-        fused = self.timestep_aggregator(fused, lengths=lengths)
+        Returns:
+            int: The feature dimension of the output tensor
+        """
+
+        return self.fuse_aggregate.out_size
+
+    def forward(
+        self, *mods: torch.Tensor, lengths: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """Project modality representations to a common dimension, fuse and aggregate across timesteps
+
+        Optionally use modality weights
+
+        Args:
+            *mods: List of modality tensors [B, L, D]
+            lengths (Optional[Tensor]): Lengths of each modality
+
+        Returns:
+            torch.Tensor: Fused tensor [B, self.out_size]
+        """
+
+        if self.projection is not None:
+            mods = self.projection(*mods)
+
+        if self.modality_weights is not None:
+            mods = self.modality_weights(*mods)
+        fused: torch.Tensor = self.fuse_aggregate(*mods, lengths=lengths)
 
         return fused
