@@ -4,8 +4,8 @@ from typing import List, Union
 import torch
 import torch.nn as nn
 from loguru import logger
-
 from slp.modules.norm import LayerNorm
+from slp.util.pytorch import NoOp
 
 # Activation functions to choose
 NON_LINEARITIES = {
@@ -13,8 +13,46 @@ NON_LINEARITIES = {
     "gelu": nn.GELU,
     "tanh": nn.Tanh,
     "sigmoid": nn.Sigmoid,
-    "none": None,
+    "none": NoOp,
 }
+
+
+class TwoLayer(nn.Module):
+    def __init__(
+        self,
+        n_in: int,
+        inner_dim: int,
+        n_out: int,
+        activation: str = "relu",
+        bias: bool = True,
+        dropout: float = 0.1,
+        residual: bool = False,
+    ):
+        super(TwoLayer, self).__init__()
+        self.l1 = nn.Linear(n_in, inner_dim)
+        self.act = (
+            NON_LINEARITIES[activation]()
+            if activation in NON_LINEARITIES
+            else nn.ReLU()
+        )
+        self.l2 = nn.Linear(inner_dim, n_out)
+        self.drop = nn.Dropout(p=dropout)
+
+        if residual:
+            assert n_in == n_out, "Residual connection assumes n_in == n_out"
+        self.residual = residual
+
+    def forward(self, x):
+        out = self.l1(x)
+        out = self.drop(out)
+        out = self.act(out)
+        out = self.l2(out)
+        out = self.drop(out)
+
+        if self.residual:
+            out = x + out
+
+        return out
 
 
 class FF(nn.Module):
