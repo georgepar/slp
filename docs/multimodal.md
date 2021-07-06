@@ -2,7 +2,7 @@
 
 Multimodal fusion modules and paper implementations.
 
-::: slp.modules.symattention
+::: slp.modules.twowayattention
 ::: slp.modules.fuse
 ::: slp.modules.mmdrop
 ::: slp.modules.multimodal

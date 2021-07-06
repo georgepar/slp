@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from slp.modules.norm import LayerNorm
 
 
-class SymmetricAttention(nn.Module):
+class TwowayAttention(nn.Module):
     """Some Information about Attention"""
 
     def __init__(
@@ -17,7 +17,7 @@ class SymmetricAttention(nn.Module):
         residual=True,
         layernorm=False,
     ):
-        super(SymmetricAttention, self).__init__()
+        super(TwowayAttention, self).__init__()
 
         if input_size is None:
             input_size = attention_size

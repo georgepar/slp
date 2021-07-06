@@ -7,22 +7,6 @@ from slp.modules.multimodal import MOSEIClassifier, MultimodalBaseline
 
 
 class M3FuseAggregate(BaseFusionPipeline):
-    """MultimodalDropout, Fuse input feature sequences and aggregate across timesteps
-
-    MultimodalDropout -> Fuser -> TimestepsPooler
-
-    Args:
-        feature_size (int): The input modality representations dimension
-        n_modalities (int): Number of input modalities
-        output_size (Optional[int]): Required output size. If not provided,
-            output_size = fuser.out_size
-        fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
-        timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
-        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
-            except if you know what you are doing
-        **fuser_kwargs (dict): Extra keyword arguments to instantiate fuser
-    """
-
     def __init__(
         self,
         feature_size: int,
@@ -36,6 +20,25 @@ class M3FuseAggregate(BaseFusionPipeline):
         mmdrop_algorithm: str = "hard",
         **fuser_kwargs,
     ):
+        """MultimodalDropout, Fuse input feature sequences and aggregate across timesteps
+
+        MultimodalDropout -> Fuser -> TimestepsPooler
+
+        Args:
+            feature_size (int): The input modality representations dimension
+            n_modalities (int): Number of input modalities
+            output_size (Optional[int]): Required output size. If not provided,
+                output_size = fuser.out_size
+            fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
+            timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
+            batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+                except if you know what you are doing
+            mmdrop_prob (float): The probability for multimodal dropout. Defaults to 0.2
+            mmdrop_individual_mod_prob (Optional[List[float]]): Drop probabilities for each modality
+                for multimodal dropout. If None all modalities are dropped with equal probability
+            mmdrop_algorithm (str): Choose multimodal dropout algorithm [hard|soft]. Defaults to hard
+            **fuser_kwargs (dict): Extra keyword arguments to instantiate fuser
+        """
         super(M3FuseAggregate, self).__init__()
 
         self.m3 = MultimodalDropout(
@@ -93,12 +96,19 @@ class M3FuseAggregate(BaseFusionPipeline):
 class M3(MultimodalBaseline):
     def _make_fusion_pipeline(
         self,
-        encoder1_args: Dict[str, Any],
-        encoder2_args: Dict[str, Any],
-        encoder3_args: Dict[str, Any],
+        encoder_output_sizes: List[int],
         **fuser_kwargs,
     ) -> BaseFusionPipeline:
+        """Create fusion pipeline for M3 model
 
+        MultimodalDropout -> Fuse -> Aggregate Timesteps
+
+        Args:
+            encoder_output_sizes (List[int]): The output sizes of each modality
+
+        Returns:
+            BaseFusionPipeline: M3FuseAggregate instance
+        """
         feature_size = fuser_kwargs.pop("hidden_size")
         n_modalities = fuser_kwargs.pop("n_modalities")
 
@@ -106,6 +116,19 @@ class M3(MultimodalBaseline):
 
     @staticmethod
     def encoder_cfg(input_size: int, **cfg) -> Dict[str, Any]:
+        """Static method to create the encoder configuration
+
+        The default configuration is provided here
+        This configuration corresponds to the official paper implementation
+        and is tuned for CMU MOSEI.
+
+        Args:
+            input_size (int): Input modality size
+            **cfg: Optional keyword arguments
+
+        Returns:
+            Dict[str, Any]: The encoder configuration
+        """
         return {
             "input_size": input_size,
             "hidden_size": cfg.get("hidden_size", 100),
@@ -118,6 +141,18 @@ class M3(MultimodalBaseline):
 
     @staticmethod
     def fuser_cfg(**cfg) -> Dict[str, Any]:
+        """Static method to create the fuser configuration
+
+        The default configuration is provided here
+        This configuration corresponds to the official paper implementation
+        and is tuned for CMU MOSEI.
+
+        Args:
+            **cfg: Optional keyword arguments
+
+        Returns:
+            Dict[str, Any]: The fuser configuration
+        """
         return {
             "n_modalities": 3,
             "dropout": cfg.get("dropout", 0.2),

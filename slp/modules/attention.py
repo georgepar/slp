@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from slp.modules.norm import LayerNorm
 from slp.util.pytorch import moore_penrose_pinv
 
 
@@ -594,6 +594,10 @@ class MultiheadAttention(nn.Module):
             input_size (Optional[int]): Input features. Defaults to None.
                 If None input_size is set to attention_size.
             dropout (float): Drop probability. Defaults to 0.1.
+            nystrom (bool, optional): Use nystrom method for attention calculation. Defaults to False.
+            num_landmarks (int, optional): Number of landmark points for nystrom attention. Defaults to 64.
+            inverse_iterations (int, optional): Number of iteration to calculate the inverse in nystrom attention. Defaults to 6.
+            kernel_size (Optional[int], optional): Use residual convolution in the output. Defaults to None.
         """
         super(MultiheadAttention, self).__init__()
 
@@ -720,3 +724,87 @@ class MultiheadAttention(nn.Module):
         out = self.output(out)
 
         return out, scores
+
+
+class MultiheadTwowayAttention(nn.Module):
+    def __init__(
+        self,
+        attention_size: int = 512,
+        input_size: Optional[int] = None,
+        dropout: float = 0.1,
+        num_heads: int = 8,
+        residual: bool = True,
+        nystrom: bool = False,
+        num_landmarks: int = 64,
+        inverse_iterations: int = 6,
+        kernel_size: Optional[int] = None,
+    ):
+        r"""Multihead twoway attention for multimodal fusion
+
+        This module performs two way attention for two input modality feature sequences.
+        If att is the MultiheadAttention operation and x, y the input modality sequences,
+        the operation is summarized as
+
+        $$out = (att(x \rightarrow y), att(y \rightarrow x))$$
+
+        If residual is True then a Vilbert-like residual connection is applied
+
+        $$out = (att(x \rightarrow y) + x, att(y \rightarrow x) + y)$$
+
+
+        Args:
+            attention_size (int): Number of hidden features. Defaults to 512.
+            num_heads (int): Number of attention heads
+            input_size (Optional[int]): Input features. Defaults to None.
+                If None input_size is set to attention_size.
+            dropout (float): Drop probability. Defaults to 0.1.
+            nystrom (bool, optional): Use nystrom method for attention calculation. Defaults to False.
+            num_landmarks (int, optional): Number of landmark points for nystrom attention. Defaults to 64.
+            inverse_iterations (int, optional): Number of iteration to calculate the inverse in nystrom attention. Defaults to 6.
+            kernel_size (Optional[int], optional): Use residual convolution in the output. Defaults to None.
+            residual (bool, optional): Use vilbert-like residual connections for fusion. Defaults to True.
+        """
+        super(MultiheadTwowayAttention, self).__init__()
+
+        self.xy = MultiheadAttention(
+            attention_size=attention_size,
+            input_size=input_size,
+            dropout=dropout,
+            num_heads=num_heads,
+            nystrom=nystrom,
+            num_landmarks=num_landmarks,
+            inverse_iterations=inverse_iterations,
+            kernel_size=kernel_size,
+        )
+        self.yx = MultiheadAttention(
+            attention_size=attention_size,
+            input_size=input_size,
+            dropout=dropout,
+            num_heads=num_heads,
+            nystrom=nystrom,
+            num_landmarks=num_landmarks,
+            inverse_iterations=inverse_iterations,
+            kernel_size=kernel_size,
+        )
+        self.residual = residual
+
+    def forward(self, mod1, mod2, attention_mask=None):
+        """
+        x : (B, L, D)
+        queries : (B, L, D)
+        values : (B, L, D)
+        """
+        out_mod1, _ = self.xy(mod1, queries=mod2, attention_mask=attention_mask)
+        out_mod2, _ = self.yx(mod2, queries=mod1, attention_mask=attention_mask)
+
+        if not self.residual:
+            return out_mod1, out_mod2
+        else:
+            # vilbert cross residual
+
+            # v + attention(v->a)
+            # a + attention(a->v)
+            out_mod1 += mod2
+            out_mod2 += mod1
+
+            return out_mod1, out_mod2

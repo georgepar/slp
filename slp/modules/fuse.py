@@ -1,26 +1,15 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional, Union, cast
+from typing import List, Mapping, Optional, Type, Union, cast
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from slp.modules.attention import Attention
 from slp.modules.rnn import AttentiveRNN
-from slp.modules.symattention import SymmetricAttention
+from slp.modules.twowayattention import TwowayAttention
 
 
 class Conv1dProjection(nn.Module):
-    """Project features for N modalities using 1D convolutions
-
-    Args:
-        modality_sizes (List[int]): List of number of features for each modality. E.g. for MOSEI:
-            [300, 74, 35]
-        projection_size (int): Output number of features for each modality
-        kernel_size (int): Convolution kernel size
-        padding (int): Convlution amount of padding
-        bias (bool): Use bias in convolutional layers
-    """
-
     def __init__(
         self,
         modality_sizes: List[int],
@@ -29,6 +18,16 @@ class Conv1dProjection(nn.Module):
         padding: int = 0,
         bias: bool = False,
     ):
+        """Project features for N modalities using 1D convolutions
+
+        Args:
+            modality_sizes (List[int]): List of number of features for each modality. E.g. for MOSEI:
+                [300, 74, 35]
+            projection_size (int): Output number of features for each modality
+            kernel_size (int): Convolution kernel size
+            padding (int): Convlution amount of padding
+            bias (bool): Use bias in convolutional layers
+        """
         super(Conv1dProjection, self).__init__()
         self.p = nn.ModuleList(
             [
@@ -71,17 +70,16 @@ class Conv1dProjection(nn.Module):
 
 
 class LinearProjection(nn.Module):
-    """Project features for N modalities using feedforward layers
-
-    Args:
-        modality_sizes (List[int]): List of number of features for each modality. E.g. for MOSEI:
-            [300, 74, 35]
-        bias (bool): Use bias in feedforward layers
-    """
-
     def __init__(
         self, modality_sizes: List[int], projection_size: int, bias: bool = True
     ):
+        """Project features for N modalities using feedforward layers
+
+        Args:
+            modality_sizes (List[int]): List of number of features for each modality. E.g. for MOSEI:
+                [300, 74, 35]
+            bias (bool): Use bias in feedforward layers
+        """
         super(LinearProjection, self).__init__()
         self.p = nn.ModuleList(
             [nn.Linear(sz, projection_size, bias=bias) for sz in modality_sizes]
@@ -113,20 +111,6 @@ class LinearProjection(nn.Module):
 
 
 class ModalityProjection(nn.Module):
-    """Adapter module to project features for N modalities using 1D convolutions or feedforward
-
-    Args:
-        modality_sizes (List[int]): List of number of features for each modality. E.g. for MOSEI:
-            [300, 74, 35]
-        projection_size (int): Output number of features for each modality
-        kernel_size (int): Convolution kernel size. Used when mode=="conv"
-        padding (int): Convlution amount of padding. Used when mode=="conv"
-        bias (bool): Use bias
-        mode (Optional[str]): Projection method.
-            linear -> LinearProjection
-            conv|conv1d|convolutional -> Conv1dProjection
-    """
-
     def __init__(
         self,
         modality_sizes: List[int],
@@ -136,6 +120,19 @@ class ModalityProjection(nn.Module):
         bias: bool = True,
         mode: Optional[str] = None,
     ):
+        """Adapter module to project features for N modalities using 1D convolutions or feedforward
+
+        Args:
+            modality_sizes (List[int]): List of number of features for each modality. E.g. for MOSEI:
+                [300, 74, 35]
+            projection_size (int): Output number of features for each modality
+            kernel_size (int): Convolution kernel size. Used when mode=="conv"
+            padding (int): Convlution amount of padding. Used when mode=="conv"
+            bias (bool): Use bias
+            mode (Optional[str]): Projection method.
+                linear -> LinearProjection
+                conv|conv1d|convolutional -> Conv1dProjection
+        """
         super(ModalityProjection, self).__init__()
 
         if mode is None:
@@ -198,19 +195,18 @@ class ModalityProjection(nn.Module):
 
 
 class ModalityWeights(nn.Module):
-    """Multiply each modality features with a learnable weight
-
-    i: modality index
-    learnable_weight[i] = softmax(Linear(modality_features[i]))
-    output_modality[i] = learnable_weight * modality_features[i]
-
-    Args:
-        feature_size (int): All modalities are assumed to be projected into a space with the same
-            number of features.
-
-    """
-
     def __init__(self, feature_size: int):
+        """Multiply each modality features with a learnable weight
+
+        i: modality index
+        learnable_weight[i] = softmax(Linear(modality_features[i]))
+        output_modality[i] = learnable_weight * modality_features[i]
+
+        Args:
+            feature_size (int): All modalities are assumed to be projected into a space with the same
+                number of features.
+
+        """
         super(ModalityWeights, self).__init__()
 
         self.mod_w = nn.Linear(feature_size, 1)
@@ -251,22 +247,21 @@ class ModalityWeights(nn.Module):
 
 
 class BaseTimestepsPooler(nn.Module, metaclass=ABCMeta):
-    """Abstract base class for Timesteps Poolers
-
-    Timesteps Poolers aggregate the features for different timesteps
-
-    Given a tensor with dimensions [BatchSize, Length, Dim]
-    they return an aggregated tensor with dimensions [BatchSize, Dim]
-
-
-    Args:
-        feature_size (int): Feature dimension
-        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
-            except if you know what you are doing
-        **kwargs: Variable keyword arguments for subclasses
-    """
-
     def __init__(self, feature_size: int, batch_first: bool = True, **kwargs):
+        """Abstract base class for Timesteps Poolers
+
+        Timesteps Poolers aggregate the features for different timesteps
+
+        Given a tensor with dimensions [BatchSize, Length, Dim]
+        they return an aggregated tensor with dimensions [BatchSize, Dim]
+
+
+        Args:
+            feature_size (int): Feature dimension
+            batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+                except if you know what you are doing
+            **kwargs: Variable keyword arguments for subclasses
+        """
         super(BaseTimestepsPooler, self).__init__()
         self.pooling_dim = 0 if not batch_first else 1
         self.feature_size = feature_size
@@ -373,19 +368,6 @@ class MaxPooler(BaseTimestepsPooler):
 
 
 class RnnPooler(BaseTimestepsPooler):
-    """Aggregate features of the input tensor using an AttentiveRNN
-
-    Args:
-        feature_size (int): Feature dimension
-        hidden_size (int): Hidden dimension
-        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
-            except if you know what you are doing
-        bidirectional (bool): Use bidirectional RNN. Defaults to True
-        merge_bi (str): How bidirectional states are merged. Defaults to "cat"
-        attention (bool): Use attention for the RNN output states
-        **kwargs: Variable keyword arguments
-    """
-
     def __init__(
         self,
         feature_size: int,
@@ -396,6 +378,18 @@ class RnnPooler(BaseTimestepsPooler):
         attention: bool = True,
         **kwargs,
     ):
+        """Aggregate features of the input tensor using an AttentiveRNN
+
+        Args:
+            feature_size (int): Feature dimension
+            hidden_size (int): Hidden dimension
+            batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+                except if you know what you are doing
+            bidirectional (bool): Use bidirectional RNN. Defaults to True
+            merge_bi (str): How bidirectional states are merged. Defaults to "cat"
+            attention (bool): Use attention for the RNN output states
+            **kwargs: Variable keyword arguments
+        """
         super(RnnPooler, self).__init__(feature_size, batch_first=batch_first, **kwargs)
         self.hidden_size = hidden_size if hidden_size is not None else feature_size
         self.rnn = AttentiveRNN(
@@ -437,7 +431,7 @@ class RnnPooler(BaseTimestepsPooler):
         return out
 
 
-SUPPORTED_POOLERS = {
+SUPPORTED_POOLERS: Mapping[str, Type[BaseTimestepsPooler]] = {
     "sum": SumPooler,
     "mean": MeanPooler,
     "max": MaxPooler,
@@ -448,28 +442,27 @@ SUPPORTED_POOLERS = {
 
 
 class TimestepsPooler(BaseTimestepsPooler):
-    """Aggregate features from all timesteps into a single representation.
-
-    Three methods supported:
-        sum: Sum features from all timesteps
-        mean: Average features from all timesteps
-        max: Max pool features from all timesteps
-        rnn: Use the output from an attentive RNN
-
-    Args:
-        feature_size (int): The number of features for the input fused representations
-        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
-            except if you know what you are doing
-        mode (str): The timestep pooling method
-            sum: Sum hidden states
-            mean: Average hidden states
-            max: Max pool features from all hidden states
-            rnn: Use the output of an Attentive RNN
-    """
-
     def __init__(
         self, feature_size: int, mode: str = "sum", batch_first=True, **kwargs
     ):
+        """Aggregate features from all timesteps into a single representation.
+
+        Three methods supported:
+            sum: Sum features from all timesteps
+            mean: Average features from all timesteps
+            max: Max pool features from all timesteps
+            rnn: Use the output from an attentive RNN
+
+        Args:
+            feature_size (int): The number of features for the input fused representations
+            batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+                except if you know what you are doing
+            mode (str): The timestep pooling method
+                sum: Sum hidden states
+                mean: Average hidden states
+                max: Max pool features from all hidden states
+                rnn: Use the output of an Attentive RNN
+        """
         super(TimestepsPooler, self).__init__(
             feature_size, batch_first=batch_first, **kwargs
         )
@@ -519,28 +512,27 @@ class TimestepsPooler(BaseTimestepsPooler):
 
 
 class BaseFuser(nn.Module, metaclass=ABCMeta):
-    """Base fuser class.
-
-    Our fusion methods are separated in direct and combinatorial.
-    An example for direct fusion is concatenation, where feature vectors of N modalities
-    are concatenated into a fused vector.
-    When performing combinatorial fusion all crossmodal relations are examined (e.g. text -> audio,
-    text -> visual, audio -> visaul etc.)
-    In the current implementation, combinatorial fusion is implemented for 3 input modalities
-
-    Args:
-        feature_size (int): Assume all modality representations have the same feature_size
-        n_modalities (int): Number of input modalities
-        **extra_kwargs (dict): Extra keyword arguments to maintain interoperability of children
-            classes
-    """
-
     def __init__(
         self,
         feature_size: int,
         n_modalities: int,
         **extra_kwargs,
     ):
+        """Base fuser class.
+
+        Our fusion methods are separated in direct and combinatorial.
+        An example for direct fusion is concatenation, where feature vectors of N modalities
+        are concatenated into a fused vector.
+        When performing combinatorial fusion all crossmodal relations are examined (e.g. text -> audio,
+        text -> visual, audio -> visaul etc.)
+        In the current implementation, combinatorial fusion is implemented for 3 input modalities
+
+        Args:
+            feature_size (int): Assume all modality representations have the same feature_size
+            n_modalities (int): Number of input modalities
+            **extra_kwargs (dict): Extra keyword arguments to maintain interoperability of children
+                classes
+        """
         super(BaseFuser, self).__init__()
         self.feature_size = feature_size
         self.n_modalities = n_modalities
@@ -689,24 +681,23 @@ class SumFuser(BaseFuser):
 
 
 class BimodalCombinatorialFuser(BaseFuser, metaclass=ABCMeta):
-    """Fuse all combinations of three modalities using a base module
-
-    If input modalities are x, y, then the output is
-    o = x || y || f(x, y)
-
-    Where f is a network module (e.g. attention)
-
-    Args:
-        feature_size (int): Number of feature dimensions
-        n_modalities (int): Number of input modalities (should be 3)
-    """
-
     def __init__(
         self,
         feature_size: int,
         n_modalities: int,
         **kwargs,
     ):
+        """Fuse all combinations of three modalities using a base module
+
+        If input modalities are x, y, then the output is
+        o = x || y || f(x, y)
+
+        Where f is a network module (e.g. attention)
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            n_modalities (int): Number of input modalities (should be 3)
+        """
         super(BimodalCombinatorialFuser, self).__init__(
             feature_size, n_modalities, **kwargs
         )
@@ -766,7 +757,7 @@ class BimodalBilinearFuser(BimodalCombinatorialFuser):
 
 class BimodalAttentionFuser(BimodalCombinatorialFuser):
     def _bimodal_fusion_module(self, feature_size: int, **kwargs) -> nn.Module:
-        return SymmetricAttention(
+        return TwowayAttention(
             attention_size=feature_size,
             dropout=kwargs.get("dropout", 0.1),
             residual=kwargs.get("residual", True),
@@ -795,19 +786,6 @@ class BimodalAttentionFuser(BimodalCombinatorialFuser):
 
 
 class TrimodalCombinatorialFuser(BaseFuser, metaclass=ABCMeta):
-    """Fuse all combinations of three modalities using a base module
-
-    If input modalities are a, t, v, then the output is
-    o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
-
-    Where f and g network modules (e.g. attention) and values with [] are optional
-
-    Args:
-        feature_size (int): Number of feature dimensions
-        n_modalities (int): Number of input modalities (should be 3)
-        use_all_trimodal (bool): Use all optional trimodal combinations
-    """
-
     def __init__(
         self,
         feature_size: int,
@@ -815,6 +793,18 @@ class TrimodalCombinatorialFuser(BaseFuser, metaclass=ABCMeta):
         use_all_trimodal: bool = False,
         **kwargs,
     ):
+        """Fuse all combinations of three modalities using a base module
+
+        If input modalities are a, t, v, then the output is
+        o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
+
+        Where f and g network modules (e.g. attention) and values with [] are optional
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            n_modalities (int): Number of input modalities (should be 3)
+            use_all_trimodal (bool): Use all optional trimodal combinations
+        """
         super(TrimodalCombinatorialFuser, self).__init__(
             feature_size, n_modalities, **kwargs
         )
@@ -874,19 +864,6 @@ class TrimodalCombinatorialFuser(BaseFuser, metaclass=ABCMeta):
 
 
 class BilinearFuser(TrimodalCombinatorialFuser):
-    """Fuse all combinations of three modalities using a base module using bilinear fusion
-
-    If input modalities are a, t, v, then the output is
-    o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
-
-    Where f and g are the nn.Bilinear function and values with [] are optional
-
-    Args:
-        feature_size (int): Number of feature dimensions
-        n_modalities (int): Number of input modalities (should be 3)
-        use_all_trimodal (bool): Use all optional trimodal combinations
-    """
-
     def __init__(
         self,
         feature_size: int,
@@ -894,6 +871,18 @@ class BilinearFuser(TrimodalCombinatorialFuser):
         use_all_trimodal: bool = False,
         **kwargs,
     ):
+        """Fuse all combinations of three modalities using a base module using bilinear fusion
+
+        If input modalities are a, t, v, then the output is
+        o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
+
+        Where f and g are the nn.Bilinear function and values with [] are optional
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            n_modalities (int): Number of input modalities (should be 3)
+            use_all_trimodal (bool): Use all optional trimodal combinations
+        """
         super(BilinearFuser, self).__init__(
             feature_size,
             n_modalities,
@@ -960,21 +949,6 @@ class BilinearFuser(TrimodalCombinatorialFuser):
 
 
 class AttentionFuser(TrimodalCombinatorialFuser):
-    """Fuse all combinations of three modalities using a base module using bilinear fusion
-
-    If input modalities are a, t, v, then the output is
-
-    Where f is SymmetricAttention and g is Attention modules and values with [] are optional
-    o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
-
-    Args:
-        feature_size (int): Number of feature dimensions
-        n_modalities (int): Number of input modalities (should be 3)
-        use_all_trimodal (bool): Use all optional trimodal combinations
-        residual (bool): Use residual connection in SymmetricAttention. Defaults to True
-        dropout (float): Dropout probability
-    """
-
     def __init__(
         self,
         feature_size: int,
@@ -984,6 +958,20 @@ class AttentionFuser(TrimodalCombinatorialFuser):
         dropout: float = 0.1,
         **kwargs,
     ):
+        """Fuse all combinations of three modalities using a base module using bilinear fusion
+
+        If input modalities are a, t, v, then the output is
+
+        Where f is TwowayAttention and g is Attention modules and values with [] are optional
+        o = t || a || v || f(t, a) || f(v, a) || f(t, v) || g(t, f(v, a)) || [ g(v, f(t,a)) ] || [g(a, f(t,v))]
+
+        Args:
+            feature_size (int): Number of feature dimensions
+            n_modalities (int): Number of input modalities (should be 3)
+            use_all_trimodal (bool): Use all optional trimodal combinations
+            residual (bool): Use residual connection in TwowayAttention. Defaults to True
+            dropout (float): Dropout probability
+        """
         kwargs["dropout"] = dropout
         kwargs["residual"] = residual
         super(AttentionFuser, self).__init__(
@@ -994,17 +982,17 @@ class AttentionFuser(TrimodalCombinatorialFuser):
         )
 
     def _bimodal_fusion_module(self, feature_size: int, **kwargs):
-        """SymmetricAttention module to fuse bimodal combinations
+        """TwowayAttention module to fuse bimodal combinations
 
         Args:
             feature_size (int): Number of feature dimensions
             **kwargs: dropout and residual parameters
 
         Returns:
-            nn.Module: SymmetricAttention module to use for fusion
+            nn.Module: TwowayAttention module to use for fusion
         """
 
-        return SymmetricAttention(
+        return TwowayAttention(
             attention_size=feature_size,
             dropout=kwargs.get("dropout", 0.1),
             residual=kwargs.get("residual", True),
@@ -1064,7 +1052,7 @@ class AttentionFuser(TrimodalCombinatorialFuser):
         return fused
 
 
-SUPPORTED_FUSERS = {
+SUPPORTED_FUSERS: Mapping[str, Type[BaseFuser]] = {
     "cat": CatFuser,
     "add": SumFuser,
     "sum": SumFuser,
@@ -1109,13 +1097,12 @@ def make_fuser(fusion_method: str, feature_size: int, n_modalities: int, **kwarg
 
 
 class BaseFusionPipeline(nn.Module, metaclass=ABCMeta):
-    """Base class for a fusion pipeline
-
-    Inherit this class to implement a fusion pipeline
-
-    """
-
     def __init__(self, *args, **kwargs):
+        """Base class for a fusion pipeline
+
+        Inherit this class to implement a fusion pipeline
+
+        """
         super(BaseFusionPipeline, self).__init__()
 
     @property
@@ -1130,22 +1117,6 @@ class BaseFusionPipeline(nn.Module, metaclass=ABCMeta):
 
 
 class FuseAggregateTimesteps(BaseFusionPipeline):
-    """Fuse input feature sequences and aggregate across timesteps
-
-    Fuser -> TimestepsPooler
-
-    Args:
-        feature_size (int): The input modality representations dimension
-        n_modalities (int): Number of input modalities
-        output_size (Optional[int]): Required output size. If not provided,
-            output_size = fuser.out_size
-        fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
-        timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
-        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
-            except if you know what you are doing
-        **fuser_kwargs (dict): Extra keyword arguments to instantiate fuser
-    """
-
     def __init__(
         self,
         feature_size: int,
@@ -1156,6 +1127,22 @@ class FuseAggregateTimesteps(BaseFusionPipeline):
         batch_first: bool = True,
         **fuser_kwargs,
     ):
+        """Fuse input feature sequences and aggregate across timesteps
+
+        Fuser -> TimestepsPooler
+
+        Args:
+            feature_size (int): The input modality representations dimension
+            n_modalities (int): Number of input modalities
+            output_size (Optional[int]): Required output size. If not provided,
+                output_size = fuser.out_size
+            fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
+            timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
+            batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+                except if you know what you are doing
+            **fuser_kwargs (dict): Extra keyword arguments to instantiate fuser
+        """
+
         super(FuseAggregateTimesteps, self).__init__(
             feature_size, n_modalities, fusion_method=fusion_method
         )
@@ -1201,23 +1188,6 @@ class FuseAggregateTimesteps(BaseFusionPipeline):
 
 
 class ProjectFuseAggregate(BaseFusionPipeline):
-    """Project input feature sequences, fuse and aggregate across timesteps
-
-    ModalityProjection -> Optional[ModalityWeights] -> Fuser -> TimestepsPooler
-
-    Args:
-        modality_sizes (List[int]): List of input modality representations dimensions
-        projection_size (int): Project all modalities to have this feature size
-        projection_type (Optional[str]): Optional projection method [linear|conv]
-        fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
-        timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
-        modality_weights (bool): Multiply projected modality representations with learnable
-            weights. Default value is False.
-        batch_first (bool): Input tensors are in batch first configuration. Leave this as true
-            except if you know what you are doing
-        **fuser_kwargs (dict): Extra keyword arguments to instantiate fuser
-    """
-
     def __init__(
         self,
         modality_sizes: List[int],
@@ -1229,6 +1199,22 @@ class ProjectFuseAggregate(BaseFusionPipeline):
         batch_first: bool = True,
         **fuser_kwargs,
     ):
+        """Project input feature sequences, fuse and aggregate across timesteps
+
+        ModalityProjection -> Optional[ModalityWeights] -> Fuser -> TimestepsPooler
+
+        Args:
+            modality_sizes (List[int]): List of input modality representations dimensions
+            projection_size (int): Project all modalities to have this feature size
+            projection_type (Optional[str]): Optional projection method [linear|conv]
+            fusion_method (str): Select which fuser to use [cat|sum|attention|bilinear]
+            timesteps_pooling_method (str): TimestepsPooler method [cat|sum|rnn]
+            modality_weights (bool): Multiply projected modality representations with learnable
+                weights. Default value is False.
+            batch_first (bool): Input tensors are in batch first configuration. Leave this as true
+                except if you know what you are doing
+            **fuser_kwargs (dict): Extra keyword arguments to instantiate fuser
+        """
         super(ProjectFuseAggregate, self).__init__()
         n_modalities = len(modality_sizes)
 
