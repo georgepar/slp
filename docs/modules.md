@@ -1,8 +1,9 @@
-# Modules
+# Generic Modules
 
-Modules implemented in slp. This list will get extended with modules geared towards multimodal processing soon.
+Modules implemented in slp. These modules can be used as building blocks for more complicated models.
 
 ::: slp.modules.attention
+::: slp.modules.twowayattention
 ::: slp.modules.classifier
 ::: slp.modules.embed
 ::: slp.modules.feedforward
