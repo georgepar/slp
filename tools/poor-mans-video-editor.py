@@ -5,7 +5,6 @@ Input Video filename | topic | subtopic | title greek | title english | start ti
 input.mp4            | 1     | 1        | έξοδος      | output        | 00:10:05   | 00:30:10 | 00:11:15-00:12:30,00:20:35-00:22:10
 """
 
-
 import os
 import subprocess
 import sys
@@ -27,6 +26,7 @@ def manage_timestamps(segment):
     try:
         st, et = segment[5], segment[6]
     except:
+        st = segment[5]
         return [st]
     try:
         delete_timestamps = segment[7]
@@ -67,7 +67,7 @@ def format_timestamp_args(timestamps):
 
 def format_ffmpeg_split(inp, out, timestamps_args):
     if len(timestamps_args) == 1:
-        return f"ffmpeg -i '{inp}' " + timestamps_args[0] + " '{out}'"
+        return f"ffmpeg -i '{inp}' " + timestamps_args[0] + f" '{out}'"
 
     return f"ffmpeg -i '{inp}' " + " ".join(timestamps_args)
 
