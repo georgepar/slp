@@ -1,0 +1,4709 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.0.5">
+    
+    
+      
+        <title>SLP utility functions - slp Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.77f3fd56.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.7fa14f5b.min.css">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
+      
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#slp-utility-functions" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="slp Documentation" class="md-header__button md-logo" aria-label="slp Documentation">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            slp Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              SLP utility functions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="md-header__options">
+      
+    </div>
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="slp Documentation" class="md-nav__button md-logo" aria-label="slp Documentation">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    slp Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        slp
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../get-started/" class="md-nav__link">
+        Getting started
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tuning/" class="md-nav__link">
+        Hyperparameter tuning
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        Configuration
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-utils/" class="md-nav__link">
+        Data manipulation
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plbind/" class="md-nav__link">
+        Pytorch Lightning Bindings
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/" class="md-nav__link">
+        Generic Modules
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../multimodal/" class="md-nav__link">
+        Multimodal Modules
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          SLP utility functions
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        SLP utility functions
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.log" class="md-nav__link">
+    slp.util.log
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.log.configure_logging" class="md-nav__link">
+    configure_logging()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.log.log_to_file" class="md-nav__link">
+    log_to_file()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch" class="md-nav__link">
+    slp.util.pytorch
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.NoOp" class="md-nav__link">
+    NoOp
+  </a>
+  
+    <nav class="md-nav" aria-label="NoOp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.NoOp.forward" class="md-nav__link">
+    forward()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PackSequence" class="md-nav__link">
+    PackSequence
+  </a>
+  
+    <nav class="md-nav" aria-label="PackSequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PackSequence.__init__" class="md-nav__link">
+    __init__()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PackSequence.forward" class="md-nav__link">
+    forward()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PadPackedSequence" class="md-nav__link">
+    PadPackedSequence
+  </a>
+  
+    <nav class="md-nav" aria-label="PadPackedSequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PadPackedSequence.__init__" class="md-nav__link">
+    __init__()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PadPackedSequence.forward" class="md-nav__link">
+    forward()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.from_checkpoint" class="md-nav__link">
+    from_checkpoint()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.mktensor" class="md-nav__link">
+    mktensor()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.moore_penrose_pinv" class="md-nav__link">
+    moore_penrose_pinv()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.pad_mask" class="md-nav__link">
+    pad_mask()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.pad_sequence" class="md-nav__link">
+    pad_sequence()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.repeat_layer" class="md-nav__link">
+    repeat_layer()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.rotate_tensor" class="md-nav__link">
+    rotate_tensor()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.shift_tensor" class="md-nav__link">
+    shift_tensor()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.sort_sequences" class="md-nav__link">
+    sort_sequences()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.subsequent_mask" class="md-nav__link">
+    subsequent_mask()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.t" class="md-nav__link">
+    t()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.t_" class="md-nav__link">
+    t_()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.to_device" class="md-nav__link">
+    to_device()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system" class="md-nav__link">
+    slp.util.system
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.date_fname" class="md-nav__link">
+    date_fname()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.download_url" class="md-nav__link">
+    download_url()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.has_internet_connection" class="md-nav__link">
+    has_internet_connection()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.is_file" class="md-nav__link">
+    is_file()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.is_subpath" class="md-nav__link">
+    is_subpath()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.is_url" class="md-nav__link">
+    is_url()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.json_dump" class="md-nav__link">
+    json_dump()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.json_load" class="md-nav__link">
+    json_load()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.pickle_dump" class="md-nav__link">
+    pickle_dump()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.pickle_load" class="md-nav__link">
+    pickle_load()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.print_separator" class="md-nav__link">
+    print_separator()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.read_wav" class="md-nav__link">
+    read_wav()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.run_cmd" class="md-nav__link">
+    run_cmd()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.run_cmd_silent" class="md-nav__link">
+    run_cmd_silent()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.safe_mkdirs" class="md-nav__link">
+    safe_mkdirs()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.suppress_print" class="md-nav__link">
+    suppress_print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.timethis" class="md-nav__link">
+    timethis()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.write_wav" class="md-nav__link">
+    write_wav()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.yaml_dump" class="md-nav__link">
+    yaml_dump()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.yaml_load" class="md-nav__link">
+    yaml_load()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.types" class="md-nav__link">
+    slp.util.types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.types.dir_path" class="md-nav__link">
+    dir_path()
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../apiref/" class="md-nav__link">
+        API reference
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.log" class="md-nav__link">
+    slp.util.log
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.log.configure_logging" class="md-nav__link">
+    configure_logging()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.log.log_to_file" class="md-nav__link">
+    log_to_file()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch" class="md-nav__link">
+    slp.util.pytorch
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.NoOp" class="md-nav__link">
+    NoOp
+  </a>
+  
+    <nav class="md-nav" aria-label="NoOp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.NoOp.forward" class="md-nav__link">
+    forward()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PackSequence" class="md-nav__link">
+    PackSequence
+  </a>
+  
+    <nav class="md-nav" aria-label="PackSequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PackSequence.__init__" class="md-nav__link">
+    __init__()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PackSequence.forward" class="md-nav__link">
+    forward()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PadPackedSequence" class="md-nav__link">
+    PadPackedSequence
+  </a>
+  
+    <nav class="md-nav" aria-label="PadPackedSequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PadPackedSequence.__init__" class="md-nav__link">
+    __init__()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slp.util.pytorch.PadPackedSequence.forward" class="md-nav__link">
+    forward()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.from_checkpoint" class="md-nav__link">
+    from_checkpoint()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.mktensor" class="md-nav__link">
+    mktensor()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.moore_penrose_pinv" class="md-nav__link">
+    moore_penrose_pinv()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.pad_mask" class="md-nav__link">
+    pad_mask()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.pad_sequence" class="md-nav__link">
+    pad_sequence()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.repeat_layer" class="md-nav__link">
+    repeat_layer()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.rotate_tensor" class="md-nav__link">
+    rotate_tensor()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.shift_tensor" class="md-nav__link">
+    shift_tensor()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.sort_sequences" class="md-nav__link">
+    sort_sequences()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.subsequent_mask" class="md-nav__link">
+    subsequent_mask()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.t" class="md-nav__link">
+    t()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.t_" class="md-nav__link">
+    t_()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.pytorch.to_device" class="md-nav__link">
+    to_device()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system" class="md-nav__link">
+    slp.util.system
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.date_fname" class="md-nav__link">
+    date_fname()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.download_url" class="md-nav__link">
+    download_url()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.has_internet_connection" class="md-nav__link">
+    has_internet_connection()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.is_file" class="md-nav__link">
+    is_file()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.is_subpath" class="md-nav__link">
+    is_subpath()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.is_url" class="md-nav__link">
+    is_url()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.json_dump" class="md-nav__link">
+    json_dump()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.json_load" class="md-nav__link">
+    json_load()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.pickle_dump" class="md-nav__link">
+    pickle_dump()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.pickle_load" class="md-nav__link">
+    pickle_load()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.print_separator" class="md-nav__link">
+    print_separator()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.read_wav" class="md-nav__link">
+    read_wav()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.run_cmd" class="md-nav__link">
+    run_cmd()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.run_cmd_silent" class="md-nav__link">
+    run_cmd_silent()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.safe_mkdirs" class="md-nav__link">
+    safe_mkdirs()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.suppress_print" class="md-nav__link">
+    suppress_print()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.timethis" class="md-nav__link">
+    timethis()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.write_wav" class="md-nav__link">
+    write_wav()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.yaml_dump" class="md-nav__link">
+    yaml_dump()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.system.yaml_load" class="md-nav__link">
+    yaml_load()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.types" class="md-nav__link">
+    slp.util.types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.util.types.dir_path" class="md-nav__link">
+    dir_path()
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <h1 id="slp-utility-functions">SLP utility functions</h1>
+<p>Reuseable utility functions for pytorch and system operations.</p>
+
+
+  <div class="doc doc-object doc-module">
+
+<a id="slp.util.log"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.log.configure_logging" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">configure_logging</span><span class="p">(</span><span class="n">logfile_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>configure_logging Configure loguru to intercept logging module logs, tqdm.writes and write to a logfile</p>
+<p>We use logure for stdout/stderr logging in this project.
+This function configures loguru to intercept logs from other modules that use the default python logging module.
+It also configures loguru so that it plays well with writes in the tqdm progress bars
+If a logfile_prefix is provided, loguru will also write all logs into a logfile with a unique name constructed using
+logfile_prefix and datetime.now()</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>logfile_prefix</code></td>
+        <td><code>Optional[str]</code></td>
+        <td><p>Optional prefix to file where logs will be written.</p></td>
+        <td><code>None</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Optional[str]</code></td>
+      <td><p>str: The logfile where logs are written</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">configure_logging</span><span class="p">(</span><span class="s2">&quot;logs/my-cool-experiment)</span>
+<span class="n">logs</span><span class="o">/</span><span class="n">my</span><span class="o">-</span><span class="n">cool</span><span class="o">-</span><span class="n">experiment</span><span class="o">.</span><span class="mi">20210228</span><span class="o">-</span><span class="mf">211832.</span><span class="n">log</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/log.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">configure_logging</span><span class="p">(</span><span class="n">logfile_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;configure_logging Configure loguru to intercept logging module logs, tqdm.writes and write to a logfile</span>
+
+<span class="sd">    We use logure for stdout/stderr logging in this project.</span>
+<span class="sd">    This function configures loguru to intercept logs from other modules that use the default python logging module.</span>
+<span class="sd">    It also configures loguru so that it plays well with writes in the tqdm progress bars</span>
+<span class="sd">    If a logfile_prefix is provided, loguru will also write all logs into a logfile with a unique name constructed using</span>
+<span class="sd">    logfile_prefix and datetime.now()</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        logfile_prefix (Optional[str]): Optional prefix to file where logs will be written.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: The logfile where logs are written</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; configure_logging(&quot;logs/my-cool-experiment)</span>
+<span class="sd">        logs/my-cool-experiment.20210228-211832.log</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">class</span> <span class="nc">InterceptHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Intercept standard logging logs in loguru. Should test this for distributed pytorch lightning&quot;&quot;&quot;</span>
+            <span class="c1"># Get corresponding Loguru level if it exists</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">level</span> <span class="o">=</span> <span class="n">logger</span><span class="o">.</span><span class="n">level</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">levelname</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">level</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">levelno</span>
+
+            <span class="c1"># Find caller from where originated the logged message</span>
+            <span class="n">frame</span><span class="p">,</span> <span class="n">depth</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">currentframe</span><span class="p">(),</span> <span class="mi">2</span>
+            <span class="k">while</span> <span class="n">frame</span><span class="o">.</span><span class="n">f_code</span><span class="o">.</span><span class="n">co_filename</span> <span class="o">==</span> <span class="n">logging</span><span class="o">.</span><span class="vm">__file__</span><span class="p">:</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">f_back</span>
+                <span class="n">depth</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">opt</span><span class="p">(</span><span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="p">,</span> <span class="n">exception</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">exc_info</span><span class="p">)</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="n">level</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">getMessage</span><span class="p">()</span>
+            <span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Intercepting standard logging logs in loguru&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Make loguru play well with tqdm</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">tqdm_write</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Loguru wrapper for tqdm.write&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">tqdm</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tqdm_write</span><span class="p">,</span> <span class="n">colorize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">handlers</span><span class="o">=</span><span class="p">[</span><span class="n">InterceptHandler</span><span class="p">()],</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="n">logfile</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">logfile_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logfile</span> <span class="o">=</span> <span class="n">log_to_file</span><span class="p">(</span><span class="n">logfile_prefix</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Log file will be saved in </span><span class="si">{</span><span class="n">logfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">logfile</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.log.log_to_file" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">log_to_file</span><span class="p">(</span><span class="n">fname_prefix</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>log_to_file Configure loguru to log to a logfile</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>fname_prefix</code></td>
+        <td><code>Optional[str]</code></td>
+        <td><p>Optional prefix to file where logs will be written.</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>str</code></td>
+      <td><p>str: The logfile where logs are written</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/log.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">log_to_file</span><span class="p">(</span><span class="n">fname_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;log_to_file Configure loguru to log to a logfile</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fname_prefix (Optional[str]): Optional prefix to file where logs will be written.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: The logfile where logs are written</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">fname_prefix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">date_fname</span><span class="p">()</span><span class="si">}</span><span class="s2">.log&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+        <span class="n">logfile</span><span class="p">,</span>
+        <span class="n">colorize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">level</span><span class="o">=</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">,</span>
+        <span class="n">enqueue</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">logfile</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-module">
+
+<a id="slp.util.pytorch"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-class">
+
+
+
+<h2 id="slp.util.pytorch.NoOp" class="doc doc-heading">
+        <code>NoOp</code>
+
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-method">
+
+
+
+<h3 id="slp.util.pytorch.NoOp.forward" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></code>
+
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+      <p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<p>.. note::
+    Although the recipe for forward pass needs to be defined within
+    this function, one should call the :class:<code>Module</code> instance afterwards
+    instead of this since the former takes care of running the
+    registered hooks while the latter silently ignores them.</p>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-class">
+
+
+
+<h2 id="slp.util.pytorch.PackSequence" class="doc doc-heading">
+        <code>PackSequence</code>
+
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-method">
+
+
+
+<h3 id="slp.util.pytorch.PackSequence.__init__" class="doc doc-heading">
+<code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+  <span class="doc doc-properties">
+      <small class="doc doc-property doc-property-special"><code>special</code></small>
+  </span>
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+      <p>Wrap sequence packing in nn.Module</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>batch_first</code></td>
+        <td><code>bool</code></td>
+        <td><p>Use batch first representation. Defaults to True.</p></td>
+        <td><code>True</code></td>
+      </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrap sequence packing in nn.Module</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch_first (bool, optional): Use batch first representation. Defaults to True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">PackSequence</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">batch_first</span> <span class="o">=</span> <span class="n">batch_first</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-method">
+
+
+
+<h3 id="slp.util.pytorch.PackSequence.forward" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span></code>
+
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+      <p>Pack a padded sequence and sort lengths</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>x</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>Padded tensor</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>lengths</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>Original lengths befor padding</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tuple[torch.nn.utils.rnn.PackedSequence, torch.Tensor]</code></td>
+      <td><p>Tuple[torch.nn.utils.rnn.PackedSequence, torch.Tensor]: (packed sequence, sorted lengths)</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">PackedSequence</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Pack a padded sequence and sort lengths</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (torch.Tensor): Padded tensor</span>
+<span class="sd">        lengths (torch.Tensor): Original lengths befor padding</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[torch.nn.utils.rnn.PackedSequence, torch.Tensor]: (packed sequence, sorted lengths)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">PackedSequence</span> <span class="o">=</span> <span class="n">pack_padded_sequence</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_first</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">lengths</span><span class="p">[</span><span class="n">out</span><span class="o">.</span><span class="n">sorted_indices</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">lengths</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-class">
+
+
+
+<h2 id="slp.util.pytorch.PadPackedSequence" class="doc doc-heading">
+        <code>PadPackedSequence</code>
+
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-method">
+
+
+
+<h3 id="slp.util.pytorch.PadPackedSequence.__init__" class="doc doc-heading">
+<code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></code>
+
+  <span class="doc doc-properties">
+      <small class="doc doc-property doc-property-special"><code>special</code></small>
+  </span>
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+      <p>Wrap sequence padding in nn.Module</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>batch_first</code></td>
+        <td><code>bool</code></td>
+        <td><p>Use batch first representation. Defaults to True.</p></td>
+        <td><code>True</code></td>
+      </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrap sequence padding in nn.Module</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch_first (bool, optional): Use batch first representation. Defaults to True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">PadPackedSequence</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">batch_first</span> <span class="o">=</span> <span class="n">batch_first</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">=</span> <span class="n">max_length</span> <span class="k">if</span> <span class="n">max_length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-method">
+
+
+
+<h3 id="slp.util.pytorch.PadPackedSequence.forward" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span></code>
+
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+      <p>Convert packed sequence to padded sequence</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>x</code></td>
+        <td><code>PackedSequence</code></td>
+        <td><p>Packed sequence</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>lengths</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>Sorted original sequence lengths</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>torch.Tensor: Padded sequence</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">PackedSequence</span><span class="p">,</span> <span class="n">lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Convert packed sequence to padded sequence</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (torch.nn.utils.rnn.PackedSequence): Packed sequence</span>
+<span class="sd">        lengths (torch.Tensor): Sorted original sequence lengths</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Padded sequence</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pad_packed_sequence</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_first</span><span class="p">,</span> <span class="n">total_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span>  <span class="c1"># type: ignore</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>  <span class="c1"># type: ignore</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.from_checkpoint" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">from_checkpoint</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">dataparallel</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Load model or optimizer from saved state_dict</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>checkpoint_file</code></td>
+        <td><code>Optional[str]</code></td>
+        <td><p>File containing the state dict</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>obj</code></td>
+        <td><code>Union[torch.nn.modules.module.Module, torch.optim.optimizer.Optimizer]</code></td>
+        <td><p>Module or optimizer instance to load the checkpoint</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>map_location</code></td>
+        <td><code>Union[torch.device, str]</code></td>
+        <td><p>Where to load. Defaults to "cpu".</p></td>
+        <td><code>&#39;cpu&#39;</code></td>
+      </tr>
+      <tr>
+        <td><code>dataparallel</code></td>
+        <td><code>bool</code></td>
+        <td><p>If data parallel remove leading "module." from statedict keys. Defaults to False.</p></td>
+        <td><code>False</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Union[torch.nn.modules.module.Module, torch.optim.optimizer.Optimizer]</code></td>
+      <td><p>types.ModuleOrOptimizer: Loaded module or optimizer</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">from_checkpoint</span><span class="p">(</span>
+    <span class="n">checkpoint_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">obj</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">ModuleOrOptimizer</span><span class="p">,</span>
+    <span class="n">map_location</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">types</span><span class="o">.</span><span class="n">Device</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">dataparallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">ModuleOrOptimizer</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Load model or optimizer from saved state_dict</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checkpoint_file (Optional[str]): File containing the state dict</span>
+<span class="sd">        obj (types.ModuleOrOptimizer): Module or optimizer instance to load the checkpoint</span>
+<span class="sd">        map_location (Optional[types.Device], optional): Where to load. Defaults to &quot;cpu&quot;.</span>
+<span class="sd">        dataparallel (bool, optional): If data parallel remove leading &quot;module.&quot; from statedict keys. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        types.ModuleOrOptimizer: Loaded module or optimizer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">checkpoint_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">system</span><span class="o">.</span><span class="n">is_file</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The checkpoint </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2"> you are trying to load &quot;</span>
+            <span class="s2">&quot;does not exist. Continuing without loading...&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="n">state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">map_location</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataparallel</span><span class="p">:</span>
+        <span class="n">state_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;module.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">obj</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">obj</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.mktensor" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">mktensor</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">copy_tensor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Convert a list or numpy array to torch tensor. If a torch tensor
+    is passed it is cast to  dtype, device and the requires_grad flag is
+    set. This can copy data or make the operation in place.</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>data</code></td>
+        <td><code>Union[numpy.ndarray, torch.Tensor, List[~T]]</code></td>
+        <td><p>(list, np.ndarray, torch.Tensor): Data to be converted to
+torch tensor.</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>dtype</code></td>
+        <td><code>dtype</code></td>
+        <td><p>(torch.dtype): The type of the tensor elements
+(Default value = torch.float)</p></td>
+        <td><code>torch.float32</code></td>
+      </tr>
+      <tr>
+        <td><code>device</code></td>
+        <td><code>Union[torch.device, str]</code></td>
+        <td><p>(torch.device, str): Device where the tensor should be
+(Default value = 'cpu')</p></td>
+        <td><code>&#39;cpu&#39;</code></td>
+      </tr>
+      <tr>
+        <td><code>requires_grad</code></td>
+        <td><code>bool</code></td>
+        <td><p>(bool): Trainable tensor or not? (Default value = False)</p></td>
+        <td><code>False</code></td>
+      </tr>
+      <tr>
+        <td><code>copy_tensor</code></td>
+        <td><code>bool</code></td>
+        <td><p>(bool): If false creates the tensor inplace else makes a copy
+(Default value = True)</p></td>
+        <td><code>True</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>(torch.Tensor): A tensor of appropriate dtype, device and
+    requires_grad containing data</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">mktensor</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">NdTensor</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">Device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">requires_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">copy_tensor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Convert a list or numpy array to torch tensor. If a torch tensor</span>
+<span class="sd">        is passed it is cast to  dtype, device and the requires_grad flag is</span>
+<span class="sd">        set. This can copy data or make the operation in place.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: (list, np.ndarray, torch.Tensor): Data to be converted to</span>
+<span class="sd">            torch tensor.</span>
+<span class="sd">        dtype: (torch.dtype): The type of the tensor elements</span>
+<span class="sd">            (Default value = torch.float)</span>
+<span class="sd">        device: (torch.device, str): Device where the tensor should be</span>
+<span class="sd">            (Default value = &#39;cpu&#39;)</span>
+<span class="sd">        requires_grad: (bool): Trainable tensor or not? (Default value = False)</span>
+<span class="sd">        copy_tensor: (bool): If false creates the tensor inplace else makes a copy</span>
+<span class="sd">            (Default value = True)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (torch.Tensor): A tensor of appropriate dtype, device and</span>
+<span class="sd">            requires_grad containing data</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tensor_factory</span> <span class="o">=</span> <span class="n">t</span> <span class="k">if</span> <span class="n">copy_tensor</span> <span class="k">else</span> <span class="n">t_</span>
+
+    <span class="k">return</span> <span class="n">tensor_factory</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">requires_grad</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.moore_penrose_pinv" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">moore_penrose_pinv</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">num_iter</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Calculate approximate Moore-Penrose pseudoinverse, via iterative method</p>
+<ul>
+<li>Method is described in (Razavi et al 2014) https://www.hindawi.com/journals/aaa/2014/563787/</li>
+<li>Implementation modified from lucidrains https://github.com/lucidrains/nystrom-attention/blob/main/nystrom_attention/nystrom_attention.py#L13</li>
+</ul>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>x</code></td>
+        <td><code>torch.Tensor</code></td>
+        <td><p>(*, M, M) The square tensors to inverse.
+Dimension * can be any number of additional dimensions, e.g. (batch_size, num_heads, M, M)</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>num_iter</code></td>
+        <td><code>int</code></td>
+        <td><p>Number of iterations to run for approximation (6 is good enough usually)</p></td>
+        <td><code>6</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>(torch.Tensor)</code></td>
+      <td><p>(B, H, N, N) The approximate Moore-Penrose pseudoinverse of mat</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">moore_penrose_pinv</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">num_iter</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate approximate Moore-Penrose pseudoinverse, via iterative method</span>
+
+<span class="sd">    * Method is described in (Razavi et al 2014) https://www.hindawi.com/journals/aaa/2014/563787/</span>
+<span class="sd">    * Implementation modified from lucidrains https://github.com/lucidrains/nystrom-attention/blob/main/nystrom_attention/nystrom_attention.py#L13</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (torch.Tensor): (*, M, M) The square tensors to inverse.</span>
+<span class="sd">            Dimension * can be any number of additional dimensions, e.g. (batch_size, num_heads, M, M)</span>
+<span class="sd">        num_iter (int): Number of iterations to run for approximation (6 is good enough usually)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        (torch.Tensor): (B, H, N, N) The approximate Moore-Penrose pseudoinverse of mat</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">abs_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">col</span> <span class="o">=</span> <span class="n">abs_x</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">abs_x</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">z</span> <span class="o">/</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">col</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
+
+    <span class="n">I</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_iter</span><span class="p">):</span>
+        <span class="n">xz</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="n">z</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">z</span> <span class="o">@</span> <span class="p">(</span><span class="mi">13</span> <span class="o">*</span> <span class="n">I</span> <span class="o">-</span> <span class="p">(</span><span class="n">xz</span> <span class="o">@</span> <span class="p">(</span><span class="mi">15</span> <span class="o">*</span> <span class="n">I</span> <span class="o">-</span> <span class="p">(</span><span class="n">xz</span> <span class="o">@</span> <span class="p">(</span><span class="mi">7</span> <span class="o">*</span> <span class="n">I</span> <span class="o">-</span> <span class="n">xz</span><span class="p">)))))</span>
+
+    <span class="k">return</span> <span class="n">z</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.pad_mask" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">pad_mask</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Generate mask for padded tokens</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>lengths</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>Original sequence lengths before padding</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>max_length</code></td>
+        <td><code>Union[torch.Tensor, int]</code></td>
+        <td><p>Maximum sequence length. Defaults to None.</p></td>
+        <td><code>None</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>torch.Tensor: padding mask</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">pad_mask</span><span class="p">(</span>
+    <span class="n">lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">max_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Generate mask for padded tokens</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lengths (torch.Tensor): Original sequence lengths before padding</span>
+<span class="sd">        max_length (Optional[Union[torch.Tensor, int]], optional): Maximum sequence length. Defaults to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: padding mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">max_length</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">max_length</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">max_length</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lengths</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+    <span class="n">max_length</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">max_length</span><span class="p">)</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">lengths</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="p">(</span><span class="n">idx</span> <span class="o">&lt;</span> <span class="n">lengths</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">mask</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.pad_sequence" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">pad_sequence</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Pad a list of variable length Tensors with <code>padding_value</code></p>
+<p><code>pad_sequence</code> stacks a list of Tensors along a new dimension,
+and pads them to equal length. For example, if the input is list of
+sequences with size <code>L x *</code> and if batch_first is False, and <code>T x B x *</code>
+otherwise.</p>
+<p><code>B</code> is batch size. It is equal to the number of elements in <code>sequences</code>.
+<code>T</code> is length of the longest sequence.
+<code>L</code> is length of the sequence.
+<code>*</code> is any number of trailing dimensions, including none.</p>
+
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_sequence</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">pad_sequence</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="mi">25</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">300</span><span class="p">])</span>
+</code></pre></div>
+      <p>!!! note
+    This function returns a Tensor of size <code>T x B x *</code> or <code>B x T x *</code>
+    where <code>T</code> is the length of the longest sequence. This function assumes
+    trailing dimensions and type of all the Tensors in sequences are same.</p>
+<pre><code>Note:
+This implementation is modified from torch.nn.utils.rnn.pad_sequence, to accept a
+max_length argument for fixed length padding
+</code></pre>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>sequences</code></td>
+        <td><code>List[torch.Tensor]</code></td>
+        <td><p>list of variable length sequences.</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>batch_first</code></td>
+        <td><code>bool</code></td>
+        <td><p>output will be in <code>B x T x *</code> if True, or in
+<code>T x B x *</code> otherwise</p></td>
+        <td><code>False</code></td>
+      </tr>
+      <tr>
+        <td><code>padding_value</code></td>
+        <td><code>Union[float, int]</code></td>
+        <td><p>value for padded elements. Default: 0.</p></td>
+        <td><code>0.0</code></td>
+      </tr>
+      <tr>
+        <td><code>max_length</code></td>
+        <td><code>int</code></td>
+        <td><p>If max length is &gt; 0 then this function will pad to a fixed maximum
+length. If any sequence is longer than max_length, it will be trimmed.</p></td>
+        <td><code>-1</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor of size ``T x B x *`` if </code></td>
+      <td><p>attr:<code>batch_first</code> is <code>False</code>.
+Tensor of size <code>B x T x *</code> otherwise</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">pad_sequence</span><span class="p">(</span>
+    <span class="n">sequences</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">batch_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">padding_value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Pad a list of variable length Tensors with ``padding_value``</span>
+
+<span class="sd">    ``pad_sequence`` stacks a list of Tensors along a new dimension,</span>
+<span class="sd">    and pads them to equal length. For example, if the input is list of</span>
+<span class="sd">    sequences with size ``L x *`` and if batch_first is False, and ``T x B x *``</span>
+<span class="sd">    otherwise.</span>
+
+<span class="sd">    `B` is batch size. It is equal to the number of elements in ``sequences``.</span>
+<span class="sd">    `T` is length of the longest sequence.</span>
+<span class="sd">    `L` is length of the sequence.</span>
+<span class="sd">    `*` is any number of trailing dimensions, including none.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; from torch.nn.utils.rnn import pad_sequence</span>
+<span class="sd">        &gt;&gt;&gt; a = torch.ones(25, 300)</span>
+<span class="sd">        &gt;&gt;&gt; b = torch.ones(22, 300)</span>
+<span class="sd">        &gt;&gt;&gt; c = torch.ones(15, 300)</span>
+<span class="sd">        &gt;&gt;&gt; pad_sequence([a, b, c]).size()</span>
+<span class="sd">        torch.Size([25, 3, 300])</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This function returns a Tensor of size ``T x B x *`` or ``B x T x *``</span>
+<span class="sd">        where `T` is the length of the longest sequence. This function assumes</span>
+<span class="sd">        trailing dimensions and type of all the Tensors in sequences are same.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">        This implementation is modified from torch.nn.utils.rnn.pad_sequence, to accept a</span>
+<span class="sd">        max_length argument for fixed length padding</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sequences (list[Tensor]): list of variable length sequences.</span>
+<span class="sd">        batch_first (bool, optional): output will be in ``B x T x *`` if True, or in</span>
+<span class="sd">            ``T x B x *`` otherwise</span>
+<span class="sd">        padding_value (float, optional): value for padded elements. Default: 0.</span>
+<span class="sd">        max_length (int): If max length is &gt; 0 then this function will pad to a fixed maximum</span>
+<span class="sd">            length. If any sequence is longer than max_length, it will be trimmed.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor of size ``T x B x *`` if :attr:`batch_first` is ``False``.</span>
+<span class="sd">        Tensor of size ``B x T x *`` otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># assuming trailing dimensions and type of all the Tensors</span>
+    <span class="c1"># in sequences are same and fetching those from sequences[0]</span>
+    <span class="n">max_size</span> <span class="o">=</span> <span class="n">sequences</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">trailing_dims</span> <span class="o">=</span> <span class="n">max_size</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="n">max_length</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">max_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">max_len</span> <span class="o">=</span> <span class="n">max_length</span>
+    <span class="k">if</span> <span class="n">batch_first</span><span class="p">:</span>
+        <span class="n">out_dims</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">),</span> <span class="n">max_len</span><span class="p">)</span> <span class="o">+</span> <span class="n">trailing_dims</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out_dims</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">))</span> <span class="o">+</span> <span class="n">trailing_dims</span>
+
+    <span class="n">out_tensor</span> <span class="o">=</span> <span class="n">sequences</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">new_full</span><span class="p">(</span><span class="n">out_dims</span><span class="p">,</span> <span class="n">padding_value</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tensor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sequences</span><span class="p">):</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># use index notation to prevent duplicate references to the tensor</span>
+        <span class="k">if</span> <span class="n">batch_first</span><span class="p">:</span>
+            <span class="n">out_tensor</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">max_len</span><span class="p">),</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">tensor</span><span class="p">[</span>
+                <span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">max_len</span><span class="p">),</span> <span class="o">...</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out_tensor</span><span class="p">[:</span> <span class="nb">min</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">max_len</span><span class="p">),</span> <span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">tensor</span><span class="p">[</span>
+                <span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">max_len</span><span class="p">),</span> <span class="o">...</span>
+            <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">out_tensor</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.repeat_layer" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">repeat_layer</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Clone a layer multiple times</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>l</code></td>
+        <td><code>Module</code></td>
+        <td><p>nn.Module to stack</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>times</code></td>
+        <td><code>int</code></td>
+        <td><p>Times to clone</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>List[torch.nn.modules.module.Module]</code></td>
+      <td><p>List[nn.Module]: List of identical clones of input layer</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">repeat_layer</span><span class="p">(</span><span class="n">l</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">times</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Clone a layer multiple times</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        l (nn.Module): nn.Module to stack</span>
+<span class="sd">        times (int): Times to clone</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[nn.Module]: List of identical clones of input layer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">times</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.rotate_tensor" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">rotate_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Roate tensor by n positions to the right</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>l</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>input tensor</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>n</code></td>
+        <td><code>int</code></td>
+        <td><p>positions to rotate. Defaults to 1.</p></td>
+        <td><code>1</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>torch.Tensor: rotated tensor</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">rotate_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Roate tensor by n positions to the right</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        l (torch.Tensor): input tensor</span>
+<span class="sd">        n (int, optional): positions to rotate. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: rotated tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">l</span><span class="p">[</span><span class="n">n</span><span class="p">:],</span> <span class="n">l</span><span class="p">[:</span><span class="n">n</span><span class="p">]))</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.shift_tensor" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">shift_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Shift tensor by n positions</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>l</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>input tensor</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>n</code></td>
+        <td><code>int</code></td>
+        <td><p>positions to shift. Defaults to 1.</p></td>
+        <td><code>1</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>torch.Tensor: shifted tensor</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">shift_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Shift tensor by n positions</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        l (torch.Tensor): input tensor</span>
+<span class="sd">        n (int, optional): positions to shift. Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: shifted tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">rotate_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.sort_sequences" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">sort_sequences</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Sort sequences according to lengths (descending)</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>inputs</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>input sequences, size [B, T, D]</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>lengths</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>length of each sequence, size [B]</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tuple[torch.Tensor, torch.Tensor, Callable[[torch.Tensor], torch.Tensor]]</code></td>
+      <td><p>Tuple[torch.Tensor, torch.Tensor, Callable[[torch.Tensor], torch.tensor]]:
+    (sorted inputs, sorted lengths, function to revert inputs and lengths to unsorted state)</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">sort_sequences</span><span class="p">(</span>
+    <span class="n">inputs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Sort sequences according to lengths (descending)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inputs (torch.Tensor): input sequences, size [B, T, D]</span>
+<span class="sd">        lengths (torch.Tensor): length of each sequence, size [B]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[torch.Tensor, torch.Tensor, Callable[[torch.Tensor], torch.tensor]]:</span>
+<span class="sd">            (sorted inputs, sorted lengths, function to revert inputs and lengths to unsorted state)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lengths_sorted</span><span class="p">,</span> <span class="n">sorted_idx</span> <span class="o">=</span> <span class="n">lengths</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">unsorted_idx</span> <span class="o">=</span> <span class="n">sorted_idx</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">unsort</span><span class="p">(</span><span class="n">tt</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Restore original unsorted sequence&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">tt</span><span class="p">[</span><span class="n">unsorted_idx</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">inputs</span><span class="p">[</span><span class="n">sorted_idx</span><span class="p">],</span> <span class="n">lengths_sorted</span><span class="p">,</span> <span class="n">unsort</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.subsequent_mask" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">subsequent_mask</span><span class="p">(</span><span class="n">max_length</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Generate subsequent (lower triangular) mask for transformer autoregressive tasks</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>max_length</code></td>
+        <td><code>int</code></td>
+        <td><p>Maximum sequence length</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>torch.Tensor: The subsequent mask</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">subsequent_mask</span><span class="p">(</span><span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Generate subsequent (lower triangular) mask for transformer autoregressive tasks</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        max_length (int): Maximum sequence length</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: The subsequent mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">max_length</span><span class="p">,</span> <span class="n">max_length</span><span class="p">)</span>
+    <span class="c1"># Ignore typecheck because pytorch types are incomplete</span>
+
+    <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">triu</span><span class="p">()</span><span class="o">.</span><span class="n">t</span><span class="p">()</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>  <span class="c1"># type: ignore</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.t" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">t</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Convert a list or numpy array to torch tensor. If a torch tensor
+is passed it is cast to  dtype, device and the requires_grad flag is
+set. This always copies data.</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>data</code></td>
+        <td><code>Union[numpy.ndarray, torch.Tensor, List[~T]]</code></td>
+        <td><p>(list, np.ndarray, torch.Tensor): Data to be converted to
+torch tensor.</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>dtype</code></td>
+        <td><code>dtype</code></td>
+        <td><p>(torch.dtype): The type of the tensor elements
+(Default value = torch.float)</p></td>
+        <td><code>torch.float32</code></td>
+      </tr>
+      <tr>
+        <td><code>device</code></td>
+        <td><code>Union[torch.device, str]</code></td>
+        <td><p>(torch.device, str): Device where the tensor should be
+(Default value = 'cpu')</p></td>
+        <td><code>&#39;cpu&#39;</code></td>
+      </tr>
+      <tr>
+        <td><code>requires_grad</code></td>
+        <td><code>bool</code></td>
+        <td><p>(bool): Trainable tensor or not? (Default value = False)</p></td>
+        <td><code>False</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>(torch.Tensor): A tensor of appropriate dtype, device and
+    requires_grad containing data</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">t</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">NdTensor</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">Device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">requires_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Convert a list or numpy array to torch tensor. If a torch tensor</span>
+<span class="sd">    is passed it is cast to  dtype, device and the requires_grad flag is</span>
+<span class="sd">    set. This always copies data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: (list, np.ndarray, torch.Tensor): Data to be converted to</span>
+<span class="sd">            torch tensor.</span>
+<span class="sd">        dtype: (torch.dtype): The type of the tensor elements</span>
+<span class="sd">            (Default value = torch.float)</span>
+<span class="sd">        device: (torch.device, str): Device where the tensor should be</span>
+<span class="sd">            (Default value = &#39;cpu&#39;)</span>
+<span class="sd">        requires_grad: (bool): Trainable tensor or not? (Default value = False)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (torch.Tensor): A tensor of appropriate dtype, device and</span>
+<span class="sd">            requires_grad containing data</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">requires_grad</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tt</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.t_" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">t_</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Convert a list or numpy array to torch tensor. If a torch tensor
+is passed it is cast to  dtype, device and the requires_grad flag is
+set IN PLACE.</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>data</code></td>
+        <td><code>Union[numpy.ndarray, torch.Tensor, List[~T]]</code></td>
+        <td><p>(list, np.ndarray, torch.Tensor): Data to be converted to
+torch tensor.</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>dtype</code></td>
+        <td><code>dtype</code></td>
+        <td><p>(torch.dtype): The type of the tensor elements
+(Default value = torch.float)</p></td>
+        <td><code>torch.float32</code></td>
+      </tr>
+      <tr>
+        <td><code>device</code></td>
+        <td><code>Union[torch.device, str]</code></td>
+        <td><p>(torch.device, str): Device where the tensor should be
+(Default value = 'cpu')</p></td>
+        <td><code>&#39;cpu&#39;</code></td>
+      </tr>
+      <tr>
+        <td><code>requires_grad</code></td>
+        <td><code>bool</code></td>
+        <td><p>bool): Trainable tensor or not? (Default value = False)</p></td>
+        <td><code>False</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>(torch.Tensor): A tensor of appropriate dtype, device and
+    requires_grad containing data</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">t_</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">NdTensor</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">types</span><span class="o">.</span><span class="n">Device</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">requires_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Convert a list or numpy array to torch tensor. If a torch tensor</span>
+<span class="sd">    is passed it is cast to  dtype, device and the requires_grad flag is</span>
+<span class="sd">    set IN PLACE.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: (list, np.ndarray, torch.Tensor): Data to be converted to</span>
+<span class="sd">            torch tensor.</span>
+<span class="sd">        dtype: (torch.dtype): The type of the tensor elements</span>
+<span class="sd">            (Default value = torch.float)</span>
+<span class="sd">        device: (torch.device, str): Device where the tensor should be</span>
+<span class="sd">            (Default value = &#39;cpu&#39;)</span>
+<span class="sd">        requires_grad: bool): Trainable tensor or not? (Default value = False)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (torch.Tensor): A tensor of appropriate dtype, device and</span>
+<span class="sd">            requires_grad containing data</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">tt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">requires_grad</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tt</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.pytorch.to_device" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">to_device</span><span class="p">(</span><span class="n">tt</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Send a tensor to a device</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>tt</code></td>
+        <td><code>Tensor</code></td>
+        <td><p>input tensor</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>device</code></td>
+        <td><code>Union[torch.device, str]</code></td>
+        <td><p>Output device. Defaults to "cpu".</p></td>
+        <td><code>&#39;cpu&#39;</code></td>
+      </tr>
+      <tr>
+        <td><code>non_blocking</code></td>
+        <td><code>bool</code></td>
+        <td><p>Use blocking or non-blocking memory transfer. Defaults to False.</p></td>
+        <td><code>False</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tensor</code></td>
+      <td><p>torch.Tensor: Tensor in the desired device</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/pytorch.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">to_device</span><span class="p">(</span>
+    <span class="n">tt</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">types</span><span class="o">.</span><span class="n">Device</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">non_blocking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Send a tensor to a device</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tt (torch.Tensor): input tensor</span>
+<span class="sd">        device (Optional[types.Device], optional): Output device. Defaults to &quot;cpu&quot;.</span>
+<span class="sd">        non_blocking (bool, optional): Use blocking or non-blocking memory transfer. Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Tensor in the desired device</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">tt</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-module">
+
+<a id="slp.util.system"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.date_fname" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">date_fname</span><span class="p">()</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>date_fname Generate a filename based on datetime.now().</p>
+<p>If multiple calls are made within the same second, the filename will not be unique.
+We could add miliseconds etc. in the fname but that would hinder readability.
+For practical purposes e.g. unique logs between different experiments this should be enough.
+Either way if we need a truly unique descriptor, there is the uuid module.</p>
+
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>str</code></td>
+      <td><p>str: A filename, e.g. 20210228-211832</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">date_fname</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;date_fname Generate a filename based on datetime.now().</span>
+
+<span class="sd">    If multiple calls are made within the same second, the filename will not be unique.</span>
+<span class="sd">    We could add miliseconds etc. in the fname but that would hinder readability.</span>
+<span class="sd">    For practical purposes e.g. unique logs between different experiments this should be enough.</span>
+<span class="sd">    Either way if we need a truly unique descriptor, there is the uuid module.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: A filename, e.g. 20210228-211832</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">-%H%M%S&quot;</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.download_url" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">download_url</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">dest_path</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>download_url Download a file to a destination path given a URL</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>url</code></td>
+        <td><code>str</code></td>
+        <td><p>A url pointing to the file we want to download</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>dest_path</code></td>
+        <td><code>str</code></td>
+        <td><p>The destination path to write the file</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>str</code></td>
+      <td><p>(str): The filename where the downloaded file is written</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">download_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;download_url Download a file to a destination path given a URL</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        url (str): A url pointing to the file we want to download</span>
+<span class="sd">        dest_path (str): The destination path to write the file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (str): The filename where the downloaded file is written</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">dest</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dest_path</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="n">safe_mkdirs</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfileobj</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">fd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dest</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.has_internet_connection" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">has_internet_connection</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>has_internet_connection Check if you are connected to the internet</p>
+<p>Check if internet connection exists by pinging Google DNS server</p>
+<p>Host: 8.8.8.8 (google-public-dns-a.google.com)
+OpenPort: 53/tcp
+Service: domain (DNS/TCP)</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>timeout</code></td>
+        <td><code>int</code></td>
+        <td><p>Seconds to wait before giving up</p></td>
+        <td><code>3</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>bool</code></td>
+      <td><p>bool: True if connection is established, False if we are not connected to the internet</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">has_internet_connection</span><span class="p">(</span><span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;has_internet_connection Check if you are connected to the internet</span>
+
+<span class="sd">    Check if internet connection exists by pinging Google DNS server</span>
+
+<span class="sd">    Host: 8.8.8.8 (google-public-dns-a.google.com)</span>
+<span class="sd">    OpenPort: 53/tcp</span>
+<span class="sd">    Service: domain (DNS/TCP)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        timeout (int): Seconds to wait before giving up</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if connection is established, False if we are not connected to the internet</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">host</span><span class="p">,</span> <span class="n">port</span> <span class="o">=</span> <span class="s2">&quot;8.8.8.8&quot;</span><span class="p">,</span> <span class="mi">53</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">socket</span><span class="o">.</span><span class="n">setdefaulttimeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+        <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.is_file" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">is_file</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>is_file Check if the provided string is valid file in the system path</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>inp</code></td>
+        <td><code>Optional[str]</code></td>
+        <td><p>A potential file or None</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Union[validators.utils.ValidationFailure, bool]</code></td>
+      <td><p>types.ValidationResult: True if a valid file is provided, False if the string is not a url</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">is_file</span><span class="p">(</span><span class="s2">&quot;/bin/bash&quot;</span><span class="p">)</span>
+<span class="kc">True</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">is_file</span><span class="p">(</span><span class="s2">&quot;/supercalifragilisticexpialidocious&quot;</span><span class="p">)</span>  <span class="c1"># This does not exist. I hope...</span>
+<span class="kc">False</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">is_file</span><span class="p">(</span><span class="n">inp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">ValidationResult</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;is_file Check if the provided string is valid file in the system path</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inp (Optional[str]): A potential file or None</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        types.ValidationResult: True if a valid file is provided, False if the string is not a url</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; is_file(&quot;/bin/bash&quot;)</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; is_file(&quot;/supercalifragilisticexpialidocious&quot;)  # This does not exist. I hope...</span>
+<span class="sd">        False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">inp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.is_subpath" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">is_subpath</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>is_subpath Check if child path is a subpath of parent</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>child</code></td>
+        <td><code>str</code></td>
+        <td><p>Child path</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>parent</code></td>
+        <td><code>str</code></td>
+        <td><p>parent path</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>bool</code></td>
+      <td><p>bool: True if child is a subpath of parent, false if not</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">is_subpath</span><span class="p">(</span><span class="s2">&quot;/usr/bin/Xorg&quot;</span><span class="p">,</span> <span class="s2">&quot;/usr&quot;</span><span class="p">)</span>
+<span class="kc">True</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">is_subpath</span><span class="p">(</span><span class="n">child</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;is_subpath Check if child path is a subpath of parent</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        child (str): Child path</span>
+<span class="sd">        parent (str): parent path</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if child is a subpath of parent, false if not</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; is_subpath(&quot;/usr/bin/Xorg&quot;, &quot;/usr&quot;)</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parent</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+    <span class="n">child</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">bool</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="n">parent</span><span class="p">])</span> <span class="o">==</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="n">parent</span><span class="p">,</span> <span class="n">child</span><span class="p">])</span>
+    <span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.is_url" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">is_url</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>is_url Check if the provided string is a URL</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>inp</code></td>
+        <td><code>Optional[str]</code></td>
+        <td><p>A potential link or None</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Union[validators.utils.ValidationFailure, bool]</code></td>
+      <td><p>types.ValidationResult: True if a valid url is provided, False if the string is not a url</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">is_url</span><span class="p">(</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)</span>
+<span class="n">ValidationFailure</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="s1">&#39;Hello World&#39;</span><span class="p">,</span> <span class="s1">&#39;public&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">is_url</span><span class="p">(</span><span class="s2">&quot;http://google.com&quot;</span><span class="p">)</span>
+<span class="kc">True</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">is_url</span><span class="p">(</span><span class="n">inp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">ValidationResult</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;is_url Check if the provided string is a URL</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inp (Optional[str]): A potential link or None</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        types.ValidationResult: True if a valid url is provided, False if the string is not a url</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; is_url(&quot;Hello World&quot;)</span>
+<span class="sd">        ValidationFailure(func=url, args={&#39;value&#39;: &#39;Hello World&#39;, &#39;public&#39;: False})</span>
+<span class="sd">        &gt;&gt;&gt; is_url(&quot;http://google.com&quot;)</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">inp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">validators</span><span class="o">.</span><span class="n">url</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.json_dump" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">json_dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>json_dump Save dict to a json file</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>data</code></td>
+        <td><code>Dict[~K, ~V]</code></td>
+        <td><p>Dict to save</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>fname</code></td>
+        <td><code>str</code></td>
+        <td><p>Output json file</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">json_dump</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">GenericDict</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;json_dump Save dict to a json file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (types.GenericDict): Dict to save</span>
+<span class="sd">        fname (str): Output json file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fd</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.json_load" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">json_load</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>json_load Load dict from a json file</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>fname</code></td>
+        <td><code>str</code></td>
+        <td><p>Json file to load</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Dict[~K, ~V]</code></td>
+      <td><p>types.GenericDict: Dict of loaded data</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">json_load</span><span class="p">(</span><span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">GenericDict</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;json_load Load dict from a json file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fname (str): Json file to load</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        types.GenericDict: Dict of loaded data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">types</span><span class="o">.</span><span class="n">GenericDict</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.pickle_dump" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">pickle_dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>pickle_dump Save data to pickle file</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>data</code></td>
+        <td><code>Any</code></td>
+        <td><p>Data to save</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>fname</code></td>
+        <td><code>str</code></td>
+        <td><p>Output pickle file</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">pickle_dump</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;pickle_dump Save data to pickle file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (Any): Data to save</span>
+<span class="sd">        fname (str): Output pickle file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fd</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.pickle_load" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">pickle_load</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>pickle_load Load data from pickle file</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>fname</code></td>
+        <td><code>str</code></td>
+        <td><p>file name of pickle file</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Any</code></td>
+      <td><p>Any: Loaded data</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">pickle_load</span><span class="p">(</span><span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;pickle_load Load data from pickle file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fname (str): file name of pickle file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Any: Loaded data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.print_separator" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">print_separator</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">print_fn</span><span class="o">=&lt;</span><span class="n">built</span><span class="o">-</span><span class="ow">in</span> <span class="n">function</span> <span class="nb">print</span><span class="o">&gt;</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>print_separator Print a repeated symbol as a separator</p>
+<hr />
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>symbol</code></td>
+        <td><code>str</code></td>
+        <td><p>Symbol to print</p></td>
+        <td><code>&#39;*&#39;</code></td>
+      </tr>
+      <tr>
+        <td><code>n</code></td>
+        <td><code>int</code></td>
+        <td><p>Number of times to print the symbol</p></td>
+        <td><code>10</code></td>
+      </tr>
+      <tr>
+        <td><code>print_fn</code></td>
+        <td><code>Callable[[str], NoneType]</code></td>
+        <td><p>Print function to use, e.g. print or logger.info</p></td>
+        <td><code>&lt;built-in function print&gt;</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">print_separator</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="o">--</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">print_separator</span><span class="p">(</span>
+    <span class="n">symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">print_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="nb">print</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;print_separator Print a repeated symbol as a separator</span>
+
+<span class="sd">    *********************************************************</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symbol (str): Symbol to print</span>
+<span class="sd">        n (int): Number of times to print the symbol</span>
+<span class="sd">        print_fn (Callable[[str], None]): Print function to use, e.g. print or logger.info</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; print_separator(symbol=&quot;-&quot;, n=2)</span>
+<span class="sd">        --</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">print_fn</span><span class="p">(</span><span class="n">symbol</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.read_wav" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">read_wav</span><span class="p">(</span><span class="n">wav_sample</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>read_wav Reads a wav clip into a string and returns the hex string.</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>wav_sample</code></td>
+        <td><code>str</code></td>
+        <td><p>Path to wav file</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>str</code></td>
+      <td><p>A hex string with the audio information.</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">read_wav</span><span class="p">(</span><span class="n">wav_sample</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;read_wav Reads a wav clip into a string and returns the hex string.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        wav_sample (str): Path to wav file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A hex string with the audio information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">wav_sample</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">wav_fd</span><span class="p">:</span>
+        <span class="n">clip</span> <span class="o">=</span> <span class="n">wav_fd</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">clip</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.run_cmd" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">run_cmd</span><span class="p">(</span><span class="n">command</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>run_cmd Run given shell command</p>
+<pre><code>!!! args
+    command (str): Shell command to run
+
+!!! returns
+    (int, str): Status code, stdout of shell command
+
+!!! examples
+    &gt;&gt;&gt; run_cmd("ls /")
+    (0, 'bin
+</code></pre>
+<p>boot
+dev
+etc
+home
+init
+lib
+lib32
+lib64
+libx32
+lost+found
+media
+mnt
+opt
+proc
+root
+run
+sbin
+snap
+srv
+sys
+tmp
+usr
+var
+')</p>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">run_cmd</span><span class="p">(</span><span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;run_cmd Run given shell command</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        command (str): Shell command to run</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (int, str): Status code, stdout of shell command</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; run_cmd(&quot;ls /&quot;)</span>
+<span class="sd">        (0, &#39;bin\nboot\ndev\netc\nhome\ninit\nlib\nlib32\nlib64\nlibx32\nlost+found\nmedia\nmnt\nopt\nproc\nroot\nrun\nsbin\nsnap\nsrv\nsys\ntmp\nusr\nvar\n&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;SHELL&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1"> -c &quot;</span><span class="si">{</span><span class="n">command</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+    <span class="n">pipe</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+        <span class="n">command</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span>
+    <span class="p">)</span>
+
+    <span class="n">stdout</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pipe</span><span class="o">.</span><span class="n">stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">readline</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="n">pipe</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">returncode</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">returncode</span><span class="p">,</span> <span class="n">stdout</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.run_cmd_silent" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">run_cmd_silent</span><span class="p">(</span><span class="n">command</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>run_cmd_silent Run command without printing to console</p>
+<pre><code>!!! args
+    command (str): Shell command to run
+
+!!! returns
+    (int, str): Status code, stdout of shell command
+
+!!! examples
+    &gt;&gt;&gt; run_cmd("ls /")
+    (0, 'bin
+</code></pre>
+<p>boot
+dev
+etc
+home
+init
+lib
+lib32
+lib64
+libx32
+lost+found
+media
+mnt
+opt
+proc
+root
+run
+sbin
+snap
+srv
+sys
+tmp
+usr
+var
+')</p>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">run_cmd_silent</span><span class="p">(</span><span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;run_cmd_silent Run command without printing to console</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        command (str): Shell command to run</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (int, str): Status code, stdout of shell command</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; run_cmd(&quot;ls /&quot;)</span>
+<span class="sd">        (0, &#39;bin\nboot\ndev\netc\nhome\ninit\nlib\nlib32\nlib64\nlibx32\nlost+found\nmedia\nmnt\nopt\nproc\nroot\nrun\nsbin\nsnap\nsrv\nsys\ntmp\nusr\nvar\n&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">suppress_print</span><span class="p">(</span><span class="n">run_cmd</span><span class="p">)(</span><span class="n">command</span><span class="p">))</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.safe_mkdirs" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">safe_mkdirs</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Makes recursively all the directories in input path</p>
+<p>Utility function similar to mkdir -p. Makes directories recursively, if given path does not exist</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>path</code></td>
+        <td><code>str</code></td>
+        <td><p>Path to mkdir -p</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">safe_mkdirs</span><span class="p">(</span><span class="s2">&quot;super/cali/fragi/listic/expi/ali/docious&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">safe_mkdirs</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Makes recursively all the directories in input path</span>
+
+<span class="sd">    Utility function similar to mkdir -p. Makes directories recursively, if given path does not exist</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Path to mkdir -p</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; safe_mkdirs(&quot;super/cali/fragi/listic/expi/ali/docious&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;Failed to create recursive directories: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.suppress_print" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">suppress_print</span><span class="p">(</span><span class="n">func</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>suppress_print Decorator to supress stdout of decorated function</p>
+
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="nd">@slp</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">timethis</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">def</span> <span class="nf">very_verbose_function</span><span class="p">(</span><span class="o">...</span><span class="p">):</span> <span class="o">...</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">suppress_print</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;suppress_print Decorator to supress stdout of decorated function</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; @slp.util.system.timethis</span>
+<span class="sd">        &gt;&gt;&gt; def very_verbose_function(...): ...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">func_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">T</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Inner function for decorator closure&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/dev/null&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">__stdout__</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">Callable</span><span class="p">,</span> <span class="n">func_wrapper</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.timethis" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">timethis</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>Decorator to measure the time it takes for a function to complete</p>
+
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="nd">@slp</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">timethis</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">def</span> <span class="nf">time_consuming_function</span><span class="p">(</span><span class="o">...</span><span class="p">):</span> <span class="o">...</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">timethis</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Decorator to measure the time it takes for a function to complete</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; @slp.util.system.timethis</span>
+<span class="sd">        &gt;&gt;&gt; def time_consuming_function(...): ...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">timethis_inner</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Inner function for decorator closure&quot;&quot;&quot;</span>
+
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">timed</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">T</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Inner function for decorator closure&quot;&quot;&quot;</span>
+
+            <span class="n">ts</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">te</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">elapsed</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">te</span> <span class="o">-</span> <span class="n">ts</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="n">method</span><span class="p">:</span>
+
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;BENCHMARK: </span><span class="si">{cls}</span><span class="s2">.</span><span class="si">{f}</span><span class="s2">(*</span><span class="si">{a}</span><span class="s2">, **</span><span class="si">{kw}</span><span class="s2">) took: </span><span class="si">{t}</span><span class="s2"> sec&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="o">=</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">kw</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">elapsed</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;BENCHMARK: </span><span class="si">{f}</span><span class="s2">(*</span><span class="si">{a}</span><span class="s2">, **</span><span class="si">{kw}</span><span class="s2">) took: </span><span class="si">{t}</span><span class="s2"> sec&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">kw</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">elapsed</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">Callable</span><span class="p">,</span> <span class="n">timed</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">timethis_inner</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.write_wav" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">write_wav</span><span class="p">(</span><span class="n">byte_str</span><span class="p">,</span> <span class="n">wav_file</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>write_wav Write a hex string into a wav file</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>byte_str</code></td>
+        <td><code>str</code></td>
+        <td><p>The hex string containing the audio data</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>wav_file</code></td>
+        <td><code>str</code></td>
+        <td><p>The output wav file</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">write_wav</span><span class="p">(</span><span class="n">byte_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">wav_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;write_wav Write a hex string into a wav file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        byte_str (str): The hex string containing the audio data</span>
+<span class="sd">        wav_file (str): The output wav file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">wav_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">fd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">byte_str</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.yaml_dump" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">yaml_dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>yaml_dump Save dict to a yaml file</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>data</code></td>
+        <td><code>Dict[~K, ~V]</code></td>
+        <td><p>Dict to save</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>fname</code></td>
+        <td><code>str</code></td>
+        <td><p>Output json file</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">yaml_dump</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">types</span><span class="o">.</span><span class="n">GenericDict</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;yaml_dump Save dict to a yaml file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (types.GenericDict): Dict to save</span>
+<span class="sd">        fname (str): Output json file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fd</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.system.yaml_load" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">yaml_load</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>yaml_load Load dict from a yaml file</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>fname</code></td>
+        <td><code>str</code></td>
+        <td><p>Json file to load</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Dict[~K, ~V]</code></td>
+      <td><p>types.GenericDict: Dict of loaded data</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/util/system.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">yaml_load</span><span class="p">(</span><span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">GenericDict</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;yaml_load Load dict from a yaml file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fname (str): Json file to load</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        types.GenericDict: Dict of loaded data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">types</span><span class="o">.</span><span class="n">GenericDict</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-module">
+
+<a id="slp.util.types"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.util.types.dir_path" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">dir_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>dir_path Type to use when parsing a path in argparse arguments</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>path</code></td>
+        <td><code>str</code></td>
+        <td><p>User provided path</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Exceptions:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>argparse.ArgumentTypeError</code></td>
+        <td><p>Path does not exists, so argparse fails</p></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>str</code></td>
+      <td><p>User provided path</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">slp.util.types</span> <span class="kn">import</span> <span class="n">dir_path</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;My cool model&quot;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">dir_path</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="s2">&quot;my_random_config_that_does_not_exist.yaml&quot;</span><span class="p">])</span>
+<span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
+<span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">:</span> <span class="n">User</span> <span class="n">provided</span> <span class="n">path</span> <span class="s1">&#39;my_random_config_that_does_not_exist.yaml&#39;</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">exist</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/util/types.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">dir_path</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;dir_path Type to use when parsing a path in argparse arguments</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): User provided path</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        argparse.ArgumentTypeError: Path does not exists, so argparse fails</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: User provided path</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from slp.util.types import dir_path</span>
+<span class="sd">        &gt;&gt;&gt; import argparse</span>
+<span class="sd">        &gt;&gt;&gt; parser = argparse.ArgumentParser(&quot;My cool model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; parser.add_argument(&quot;--config&quot;, type=dir_path)</span>
+<span class="sd">        &gt;&gt;&gt; parser.parse_args(args=[&quot;--config&quot;, &quot;my_random_config_that_does_not_exist.yaml&quot;])</span>
+<span class="sd">        Traceback (most recent call last):</span>
+<span class="sd">        argparse.ArgumentTypeError: User provided path &#39;my_random_config_that_does_not_exist.yaml&#39; does not exist</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">path</span>
+
+    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;User provided path &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39; does not exist&quot;</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        <a href="../multimodal/" class="md-footer__link md-footer__link--prev" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Multimodal Modules
+            </div>
+          </div>
+        </a>
+      
+      
+        <a href="../apiref/" class="md-footer__link md-footer__link--next" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              API reference
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}, "search": "../assets/javascripts/workers/search.fb4a9340.min.js", "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.5cf3e710.min.js"></script>
+      
+        <script src="../javascripts/config.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1647 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      <link rel="shortcut icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.0.5">
+    
+    
+      
+        <title>Configuration - slp Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.77f3fd56.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.7fa14f5b.min.css">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>:root{--md-text-font-family:"Roboto";--md-code-font-family:"Roboto Mono"}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
+      
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuration" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="slp Documentation" class="md-header__button md-logo" aria-label="slp Documentation">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            slp Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="md-header__options">
+      
+    </div>
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="slp Documentation" class="md-nav__button md-logo" aria-label="slp Documentation">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    slp Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        slp
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../get-started/" class="md-nav__link">
+        Getting started
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tuning/" class="md-nav__link">
+        Hyperparameter tuning
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Configuration
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Configuration
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser" class="md-nav__link">
+    slp.config.config_parser
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser.generate_example_config" class="md-nav__link">
+    generate_example_config()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser.make_cli_parser" class="md-nav__link">
+    make_cli_parser()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser.parse_config" class="md-nav__link">
+    parse_config()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.nlp" class="md-nav__link">
+    slp.config.nlp
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.nlp.SPECIAL_TOKENS" class="md-nav__link">
+    SPECIAL_TOKENS
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.omegaconf" class="md-nav__link">
+    slp.config.omegaconf
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.omegaconf.OmegaConfExtended" class="md-nav__link">
+    OmegaConfExtended
+  </a>
+  
+    <nav class="md-nav" aria-label="OmegaConfExtended">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.config.omegaconf.OmegaConfExtended.from_argparse" class="md-nav__link">
+    from_argparse()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slp.config.omegaconf.OmegaConfExtended.from_yaml" class="md-nav__link">
+    from_yaml()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-utils/" class="md-nav__link">
+        Data manipulation
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plbind/" class="md-nav__link">
+        Pytorch Lightning Bindings
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/" class="md-nav__link">
+        Generic Modules
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../multimodal/" class="md-nav__link">
+        Multimodal Modules
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/" class="md-nav__link">
+        SLP utility functions
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../apiref/" class="md-nav__link">
+        API reference
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser" class="md-nav__link">
+    slp.config.config_parser
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser.generate_example_config" class="md-nav__link">
+    generate_example_config()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser.make_cli_parser" class="md-nav__link">
+    make_cli_parser()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.config_parser.parse_config" class="md-nav__link">
+    parse_config()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.nlp" class="md-nav__link">
+    slp.config.nlp
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.nlp.SPECIAL_TOKENS" class="md-nav__link">
+    SPECIAL_TOKENS
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.omegaconf" class="md-nav__link">
+    slp.config.omegaconf
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slp.config.omegaconf.OmegaConfExtended" class="md-nav__link">
+    OmegaConfExtended
+  </a>
+  
+    <nav class="md-nav" aria-label="OmegaConfExtended">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slp.config.omegaconf.OmegaConfExtended.from_argparse" class="md-nav__link">
+    from_argparse()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slp.config.omegaconf.OmegaConfExtended.from_yaml" class="md-nav__link">
+    from_yaml()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                <h1 id="configuration">Configuration</h1>
+<p>Utilities for parsing configuration from YAML files and merging them with argparse CLI args (See Getting started for a concrete example).</p>
+<p>For this I use OmegaConf and I have extended it with integration for argparse.</p>
+<p>This way we can tweak models and run investigative experiments with weird configurations from the CLI, without polluting our configuration files.</p>
+<p>When some configuration shows promise then we can create a configuration file out of it with detailed description and set it in stone for reproducibility.</p>
+<p>The whole process is transparent, if you follow the conventions.</p>
+
+
+  <div class="doc doc-object doc-module">
+
+<a id="slp.config.config_parser"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.config.config_parser.generate_example_config" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">generate_example_config</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>parse_config Parse a provided YAML config file and command line args and merge them</p>
+<p>During experimentation we want ideally to have a configuration file with the model and training configuration,
+but also be able to run quick experiments using command line args.
+This function allows you to double dip, by overriding values in a YAML config file through user provided command line arguments.</p>
+<p>The precedence for merging is as follows
+   * default cli args values &lt; config file values &lt; user provided cli args</p>
+<p>E.g.:</p>
+<ul>
+<li>if you don't include a value in your configuration it will take the default value from the argparse arguments</li>
+<li>if you provide a cli arg (e.g. run the script with --bsz 64) it will override the value in the config file</li>
+</ul>
+<p>Note we use an extended OmegaConf istance to achieve this (see slp.config.omegaconf.OmegaConf)</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>parser</code></td>
+        <td><code>ArgumentParser</code></td>
+        <td><p>The argument parser you want to use</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>output_file</code></td>
+        <td><code>str</code></td>
+        <td><p>Configuration file name or file descriptor to save example configuration</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>args</code></td>
+        <td><code>Optional[List[str]]</code></td>
+        <td><p>Optional input sys.argv style args. Useful for testing.
+Use this only for testing. By default it uses sys.argv[1:]</p></td>
+        <td><code>None</code></td>
+      </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/config/config_parser.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">generate_example_config</span><span class="p">(</span>
+    <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">,</span>
+    <span class="n">output_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;parse_config Parse a provided YAML config file and command line args and merge them</span>
+
+<span class="sd">    During experimentation we want ideally to have a configuration file with the model and training configuration,</span>
+<span class="sd">    but also be able to run quick experiments using command line args.</span>
+<span class="sd">    This function allows you to double dip, by overriding values in a YAML config file through user provided command line arguments.</span>
+
+<span class="sd">    The precedence for merging is as follows</span>
+<span class="sd">       * default cli args values &lt; config file values &lt; user provided cli args</span>
+
+<span class="sd">    E.g.:</span>
+
+<span class="sd">       * if you don&#39;t include a value in your configuration it will take the default value from the argparse arguments</span>
+<span class="sd">       * if you provide a cli arg (e.g. run the script with --bsz 64) it will override the value in the config file</span>
+
+<span class="sd">    Note we use an extended OmegaConf istance to achieve this (see slp.config.omegaconf.OmegaConf)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parser (argparse.ArgumentParser): The argument parser you want to use</span>
+<span class="sd">        output_file (Union[str, IO]): Configuration file name or file descriptor to save example configuration</span>
+<span class="sd">        args (Optional[List[str]]): Optional input sys.argv style args. Useful for testing.</span>
+<span class="sd">            Use this only for testing. By default it uses sys.argv[1:]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">parse_config</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">include_none</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">output_file</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.config.config_parser.make_cli_parser" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">make_cli_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">datamodule_cls</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>make_cli_parser Augment an argument parser for slp with the default arguments</p>
+<p>Default arguments for training, logging, optimization etc. are added to the input {parser}.
+If you use make_cli_parser, the following command line arguments will be included</p>
+<pre><code>!!! usage "my_script.py [-h] [--hidden MODEL.INTERMEDIATE_HIDDEN]"
+                                [--optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}]
+                                [--lr OPTIM.LR] [--weight-decay OPTIM.WEIGHT_DECAY]
+                                [--lr-scheduler] [--lr-factor LR_SCHEDULE.FACTOR]
+                                [--lr-patience LR_SCHEDULE.PATIENCE]
+                                [--lr-cooldown LR_SCHEDULE.COOLDOWN]
+                                [--min-lr LR_SCHEDULE.MIN_LR] [--seed SEED] [--config CONFIG]
+                                [--experiment-name TRAINER.EXPERIMENT_NAME]
+                                [--run-id TRAINER.RUN_ID]
+                                [--experiment-group TRAINER.EXPERIMENT_GROUP]
+                                [--experiments-folder TRAINER.EXPERIMENTS_FOLDER]
+                                [--save-top-k TRAINER.SAVE_TOP_K]
+                                [--patience TRAINER.PATIENCE]
+                                [--wandb-project TRAINER.WANDB_PROJECT]
+                                [--tags [TRAINER.TAGS [TRAINER.TAGS ...]]]
+                                [--stochastic_weight_avg] [--gpus TRAINER.GPUS]
+                                [--val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH]
+                                [--clip-grad-norm TRAINER.GRADIENT_CLIP_VAL]
+                                [--epochs TRAINER.MAX_EPOCHS] [--steps TRAINER.MAX_STEPS]
+                                [--tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS] [--debug]
+                                [--offline] [--early-stop-on TRAINER.EARLY_STOP_ON]
+                                [--early-stop-mode {min,max}] [--num-trials TUNE.NUM_TRIALS]
+                                [--gpus-per-trial TUNE.GPUS_PER_TRIAL]
+                                [--cpus-per-trial TUNE.CPUS_PER_TRIAL]
+                                [--tune-metric TUNE.METRIC] [--tune-mode {max,min}]
+                                [--val-percent DATA.VAL_PERCENT]
+                                [--test-percent DATA.TEST_PERCENT] [--bsz DATA.BATCH_SIZE]
+                                [--bsz-eval DATA.BATCH_SIZE_EVAL]
+                                [--num-workers DATA.NUM_WORKERS] [--no-pin-memory]
+                                [--drop-last] [--no-shuffle-eval]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --hidden MODEL.INTERMEDIATE_HIDDEN
+                                                Intermediate hidden layers for linear module
+  --optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}
+                                                Which optimizer to use
+  --lr OPTIM.LR         Learning rate
+  --weight-decay OPTIM.WEIGHT_DECAY
+                                                Learning rate
+  --lr-scheduler        Use learning rate scheduling. Currently only
+                                                ReduceLROnPlateau is supported out of the box
+  --lr-factor LR_SCHEDULE.FACTOR
+                                                Multiplicative factor by which LR is reduced. Used if
+                                                --lr-scheduler is provided.
+  --lr-patience LR_SCHEDULE.PATIENCE
+                                                Number of epochs with no improvement after which
+                                                learning rate will be reduced. Used if --lr-scheduler
+                                                is provided.
+  --lr-cooldown LR_SCHEDULE.COOLDOWN
+                                                Number of epochs to wait before resuming normal
+                                                operation after lr has been reduced. Used if --lr-
+                                                scheduler is provided.
+  --min-lr LR_SCHEDULE.MIN_LR
+                                                Minimum lr for LR scheduling. Used if --lr-scheduler
+                                                is provided.
+  --seed SEED           Seed for reproducibility
+  --config CONFIG       Path to YAML configuration file
+  --experiment-name TRAINER.EXPERIMENT_NAME
+                                                Name of the running experiment
+  --run-id TRAINER.RUN_ID
+                                                Unique identifier for the current run. If not provided
+                                                it is inferred from datetime.now()
+  --experiment-group TRAINER.EXPERIMENT_GROUP
+                                                Group of current experiment. Useful when evaluating
+                                                for different seeds / cross-validation etc.
+  --experiments-folder TRAINER.EXPERIMENTS_FOLDER
+                                                Top-level folder where experiment results &amp;
+                                                checkpoints are saved
+  --save-top-k TRAINER.SAVE_TOP_K
+                                                Save checkpoints for top k models
+  --patience TRAINER.PATIENCE
+                                                Number of epochs to wait before early stopping
+  --wandb-project TRAINER.WANDB_PROJECT
+                                                Wandb project under which results are saved
+  --tags [TRAINER.TAGS [TRAINER.TAGS ...]]
+                                                Tags for current run to make results searchable.
+  --stochastic_weight_avg
+                                                Use Stochastic weight averaging.
+  --gpus TRAINER.GPUS   Number of GPUs to use
+  --val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH
+                                                Run validation every n epochs
+  --clip-grad-norm TRAINER.GRADIENT_CLIP_VAL
+                                                Clip gradients with ||grad(w)|| &gt;= args.clip_grad_norm
+  --epochs TRAINER.MAX_EPOCHS
+                                                Maximum number of training epochs
+  --steps TRAINER.MAX_STEPS
+                                                Maximum number of training steps
+  --tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS
+                                                Truncated Back-propagation-through-time steps.
+  --debug               If true, we run a full run on a small subset of the
+                                                input data and overfit 10 training batches
+  --offline             If true, forces offline execution of wandb logger
+  --early-stop-on TRAINER.EARLY_STOP_ON
+                                                Metric for early stopping
+  --early-stop-mode {min,max}
+                                                Minimize or maximize early stopping metric
+  --num-trials TUNE.NUM_TRIALS
+                                                Number of trials to run for hyperparameter tuning
+  --gpus-per-trial TUNE.GPUS_PER_TRIAL
+                                                How many gpus to use for each trial. If gpus_per_trial
+                                                &lt; 1 multiple trials are packed in the same gpu
+  --cpus-per-trial TUNE.CPUS_PER_TRIAL
+                                                How many cpus to use for each trial.
+  --tune-metric TUNE.METRIC
+                                                Tune this metric. Need to be one of the keys of
+                                                metrics_map passed into make_trainer_for_ray_tune.
+  --tune-mode {max,min}
+                                                Maximize or minimize metric
+  --val-percent DATA.VAL_PERCENT
+                                                Percent of validation data to be randomly split from
+                                                the training set, if no validation set is provided
+  --test-percent DATA.TEST_PERCENT
+                                                Percent of test data to be randomly split from the
+                                                training set, if no test set is provided
+  --bsz DATA.BATCH_SIZE
+                                                Training batch size
+  --bsz-eval DATA.BATCH_SIZE_EVAL
+                                                Evaluation batch size
+  --num-workers DATA.NUM_WORKERS
+                                                Number of workers to be used in the DataLoader
+  --no-pin-memory       Don't pin data to GPU memory when transferring
+  --drop-last           Drop last incomplete batch
+  --no-shuffle-eval     Don't shuffle val &amp; test sets
+</code></pre>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>parser</code></td>
+        <td><code>ArgumentParser</code></td>
+        <td><p>A parent argument to be augmented</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>datamodule_cls</code></td>
+        <td><code>LightningDataModule</code></td>
+        <td><p>A data module class that injects arguments through the add_argparse_args method</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>ArgumentParser</code></td>
+      <td><p>argparse.ArgumentParser: The augmented command line parser</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">slp.plbind.dm</span> <span class="kn">import</span> <span class="n">PLDataModuleFromDatasets</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;My cool model&quot;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--hidden&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;model.hidden&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>  <span class="c1"># Create parser with model arguments and anything else you need</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">make_cli_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">PLDataModuleFromDatasets</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--bsz&quot;</span><span class="p">,</span> <span class="s2">&quot;64&quot;</span><span class="p">,</span> <span class="s2">&quot;--lr&quot;</span><span class="p">,</span> <span class="s2">&quot;0.01&quot;</span><span class="p">])</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">args</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">batch_size</span>
+<span class="mi">64</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">args</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr</span>
+<span class="mf">0.01</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/config/config_parser.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">make_cli_parser</span><span class="p">(</span>
+    <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">datamodule_cls</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">LightningDataModule</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;make_cli_parser Augment an argument parser for slp with the default arguments</span>
+
+<span class="sd">    Default arguments for training, logging, optimization etc. are added to the input {parser}.</span>
+<span class="sd">    If you use make_cli_parser, the following command line arguments will be included</span>
+
+<span class="sd">        usage: my_script.py [-h] [--hidden MODEL.INTERMEDIATE_HIDDEN]</span>
+<span class="sd">                                        [--optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}]</span>
+<span class="sd">                                        [--lr OPTIM.LR] [--weight-decay OPTIM.WEIGHT_DECAY]</span>
+<span class="sd">                                        [--lr-scheduler] [--lr-factor LR_SCHEDULE.FACTOR]</span>
+<span class="sd">                                        [--lr-patience LR_SCHEDULE.PATIENCE]</span>
+<span class="sd">                                        [--lr-cooldown LR_SCHEDULE.COOLDOWN]</span>
+<span class="sd">                                        [--min-lr LR_SCHEDULE.MIN_LR] [--seed SEED] [--config CONFIG]</span>
+<span class="sd">                                        [--experiment-name TRAINER.EXPERIMENT_NAME]</span>
+<span class="sd">                                        [--run-id TRAINER.RUN_ID]</span>
+<span class="sd">                                        [--experiment-group TRAINER.EXPERIMENT_GROUP]</span>
+<span class="sd">                                        [--experiments-folder TRAINER.EXPERIMENTS_FOLDER]</span>
+<span class="sd">                                        [--save-top-k TRAINER.SAVE_TOP_K]</span>
+<span class="sd">                                        [--patience TRAINER.PATIENCE]</span>
+<span class="sd">                                        [--wandb-project TRAINER.WANDB_PROJECT]</span>
+<span class="sd">                                        [--tags [TRAINER.TAGS [TRAINER.TAGS ...]]]</span>
+<span class="sd">                                        [--stochastic_weight_avg] [--gpus TRAINER.GPUS]</span>
+<span class="sd">                                        [--val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH]</span>
+<span class="sd">                                        [--clip-grad-norm TRAINER.GRADIENT_CLIP_VAL]</span>
+<span class="sd">                                        [--epochs TRAINER.MAX_EPOCHS] [--steps TRAINER.MAX_STEPS]</span>
+<span class="sd">                                        [--tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS] [--debug]</span>
+<span class="sd">                                        [--offline] [--early-stop-on TRAINER.EARLY_STOP_ON]</span>
+<span class="sd">                                        [--early-stop-mode {min,max}] [--num-trials TUNE.NUM_TRIALS]</span>
+<span class="sd">                                        [--gpus-per-trial TUNE.GPUS_PER_TRIAL]</span>
+<span class="sd">                                        [--cpus-per-trial TUNE.CPUS_PER_TRIAL]</span>
+<span class="sd">                                        [--tune-metric TUNE.METRIC] [--tune-mode {max,min}]</span>
+<span class="sd">                                        [--val-percent DATA.VAL_PERCENT]</span>
+<span class="sd">                                        [--test-percent DATA.TEST_PERCENT] [--bsz DATA.BATCH_SIZE]</span>
+<span class="sd">                                        [--bsz-eval DATA.BATCH_SIZE_EVAL]</span>
+<span class="sd">                                        [--num-workers DATA.NUM_WORKERS] [--no-pin-memory]</span>
+<span class="sd">                                        [--drop-last] [--no-shuffle-eval]</span>
+
+<span class="sd">        optional arguments:</span>
+<span class="sd">          -h, --help            show this help message and exit</span>
+<span class="sd">          --hidden MODEL.INTERMEDIATE_HIDDEN</span>
+<span class="sd">                                                        Intermediate hidden layers for linear module</span>
+<span class="sd">          --optimizer {Adam,AdamW,SGD,Adadelta,Adagrad,Adamax,ASGD,RMSprop}</span>
+<span class="sd">                                                        Which optimizer to use</span>
+<span class="sd">          --lr OPTIM.LR         Learning rate</span>
+<span class="sd">          --weight-decay OPTIM.WEIGHT_DECAY</span>
+<span class="sd">                                                        Learning rate</span>
+<span class="sd">          --lr-scheduler        Use learning rate scheduling. Currently only</span>
+<span class="sd">                                                        ReduceLROnPlateau is supported out of the box</span>
+<span class="sd">          --lr-factor LR_SCHEDULE.FACTOR</span>
+<span class="sd">                                                        Multiplicative factor by which LR is reduced. Used if</span>
+<span class="sd">                                                        --lr-scheduler is provided.</span>
+<span class="sd">          --lr-patience LR_SCHEDULE.PATIENCE</span>
+<span class="sd">                                                        Number of epochs with no improvement after which</span>
+<span class="sd">                                                        learning rate will be reduced. Used if --lr-scheduler</span>
+<span class="sd">                                                        is provided.</span>
+<span class="sd">          --lr-cooldown LR_SCHEDULE.COOLDOWN</span>
+<span class="sd">                                                        Number of epochs to wait before resuming normal</span>
+<span class="sd">                                                        operation after lr has been reduced. Used if --lr-</span>
+<span class="sd">                                                        scheduler is provided.</span>
+<span class="sd">          --min-lr LR_SCHEDULE.MIN_LR</span>
+<span class="sd">                                                        Minimum lr for LR scheduling. Used if --lr-scheduler</span>
+<span class="sd">                                                        is provided.</span>
+<span class="sd">          --seed SEED           Seed for reproducibility</span>
+<span class="sd">          --config CONFIG       Path to YAML configuration file</span>
+<span class="sd">          --experiment-name TRAINER.EXPERIMENT_NAME</span>
+<span class="sd">                                                        Name of the running experiment</span>
+<span class="sd">          --run-id TRAINER.RUN_ID</span>
+<span class="sd">                                                        Unique identifier for the current run. If not provided</span>
+<span class="sd">                                                        it is inferred from datetime.now()</span>
+<span class="sd">          --experiment-group TRAINER.EXPERIMENT_GROUP</span>
+<span class="sd">                                                        Group of current experiment. Useful when evaluating</span>
+<span class="sd">                                                        for different seeds / cross-validation etc.</span>
+<span class="sd">          --experiments-folder TRAINER.EXPERIMENTS_FOLDER</span>
+<span class="sd">                                                        Top-level folder where experiment results &amp;</span>
+<span class="sd">                                                        checkpoints are saved</span>
+<span class="sd">          --save-top-k TRAINER.SAVE_TOP_K</span>
+<span class="sd">                                                        Save checkpoints for top k models</span>
+<span class="sd">          --patience TRAINER.PATIENCE</span>
+<span class="sd">                                                        Number of epochs to wait before early stopping</span>
+<span class="sd">          --wandb-project TRAINER.WANDB_PROJECT</span>
+<span class="sd">                                                        Wandb project under which results are saved</span>
+<span class="sd">          --tags [TRAINER.TAGS [TRAINER.TAGS ...]]</span>
+<span class="sd">                                                        Tags for current run to make results searchable.</span>
+<span class="sd">          --stochastic_weight_avg</span>
+<span class="sd">                                                        Use Stochastic weight averaging.</span>
+<span class="sd">          --gpus TRAINER.GPUS   Number of GPUs to use</span>
+<span class="sd">          --val-interval TRAINER.CHECK_VAL_EVERY_N_EPOCH</span>
+<span class="sd">                                                        Run validation every n epochs</span>
+<span class="sd">          --clip-grad-norm TRAINER.GRADIENT_CLIP_VAL</span>
+<span class="sd">                                                        Clip gradients with ||grad(w)|| &gt;= args.clip_grad_norm</span>
+<span class="sd">          --epochs TRAINER.MAX_EPOCHS</span>
+<span class="sd">                                                        Maximum number of training epochs</span>
+<span class="sd">          --steps TRAINER.MAX_STEPS</span>
+<span class="sd">                                                        Maximum number of training steps</span>
+<span class="sd">          --tbtt_steps TRAINER.TRUNCATED_BPTT_STEPS</span>
+<span class="sd">                                                        Truncated Back-propagation-through-time steps.</span>
+<span class="sd">          --debug               If true, we run a full run on a small subset of the</span>
+<span class="sd">                                                        input data and overfit 10 training batches</span>
+<span class="sd">          --offline             If true, forces offline execution of wandb logger</span>
+<span class="sd">          --early-stop-on TRAINER.EARLY_STOP_ON</span>
+<span class="sd">                                                        Metric for early stopping</span>
+<span class="sd">          --early-stop-mode {min,max}</span>
+<span class="sd">                                                        Minimize or maximize early stopping metric</span>
+<span class="sd">          --num-trials TUNE.NUM_TRIALS</span>
+<span class="sd">                                                        Number of trials to run for hyperparameter tuning</span>
+<span class="sd">          --gpus-per-trial TUNE.GPUS_PER_TRIAL</span>
+<span class="sd">                                                        How many gpus to use for each trial. If gpus_per_trial</span>
+<span class="sd">                                                        &lt; 1 multiple trials are packed in the same gpu</span>
+<span class="sd">          --cpus-per-trial TUNE.CPUS_PER_TRIAL</span>
+<span class="sd">                                                        How many cpus to use for each trial.</span>
+<span class="sd">          --tune-metric TUNE.METRIC</span>
+<span class="sd">                                                        Tune this metric. Need to be one of the keys of</span>
+<span class="sd">                                                        metrics_map passed into make_trainer_for_ray_tune.</span>
+<span class="sd">          --tune-mode {max,min}</span>
+<span class="sd">                                                        Maximize or minimize metric</span>
+<span class="sd">          --val-percent DATA.VAL_PERCENT</span>
+<span class="sd">                                                        Percent of validation data to be randomly split from</span>
+<span class="sd">                                                        the training set, if no validation set is provided</span>
+<span class="sd">          --test-percent DATA.TEST_PERCENT</span>
+<span class="sd">                                                        Percent of test data to be randomly split from the</span>
+<span class="sd">                                                        training set, if no test set is provided</span>
+<span class="sd">          --bsz DATA.BATCH_SIZE</span>
+<span class="sd">                                                        Training batch size</span>
+<span class="sd">          --bsz-eval DATA.BATCH_SIZE_EVAL</span>
+<span class="sd">                                                        Evaluation batch size</span>
+<span class="sd">          --num-workers DATA.NUM_WORKERS</span>
+<span class="sd">                                                        Number of workers to be used in the DataLoader</span>
+<span class="sd">          --no-pin-memory       Don&#39;t pin data to GPU memory when transferring</span>
+<span class="sd">          --drop-last           Drop last incomplete batch</span>
+<span class="sd">          --no-shuffle-eval     Don&#39;t shuffle val &amp; test sets</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parser (argparse.ArgumentParser): A parent argument to be augmented</span>
+<span class="sd">        datamodule_cls (pytorch_lightning.LightningDataModule): A data module class that injects arguments through the add_argparse_args method</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        argparse.ArgumentParser: The augmented command line parser</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import argparse</span>
+<span class="sd">        &gt;&gt;&gt; from slp.plbind.dm import PLDataModuleFromDatasets</span>
+<span class="sd">        &gt;&gt;&gt; parser = argparse.ArgumentParser(&quot;My cool model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; parser.add_argument(&quot;--hidden&quot;, dest=&quot;model.hidden&quot;, type=int)  # Create parser with model arguments and anything else you need</span>
+<span class="sd">        &gt;&gt;&gt; parser = make_cli_parser(parser, PLDataModuleFromDatasets)</span>
+<span class="sd">        &gt;&gt;&gt; args = parser.parse_args(args=[&quot;--bsz&quot;, &quot;64&quot;, &quot;--lr&quot;, &quot;0.01&quot;])</span>
+<span class="sd">        &gt;&gt;&gt; args.data.batch_size</span>
+<span class="sd">        64</span>
+<span class="sd">        &gt;&gt;&gt; args.optim.lr</span>
+<span class="sd">        0.01</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">add_optimizer_args</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">add_trainer_args</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">add_tune_args</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">datamodule_cls</span><span class="o">.</span><span class="n">add_argparse_args</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parser</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h2 id="slp.config.config_parser.parse_config" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">parse_config</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">config_file</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include_none</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>parse_config Parse a provided YAML config file and command line args and merge them</p>
+<p>During experimentation we want ideally to have a configuration file with the model and training configuration,
+but also be able to run quick experiments using command line args.
+This function allows you to double dip, by overriding values in a YAML config file through user provided command line arguments.</p>
+<p>The precedence for merging is as follows
+   * default cli args values &lt; config file values &lt; user provided cli args</p>
+<p>E.g.:</p>
+<ul>
+<li>if you don't include a value in your configuration it will take the default value from the argparse arguments</li>
+<li>if you provide a cli arg (e.g. run the script with --bsz 64) it will override the value in the config file</li>
+</ul>
+<p>Note we use an extended OmegaConf istance to achieve this (see slp.config.omegaconf.OmegaConf)</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>parser</code></td>
+        <td><code>ArgumentParser</code></td>
+        <td><p>The argument parser you want to use</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>config_file</code></td>
+        <td><code>Union[str, IO]</code></td>
+        <td><p>Configuration file name or file descriptor</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>args</code></td>
+        <td><code>Optional[List[str]]</code></td>
+        <td><p>Optional input sys.argv style args. Useful for testing.
+Use this only for testing. By default it uses sys.argv[1:]</p></td>
+        <td><code>None</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Union[omegaconf.listconfig.ListConfig, omegaconf.dictconfig.DictConfig]</code></td>
+      <td><p>OmegaConf.DictConfig: The parsed configuration as an OmegaConf DictConfig object</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">io</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">slp.config.config_parser</span> <span class="kn">import</span> <span class="n">parse_config</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">mock_config_file</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">model:</span>
+<span class="s1">  hidden: 100</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;My cool model&quot;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--hidden&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;model.hidden&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cfg</span> <span class="o">=</span> <span class="n">parse_config</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">mock_config_file</span><span class="p">)</span>
+<span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;hidden&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+<span class="o">&lt;</span><span class="k">class</span> <span class="err">&#39;</span><span class="nc">omegaconf</span><span class="o">.</span><span class="n">dictconfig</span><span class="o">.</span><span class="n">DictConfig</span><span class="s1">&#39;&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cfg</span> <span class="o">=</span> <span class="n">parse_config</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">mock_config_file</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--hidden&quot;</span><span class="p">,</span> <span class="s2">&quot;200&quot;</span><span class="p">])</span>
+<span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;hidden&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">}}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">mock_config_file</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">random_value: hello</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cfg</span> <span class="o">=</span> <span class="n">parse_config</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">mock_config_file</span><span class="p">)</span>
+<span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;hidden&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">},</span> <span class="s1">&#39;random_value&#39;</span><span class="p">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">}</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/config/config_parser.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">parse_config</span><span class="p">(</span>
+    <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">,</span>
+    <span class="n">config_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">IO</span><span class="p">]],</span>
+    <span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">include_none</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">ListConfig</span><span class="p">,</span> <span class="n">DictConfig</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;parse_config Parse a provided YAML config file and command line args and merge them</span>
+
+<span class="sd">    During experimentation we want ideally to have a configuration file with the model and training configuration,</span>
+<span class="sd">    but also be able to run quick experiments using command line args.</span>
+<span class="sd">    This function allows you to double dip, by overriding values in a YAML config file through user provided command line arguments.</span>
+
+<span class="sd">    The precedence for merging is as follows</span>
+<span class="sd">       * default cli args values &lt; config file values &lt; user provided cli args</span>
+
+<span class="sd">    E.g.:</span>
+
+<span class="sd">       * if you don&#39;t include a value in your configuration it will take the default value from the argparse arguments</span>
+<span class="sd">       * if you provide a cli arg (e.g. run the script with --bsz 64) it will override the value in the config file</span>
+
+<span class="sd">    Note we use an extended OmegaConf istance to achieve this (see slp.config.omegaconf.OmegaConf)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parser (argparse.ArgumentParser): The argument parser you want to use</span>
+<span class="sd">        config_file (Union[str, IO]): Configuration file name or file descriptor</span>
+<span class="sd">        args (Optional[List[str]]): Optional input sys.argv style args. Useful for testing.</span>
+<span class="sd">            Use this only for testing. By default it uses sys.argv[1:]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        OmegaConf.DictConfig: The parsed configuration as an OmegaConf DictConfig object</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import io</span>
+<span class="sd">        &gt;&gt;&gt; from slp.config.config_parser import parse_config</span>
+<span class="sd">        &gt;&gt;&gt; mock_config_file = io.StringIO(&#39;&#39;&#39;</span>
+<span class="sd">        model:</span>
+<span class="sd">          hidden: 100</span>
+<span class="sd">        &#39;&#39;&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; parser = argparse.ArgumentParser(&quot;My cool model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; parser.add_argument(&quot;--hidden&quot;, dest=&quot;model.hidden&quot;, type=int, default=20)</span>
+<span class="sd">        &gt;&gt;&gt; cfg = parse_config(parser, mock_config_file)</span>
+<span class="sd">        {&#39;model&#39;: {&#39;hidden&#39;: 100}}</span>
+<span class="sd">        &gt;&gt;&gt; type(cfg)</span>
+<span class="sd">        &lt;class &#39;omegaconf.dictconfig.DictConfig&#39;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; cfg = parse_config(parser, mock_config_file, args=[&quot;--hidden&quot;, &quot;200&quot;])</span>
+<span class="sd">        {&#39;model&#39;: {&#39;hidden&#39;: 200}}</span>
+<span class="sd">        &gt;&gt;&gt; mock_config_file = io.StringIO(&#39;&#39;&#39;</span>
+<span class="sd">        random_value: hello</span>
+<span class="sd">        &#39;&#39;&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; cfg = parse_config(parser, mock_config_file)</span>
+<span class="sd">        {&#39;model&#39;: {&#39;hidden&#39;: 20}, &#39;random_value&#39;: &#39;hello&#39;}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Merge Configurations Precedence: default kwarg values &lt; default argparse values &lt; config file values &lt; user provided CLI args values</span>
+
+    <span class="k">if</span> <span class="n">config_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dict_config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dict_config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">create</span><span class="p">({})</span>
+
+    <span class="n">user_cli</span><span class="p">,</span> <span class="n">default_cli</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">from_argparse</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">include_none</span><span class="o">=</span><span class="n">include_none</span><span class="p">)</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">default_cli</span><span class="p">,</span> <span class="n">dict_config</span><span class="p">,</span> <span class="n">user_cli</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running with the following configuration&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">OmegaConf</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">config</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-module">
+
+<a id="slp.config.nlp"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-class">
+
+
+
+<h2 id="slp.config.nlp.SPECIAL_TOKENS" class="doc doc-heading">
+        <code>SPECIAL_TOKENS</code>
+
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>SPECIAL_TOKENS Special Tokens for NLP applications</p>
+<p>Default special tokens values and indices (compatible with BERT):</p>
+<pre><code>* [PAD]: 0
+* [MASK]: 1
+* [UNK]: 2
+* [BOS]: 3
+* [EOS]: 4
+* [CLS]: 5
+* [SEP]: 6
+* [PAUSE]: 7
+</code></pre>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-module">
+
+<a id="slp.config.omegaconf"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-class">
+
+
+
+<h2 id="slp.config.omegaconf.OmegaConfExtended" class="doc doc-heading">
+        <code>OmegaConfExtended</code>
+
+
+
+</h2>
+
+    <div class="doc doc-contents ">
+
+      <p>OmegaConfExtended Extended OmegaConf class, to include argparse style CLI arguments</p>
+<p>Unfortunately the original authors are not interested into providing integration with argparse
+(https://github.com/omry/omegaconf/issues/569), so we have to get by with this extension</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-object doc-method">
+
+
+
+<h3 id="slp.config.omegaconf.OmegaConfExtended.from_argparse" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">from_argparse</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">include_none</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+  <span class="doc doc-properties">
+      <small class="doc doc-property doc-property-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+      <p>from_argparse Static method to convert argparse arguments into OmegaConf DictConfig objects</p>
+<p>We parse the command line arguments and separate the user provided values and the default values.
+This is useful for merging with a config file.</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>parser</code></td>
+        <td><code>ArgumentParser</code></td>
+        <td><p>Parser for argparse arguments</p></td>
+        <td><em>required</em></td>
+      </tr>
+      <tr>
+        <td><code>args</code></td>
+        <td><code>Optional[List[str]]</code></td>
+        <td><p>Optional input sys.argv style args. Useful for testing.
+Use this only for testing. By default it uses sys.argv[1:]</p></td>
+        <td><code>None</code></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Tuple[omegaconf.dictconfig.DictConfig, omegaconf.dictconfig.DictConfig]</code></td>
+      <td><p>Tuple[omegaconf.DictConfig, omegaconf.DictConfig]: (user provided cli args, default cli args) as a tuple of omegaconf.DictConfigs</p></td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>Examples:</strong></p>
+    <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">slp.config.omegaconf</span> <span class="kn">import</span> <span class="n">OmegaConfExtended</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;My cool model&quot;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--hidden&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;model.hidden&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">user_provided_args</span><span class="p">,</span> <span class="n">default_args</span> <span class="o">=</span> <span class="n">OmegaConfExtended</span><span class="o">.</span><span class="n">from_argparse</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--hidden&quot;</span><span class="p">,</span> <span class="s2">&quot;100&quot;</span><span class="p">])</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">user_provided_args</span>
+<span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;hidden&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">default_args</span>
+<span class="p">{}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">user_provided_args</span><span class="p">,</span> <span class="n">default_args</span> <span class="o">=</span> <span class="n">OmegaConfExtended</span><span class="o">.</span><span class="n">from_argparse</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">user_provided_args</span>
+<span class="p">{}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">default_args</span>
+<span class="p">{</span><span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;hidden&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">}}</span>
+</code></pre></div>
+
+        <details class="quote">
+          <summary>Source code in <code>slp/config/omegaconf.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">from_argparse</span><span class="p">(</span>
+    <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">,</span>
+    <span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">include_none</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DictConfig</span><span class="p">,</span> <span class="n">DictConfig</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;from_argparse Static method to convert argparse arguments into OmegaConf DictConfig objects</span>
+
+<span class="sd">    We parse the command line arguments and separate the user provided values and the default values.</span>
+<span class="sd">    This is useful for merging with a config file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        parser (argparse.ArgumentParser): Parser for argparse arguments</span>
+<span class="sd">        args (Optional[List[str]]): Optional input sys.argv style args. Useful for testing.</span>
+<span class="sd">            Use this only for testing. By default it uses sys.argv[1:]</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[omegaconf.DictConfig, omegaconf.DictConfig]: (user provided cli args, default cli args) as a tuple of omegaconf.DictConfigs</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import argparse</span>
+<span class="sd">        &gt;&gt;&gt; from slp.config.omegaconf import OmegaConfExtended</span>
+<span class="sd">        &gt;&gt;&gt; parser = argparse.ArgumentParser(&quot;My cool model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; parser.add_argument(&quot;--hidden&quot;, dest=&quot;model.hidden&quot;, type=int, default=20)</span>
+<span class="sd">        &gt;&gt;&gt; user_provided_args, default_args = OmegaConfExtended.from_argparse(parser, args=[&quot;--hidden&quot;, &quot;100&quot;])</span>
+<span class="sd">        &gt;&gt;&gt; user_provided_args</span>
+<span class="sd">        {&#39;model&#39;: {&#39;hidden&#39;: 100}}</span>
+<span class="sd">        &gt;&gt;&gt; default_args</span>
+<span class="sd">        {}</span>
+<span class="sd">        &gt;&gt;&gt; user_provided_args, default_args = OmegaConfExtended.from_argparse(parser)</span>
+<span class="sd">        &gt;&gt;&gt; user_provided_args</span>
+<span class="sd">        {}</span>
+<span class="sd">        &gt;&gt;&gt; default_args</span>
+<span class="sd">        {&#39;model&#39;: {&#39;hidden&#39;: 20}}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dest_to_arg</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">dest</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">parser</span><span class="o">.</span><span class="n">_option_string_actions</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="n">all_args</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">))</span>
+    <span class="n">provided_args</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">default_args</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">all_args</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">dest_to_arg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">:</span>
+            <span class="n">provided_args</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">default_args</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="n">provided</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">_nest</span><span class="p">(</span><span class="n">provided_args</span><span class="p">,</span> <span class="n">include_none</span><span class="o">=</span><span class="n">include_none</span><span class="p">))</span>
+    <span class="n">defaults</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">_nest</span><span class="p">(</span><span class="n">default_args</span><span class="p">,</span> <span class="n">include_none</span><span class="o">=</span><span class="n">include_none</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">provided</span><span class="p">,</span> <span class="n">defaults</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-method">
+
+
+
+<h3 id="slp.config.omegaconf.OmegaConfExtended.from_yaml" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">from_yaml</span><span class="p">(</span><span class="n">file_</span><span class="p">)</span></code>
+
+  <span class="doc doc-properties">
+      <small class="doc doc-property doc-property-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+      <p>Alias for OmegaConf.load
+OmegaConf.from_yaml got removed at some point. Bring it back</p>
+
+<p><strong>Parameters:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Default</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+        <td><code>file_</code></td>
+        <td><code>Union[str, pathlib.Path, IO[Any]]</code></td>
+        <td><p>file to load or file descriptor</p></td>
+        <td><em>required</em></td>
+      </tr>
+  </tbody>
+</table>
+<p><strong>Returns:</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Union[omegaconf.dictconfig.DictConfig, omegaconf.listconfig.ListConfig]</code></td>
+      <td><p>Union[DictConfig, ListConfig]: The loaded configuration</p></td>
+    </tr>
+  </tbody>
+</table>
+        <details class="quote">
+          <summary>Source code in <code>slp/config/omegaconf.py</code></summary>
+          <div class="highlight"><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">from_yaml</span><span class="p">(</span>
+    <span class="n">file_</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">IO</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">DictConfig</span><span class="p">,</span> <span class="n">ListConfig</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Alias for OmegaConf.load</span>
+<span class="sd">    OmegaConf.from_yaml got removed at some point. Bring it back</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file_ (Union[str, pathlib.Path, IO[Any]]): file to load or file descriptor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Union[DictConfig, ListConfig]: The loaded configuration</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">OmegaConfExtended</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_</span><span class="p">)</span>
+</code></pre></div>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        <a href="../tuning/" class="md-footer__link md-footer__link--prev" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Hyperparameter tuning
+            </div>
+          </div>
+        </a>
+      
+      
+        <a href="../data-utils/" class="md-footer__link md-footer__link--next" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Data manipulation
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        Made with
+        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+          Material for MkDocs
+        </a>
+        
+      </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}, "search": "../assets/javascripts/workers/search.fb4a9340.min.js", "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.5cf3e710.min.js"></script>
+      
+        <script src="../javascripts/config.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
