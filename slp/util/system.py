@@ -8,13 +8,13 @@ import sys
 import time
 import urllib
 import urllib.request
+import uuid
 from datetime import datetime
 from typing import Any, Callable, Optional, Tuple, cast
 
 import validators
 import yaml
 from loguru import logger
-
 from slp.util import types
 
 try:
@@ -42,13 +42,15 @@ def has_internet_connection(timeout: int = 3) -> bool:
     try:
         socket.setdefaulttimeout(timeout)
         socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+
         return True
     except socket.error as ex:
         print(ex)
+
         return False
 
 
-def date_fname() -> str:
+def date_fname(append_uuid=True) -> str:
     """date_fname Generate a filename based on datetime.now().
 
     If multiple calls are made within the same second, the filename will not be unique.
@@ -59,7 +61,8 @@ def date_fname() -> str:
     Returns:
         str: A filename, e.g. 20210228-211832
     """
-    return datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    return datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid1().hex
 
 
 def print_separator(
@@ -96,8 +99,10 @@ def is_url(inp: Optional[str]) -> types.ValidationResult:
         >>> is_url("http://google.com")
         True
     """
+
     if not inp:
         return False
+
     return validators.url(inp)
 
 
@@ -116,8 +121,10 @@ def is_file(inp: Optional[str]) -> types.ValidationResult:
         >>> is_file("/supercalifragilisticexpialidocious")  # This does not exist. I hope...
         False
     """
+
     if not inp:
         return False
+
     return os.path.isfile(inp)
 
 
@@ -137,6 +144,7 @@ def is_subpath(child: str, parent: str) -> bool:
     """
     parent = os.path.abspath(parent)
     child = os.path.abspath(child)
+
     return cast(
         bool, os.path.commonpath([parent]) == os.path.commonpath([parent, child])
     )
@@ -153,6 +161,7 @@ def safe_mkdirs(path: str) -> None:
     Examples:
         >>> safe_mkdirs("super/cali/fragi/listic/expi/ali/docious")
     """
+
     if not os.path.exists(path):
         try:
             os.makedirs(path)
@@ -180,6 +189,7 @@ def timethis(method=False) -> Callable:
             result = func(*args, **kwargs)
             te = time.time()
             elapsed = f"{te - ts}"
+
             if method:
 
                 logger.info(
@@ -193,6 +203,7 @@ def timethis(method=False) -> Callable:
                         f=func.__name__, a=args, kw=kwargs, t=elapsed
                     )
                 )
+
             return result
 
         return cast(Callable, timed)
@@ -213,6 +224,7 @@ def suppress_print(func: Callable) -> Callable:
         with open("/dev/null", "w") as sys.stdout:
             ret = func(*args, **kwargs)
         sys.stdout = sys.__stdout__
+
         return ret
 
     return cast(Callable, func_wrapper)
@@ -237,12 +249,14 @@ def run_cmd(command: str) -> Tuple[int, str]:
     )
 
     stdout = ""
+
     if pipe.stdout is not None:
         stdout = "".join(
             [line.decode("utf-8") for line in iter(pipe.stdout.readline, b"")]
         )
         pipe.stdout.close()
     returncode = pipe.wait()
+
     return returncode, stdout
 
 
@@ -259,6 +273,7 @@ def run_cmd_silent(command: str) -> Tuple[int, str]:
         >>> run_cmd("ls /")
         (0, 'bin\nboot\ndev\netc\nhome\ninit\nlib\nlib32\nlib64\nlibx32\nlost+found\nmedia\nmnt\nopt\nproc\nroot\nrun\nsbin\nsnap\nsrv\nsys\ntmp\nusr\nvar\n')
     """
+
     return cast(Tuple[int, str], suppress_print(run_cmd)(command))
 
 
@@ -278,6 +293,7 @@ def download_url(url: str, dest_path: str) -> str:
     response = urllib.request.urlopen(url)
     with open(dest, "wb") as fd:
         shutil.copyfileobj(response, fd)
+
     return dest
 
 
@@ -303,6 +319,7 @@ def read_wav(wav_sample: str) -> str:
     """
     with open(wav_sample, "r") as wav_fd:
         clip = wav_fd.read()
+
     return clip
 
 
@@ -317,6 +334,7 @@ def pickle_load(fname: str) -> Any:
     """
     with open(fname, "rb") as fd:
         data = pickle.load(fd)
+
     return data
 
 
@@ -342,6 +360,7 @@ def yaml_load(fname: str) -> types.GenericDict:
     """
     with open(fname, "r") as fd:
         data = yaml.load(fd)
+
     return cast(types.GenericDict, data)
 
 
@@ -367,6 +386,7 @@ def json_load(fname: str) -> types.GenericDict:
     """
     with open(fname, "r") as fd:
         data = json.load(fd)
+
     return cast(types.GenericDict, data)
 
 

@@ -1,13 +1,19 @@
 # this script contains custom argument parsers
 # - dataset: [mosei, mosi]
 # - models: [rnn, transformer]
+import os
 from argparse import ArgumentParser
-import torch
+
 import numpy as np
-from sklearn.metrics import classification_report
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import accuracy_score, f1_score
+import torch
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_recall_fscore_support,
+)
+from tqdm import tqdm
 
 
 def get_mosei_parser():
@@ -206,8 +212,8 @@ def eval_mosei_senti(results, truths, exclude_zero=False):
     f_score_non_zero = f1_score(
         (test_preds[non_zeros] > 0), (test_truth[non_zeros] > 0), average="weighted"
     )
-    binary_truth_non_zero = test_truth[non_zeros] > 0
-    binary_preds_non_zero = test_preds[non_zeros] > 0
+    binary_truth_non_zero = test_truth[non_zeros] >= 0
+    binary_preds_non_zero = test_preds[non_zeros] >= 0
 
     return {
         "mae": mae,
@@ -298,3 +304,41 @@ def eval_iemocap(results, truths, single=-1):
         results["{}_f1".format(emos[emo_ind])] = f1
 
     return results
+
+
+def run_evaluation(model, test_loader, results_file):
+    ordered_metrics = [
+        "mae",
+        "corr",
+        "acc_7",
+        "acc_5",
+        "f1_pos",
+        "bin_acc_pos",
+        "f1_neg",
+        "bin_acc_neg",
+        "f1",
+        "bin_acc",
+    ]
+    model.eval()
+    preds, ground_truths = [], []
+    for batch in tqdm(test_loader, desc="Running on test set"):
+        pred, gt = model.predictor.get_predictions_and_targets(model, batch)
+        preds.append(pred)
+        ground_truths.append(gt)
+
+    preds = torch.cat(preds)
+    ground_truths = torch.cat(ground_truths)
+    metrics = eval_mosei_senti(preds, ground_truths, exclude_zero=True)
+    if not os.path.exists(results_file):
+        with open(results_file, "w") as fd:
+            header = "\t".join(ordered_metrics) + "\n"
+            fd.write(header)
+            values = [f"{metrics[m].item():.4}" for m in ordered_metrics]
+            line = "\t".join(values) + "\n"
+            fd.write(line)
+    else:
+        with open(results_file, "a") as fd:
+            values = [f"{metrics[m].item():.4f}" for m in ordered_metrics]
+            line = "\t".join(values) + "\n"
+            fd.write(line)
+    return metrics

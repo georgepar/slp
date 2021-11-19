@@ -620,7 +620,7 @@ class MultimodalBaseline(TrimodalEncoder):
             "hidden_size": cfg.get("hidden_size", 100),
             "layers": cfg.get("layers", 1),
             "bidirectional": cfg.get("bidirectional", True),
-            "dropout": cfg.get("dropout", 0.2),
+            "dropout": cfg.get("dropout", 0.1),
             "rnn_type": cfg.get("rnn_type", "lstm"),
             "attention": cfg.get("attention", True),
             "merge_bi": cfg.get("merge_bi", "sum"),
@@ -642,13 +642,13 @@ class MultimodalBaseline(TrimodalEncoder):
         """
         return {
             "n_modalities": 3,
-            "dropout": cfg.get("dropout", 0.2),
+            "dropout": cfg.get("dropout", 0.1),
             "output_size": cfg.get("hidden_size", 100),
             "hidden_size": cfg.get("hidden_size", 100),
             "fusion_method": "attention",
             "timesteps_pooling_method": "rnn",
             "residual": cfg.get("residual", True),
-            "use_all_trimodal": cfg.get("use_all_trimodal", True),
+            "use_all_trimodal": cfg.get("use_all_trimodal", False),
         }
 
 

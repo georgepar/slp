@@ -6,13 +6,12 @@ import pytorch_lightning as pl
 import torch
 from loguru import logger
 from sklearn.model_selection import train_test_split
-from torch.utils.data import BatchSampler, DataLoader, Dataset, Sampler, random_split
-from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP
-
 from slp.data.corpus import HfCorpus, TokenizedCorpus, WordCorpus
 from slp.data.datasets import CorpusDataset, CorpusLMDataset
 from slp.data.transforms import ToTensor
 from slp.util.types import dir_path
+from torch.utils.data import BatchSampler, DataLoader, Dataset, Sampler, random_split
+from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP
 
 DatasetType = Union[Dataset, List[Any]]
 
@@ -64,7 +63,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         batch_size_eval: Optional[int] = None,
         seed: Optional[int] = None,
         num_workers: int = 1,
-        pin_memory: bool = True,
+        pin_memory: bool = False,
         drop_last: bool = False,
         sampler_train: Sampler = None,
         sampler_val: Sampler = None,
@@ -73,6 +72,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         batch_sampler_val: BatchSampler = None,
         batch_sampler_test: BatchSampler = None,
         shuffle_eval: bool = False,
+        shuffle_train: bool = True,
         collate_fn: Optional[Callable[..., Any]] = None,
         no_test_set: bool = False,
     ):
@@ -100,6 +100,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             batch_sampler_val (BatchSampler): Batch sampler for validation loader. Defaults to None.
             batch_sampler_test (BatchSampler): Batch sampler for test loader. Defaults to None.
             shuffle_eval (bool): Shuffle validation and test dataloaders. Defaults to False.
+            shuffle_train (bool): Shuffle train dataloader. Defaults to False.
             collate_fn (Callable[..., Any]): Collator function. Defaults to None.
             no_test_set (bool): Do not create test set. Useful for tuning
 
@@ -110,6 +111,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         """
         super(PLDataModuleFromDatasets, self).__init__()
         self.setup_has_run = False
+
         if batch_sampler_train is not None and sampler_train is not None:
             raise ValueError(
                 "You provided both a sampler and a batch sampler for the train set. These are mutually exclusive"
@@ -136,6 +138,7 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
         self.pin_memory = pin_memory
         self.drop_last = drop_last
 
+        self.shuffle_train = shuffle_train
         self.shuffle_eval = shuffle_eval
         self.collate_fn = collate_fn
 
@@ -232,7 +235,11 @@ class PLDataModuleFromDatasets(pl.LightningDataModule):
             drop_last=self.drop_last and (self.batch_sampler_train is None),
             sampler=self.sampler_train,
             batch_sampler=self.batch_sampler_train,
-            shuffle=(self.batch_sampler_train is None) and (self.sampler_train is None),
+            shuffle=(
+                (self.batch_sampler_train is None)
+                and (self.sampler_train is None)
+                and self.shuffle_train
+            ),
             collate_fn=self.collate_fn,
         )
 

@@ -13,6 +13,7 @@ from slp.plbind.metrics import MoseiAcc2, MoseiAcc5, MoseiAcc7
 from slp.plbind.module import RnnPLModule
 from slp.plbind.trainer import make_trainer, watch_model
 from slp.util.log import configure_logging
+from slp.util.mosei import run_evaluation
 from torch.optim import Adam
 
 if __name__ == "__main__":
@@ -57,8 +58,8 @@ if __name__ == "__main__":
         train,
         val=dev,
         test=test,
-        batch_size=32,
-        batch_size_eval=32,
+        batch_size=16,
+        batch_size_eval=16,
         collate_fn=collate_fn,
         pin_memory=True,
         num_workers=2,
@@ -71,7 +72,6 @@ if __name__ == "__main__":
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, factor=0.5, patience=2
     )
-
     criterion = nn.L1Loss()
 
     lm = RnnPLModule(
@@ -91,11 +91,21 @@ if __name__ == "__main__":
     trainer = make_trainer(
         EXPERIMENT_NAME,
         max_epochs=100,
+        patience=10,
         gpus=1,
         save_top_k=1,
     )
     # watch_model(trainer, model)
 
     trainer.fit(lm, datamodule=ldm)
+    # trainer.test(ckpt_path="best", test_dataloaders=ldm.test_dataloader())
 
-    trainer.test(ckpt_path="best", test_dataloaders=ldm.test_dataloader())
+    best_model = RnnPLModule.load_from_checkpoint(
+        trainer.checkpoint_callback.best_model_path,
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        lr_scheduler=scheduler,
+    )
+
+    run_evaluation(best_model, ldm.test_dataloader(), "baseline_results4.csv")

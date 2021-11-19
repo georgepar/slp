@@ -3,11 +3,10 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import numpy as np
 import torch
+from slp.data.transforms import ToTensor
 from toolz import compose_left, pipe
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
-from slp.data.transforms import ToTensor
 
 
 class MMDataset(Dataset):
