@@ -180,6 +180,14 @@ def add_trainer_args(parent_parser: argparse.ArgumentParser) -> argparse.Argumen
     )
 
     parser.add_argument(
+        "--accumulate_grad_batches",
+        dest="trainer.accumulate_grad_batches",
+        type=int,
+        default=1,
+        help="Accumulate gradients for N batches",
+    )
+
+    parser.add_argument(
         "--num-nodes",
         dest="trainer.num_nodes",
         type=int,
@@ -348,6 +356,7 @@ def make_trainer(
     num_nodes: int = 1,
     max_epochs: Optional[int] = 100,
     max_steps: Optional[int] = None,
+    accumulate_grad_batches: int = 1,
     truncated_bptt_steps: Optional[int] = None,
     fast_dev_run: Optional[int] = None,
     overfit_batches: Optional[int] = None,
@@ -388,6 +397,7 @@ def make_trainer(
         num_nodes (int): Number of nodes to run on
         max_epochs (Optional[int], optional): Maximum number of epochs for training. Defaults to 100.
         max_steps (Optional[int], optional): Maximum number of steps for training. Defaults to None.
+        accumulate_grad_batches (int): Accumulate gradients for N batches. Defaults to 1.
         truncated_bptt_steps (Optional[int], optional): Truncated back prop breaks performs backprop every k steps of much longer
                 sequence. Defaults to None.
         fast_dev_run (Optional[int], optional): Run training on a small number of  batches for debugging. Defaults to None.
@@ -504,6 +514,7 @@ def make_trainer(
         logger=loggers,
         check_val_every_n_epoch=check_val_every_n_epoch,
         gradient_clip_val=gradient_clip_val,
+        accumulate_grad_batches=accumulate_grad_batches,
         auto_scale_batch_size=auto_scale_batch_size,
         stochastic_weight_avg=stochastic_weight_avg,
         precision=precision,

@@ -1,5 +1,11 @@
+import io
+import os
+import pickle
 from typing import List
 
+import lmdb
+import numpy as np
+from PIL import Image
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import Dataset
 
@@ -27,6 +33,7 @@ class CorpusLMDataset(Dataset):
             CorpusLMDataset: self
         """
         self.transforms.append(t)
+
         return self
 
     def __len__(self):
@@ -35,6 +42,7 @@ class CorpusLMDataset(Dataset):
         Returns:
             int: Corpus Length
         """
+
         return int(len(self.source))
 
     def __getitem__(self, idx):
@@ -47,9 +55,11 @@ class CorpusLMDataset(Dataset):
             Tuple[torch.Tensor, torch.Tensor]: source=coprus[idx], target=corpus[idx+1]
         """
         src, tgt = self.source[idx], self.target[idx]
+
         for t in self.transforms:
             src = t(src)
             tgt = t(tgt)
+
         return src, tgt
 
 
@@ -66,6 +76,7 @@ class CorpusDataset(Dataset):
         assert len(self.labels) == len(self.corpus), "Incompatible labels and corpus"
         self.transforms = []
         self.label_encoder = None
+
         if isinstance(self.labels[0], str):
             self.label_encoder = LabelEncoder().fit(self.labels)
 
@@ -79,6 +90,7 @@ class CorpusDataset(Dataset):
             CorpusDataset: self
         """
         self.transforms.append(t)
+
         return self
 
     def __len__(self):
@@ -87,6 +99,7 @@ class CorpusDataset(Dataset):
         Returns:
             int: Corpus Length
         """
+
         return len(self.corpus)
 
     def __getitem__(self, idx):
@@ -99,8 +112,68 @@ class CorpusDataset(Dataset):
             Tuple[torch.Tensor, torch.Tensor]: (processed sentence, label)
         """
         text, target = self.corpus[idx], self.labels[idx]
+
         if self.label_encoder is not None:
             target = self.label_encoder.transform([target])[0]
+
         for t in self.transforms:
             text = t(text)
+
         return text, target
+
+
+class ImageFolderLMDB(Dataset):
+    def __init__(self, db_path, transform=None, target_transform=None):
+        self.db_path = db_path
+        self.env = lmdb.open(
+            db_path,
+            subdir=os.path.isdir(db_path),
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False,
+        )
+        with self.env.begin(write=False) as txn:
+            self.length = self.loads_data(txn.get(b"__len__"))
+            self.keys = self.loads_data(txn.get(b"__keys__"))
+
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def loads_data(self, buf):
+        return pickle.loads(buf)
+
+    def __getitem__(self, index):
+        env = self.env
+        with env.begin(write=False) as txn:
+            byteflow = txn.get(self.keys[index])
+
+        unpacked = self.loads_data(byteflow)
+
+        # load img
+        imgbuf = unpacked[0]
+        buf = io.BytesIO()
+        buf.write(imgbuf)
+        buf.seek(0)
+        img = Image.open(buf).convert("RGB")
+
+        # load label
+        target = unpacked[1]
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        im2arr = np.array(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        # return img, target
+
+        return im2arr, target
+
+    def __len__(self):
+        return self.length
+
+    def __repr__(self):
+        return self.__class__.__name__ + " (" + self.db_path + ")"

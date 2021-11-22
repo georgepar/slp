@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     else:
         trainer = make_trainer(**config.trainer)
-        watch_model(trainer, model)
+        # watch_model(trainer, model)
 
         trainer.fit(lm, datamodule=ldm)
 
