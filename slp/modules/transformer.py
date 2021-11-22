@@ -115,12 +115,12 @@ class Sublayer3(nn.Module):
             self.lnorm(x), queries=self.lnormy(y), attention_mask=attention_mask
         )
 
-        return out + x
+        return out + y
 
     def _postnorm(self, x, y, attention_mask=None):
         out, _ = self.sublayer(x, queries=y, attention_mask=attention_mask)
 
-        return self.lnorm(x + out)
+        return self.lnorm(y + out)
 
     def forward(self, x, y, attention_mask=None):
         return (
