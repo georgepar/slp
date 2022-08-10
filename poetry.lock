@@ -325,8 +325,8 @@ pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_ve
 wcwidth = ">=0.1.7"
 
 [package.extras]
-dev = ["pytest (>=4.6)", "codecov", "pytest-cov", "pytest-mock", "flake8", "sphinx", "sphinx-rtd-theme", "sphinx-autobuild", "doc8", "invoke", "twine (>=1.11)", "mock", "nox (==2019.11.9)", "nox"]
-test = ["codecov", "coverage", "pytest (>=4.6)", "pytest-cov", "pytest-mock", "mock", "gnureadline"]
+test = ["gnureadline", "mock", "pytest-mock", "pytest-cov", "pytest (>=4.6)", "coverage", "codecov"]
+dev = ["nox", "nox (==2019.11.9)", "mock", "twine (>=1.11)", "invoke", "doc8", "sphinx-autobuild", "sphinx-rtd-theme", "sphinx", "flake8", "pytest-mock", "pytest-cov", "codecov", "pytest (>=4.6)"]
 
 [[package]]
 name = "colorama"
@@ -437,8 +437,8 @@ click = "*"
 PyYAML = "*"
 
 [package.extras]
-lint = ["flake8 (==3.8.2)", "black (==19.10b0)", "isort (==5.6.4)"]
-test = ["pytest (==5.4.2)", "pytest-mock (==3.4.0)"]
+test = ["pytest-mock (==3.4.0)", "pytest (==5.4.2)"]
+lint = ["isort (==5.6.4)", "black (==19.10b0)", "flake8 (==3.8.2)"]
 
 [[package]]
 name = "entrypoints"
@@ -458,11 +458,11 @@ python-versions = "*"
 
 [[package]]
 name = "fsspec"
-version = "2021.6.1"
+version = "2022.7.1"
 description = "File-system specification"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 aiohttp = {version = "*", optional = true, markers = "extra == \"http\""}
@@ -471,19 +471,25 @@ requests = {version = "*", optional = true, markers = "extra == \"http\""}
 [package.extras]
 abfs = ["adlfs"]
 adl = ["adlfs"]
+arrow = ["pyarrow (>=1)"]
 dask = ["dask", "distributed"]
 dropbox = ["dropboxdrivefs", "requests", "dropbox"]
 entrypoints = ["importlib-metadata"]
+fuse = ["fusepy"]
 gcs = ["gcsfs"]
 git = ["pygit2"]
 github = ["requests"]
 gs = ["gcsfs"]
+gui = ["panel"]
 hdfs = ["pyarrow (>=1)"]
 http = ["requests", "aiohttp"]
+libarchive = ["libarchive-c"]
+oci = ["ocifs"]
 s3 = ["s3fs"]
 sftp = ["paramiko"]
 smb = ["smbprotocol"]
 ssh = ["paramiko"]
+tqdm = ["tqdm"]
 
 [[package]]
 name = "future"
@@ -1031,8 +1037,8 @@ packaging = "*"
 "ruamel.yaml" = "*"
 
 [package.extras]
-dev = ["coverage", "flake8 (>=3.0)", "pypandoc (>=1.4)"]
-test = ["coverage", "flake8 (>=3.0)"]
+test = ["flake8 (>=3.0)", "coverage"]
+dev = ["pypandoc (>=1.4)", "flake8 (>=3.0)", "coverage"]
 
 [[package]]
 name = "mistune"
@@ -1184,11 +1190,11 @@ test = ["codecov", "coverage", "ipython", "ipykernel", "ipywidgets", "pytest (>=
 
 [[package]]
 name = "nbconvert"
-version = "6.0.7"
+version = "6.3.0"
 description = "Converting Jupyter Notebooks"
 category = "dev"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 bleach = "*"
@@ -1203,14 +1209,14 @@ nbformat = ">=4.4"
 pandocfilters = ">=1.4.1"
 pygments = ">=2.4.1"
 testpath = "*"
-traitlets = ">=4.2"
+traitlets = ">=5.0"
 
 [package.extras]
-all = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.2)", "tornado (>=4.0)", "sphinx (>=1.5.1)", "sphinx-rtd-theme", "nbsphinx (>=0.2.12)", "ipython"]
+all = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.6)", "tornado (>=4.0)", "sphinx (>=1.5.1)", "sphinx-rtd-theme", "nbsphinx (>=0.2.12)", "ipython"]
 docs = ["sphinx (>=1.5.1)", "sphinx-rtd-theme", "nbsphinx (>=0.2.12)", "ipython"]
 serve = ["tornado (>=4.0)"]
-test = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.2)"]
-webpdf = ["pyppeteer (==0.2.2)"]
+test = ["pytest", "pytest-cov", "pytest-dependency", "ipykernel", "ipywidgets (>=7)", "pyppeteer (==0.2.6)"]
+webpdf = ["pyppeteer (==0.2.6)"]
 
 [[package]]
 name = "nbformat"
@@ -1331,9 +1337,9 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [package.extras]
-rsa = ["cryptography"]
+signedtoken = ["pyjwt (>=1.0.0)", "cryptography"]
 signals = ["blinker"]
-signedtoken = ["cryptography", "pyjwt (>=1.0.0)"]
+rsa = ["cryptography"]
 
 [[package]]
 name = "omegaconf"
@@ -1423,7 +1429,7 @@ python-dateutil = ">=2.7.3"
 pytz = ">=2017.3"
 
 [package.extras]
-test = ["pytest (>=5.0.1)", "pytest-xdist", "hypothesis (>=3.58)"]
+test = ["hypothesis (>=3.58)", "pytest-xdist", "pytest (>=5.0.1)"]
 
 [[package]]
 name = "pandocfilters"
@@ -1442,8 +1448,8 @@ optional = false
 python-versions = ">=3.6"
 
 [package.extras]
-qa = ["flake8 (==3.8.3)", "mypy (==0.782)"]
-testing = ["docopt", "pytest (<6.0.0)"]
+testing = ["pytest (<6.0.0)", "docopt"]
+qa = ["mypy (==0.782)", "flake8 (==3.8.3)"]
 
 [[package]]
 name = "pathspec"
@@ -1474,8 +1480,8 @@ smart-open = ">=2.2.0,<4.0.0"
 typer = ">=0.3.0,<1.0.0"
 
 [package.extras]
-all = ["google-cloud-storage (>=1.26.0,<2.0.0)"]
 gcs = ["google-cloud-storage (>=1.26.0,<2.0.0)"]
+all = ["google-cloud-storage (>=1.26.0,<2.0.0)"]
 
 [[package]]
 name = "pbr"
@@ -1547,7 +1553,7 @@ python-versions = ">=3.6"
 wcwidth = "*"
 
 [package.extras]
-tests = ["pytest", "pytest-cov"]
+tests = ["pytest-cov", "pytest"]
 
 [[package]]
 name = "prometheus-client"
@@ -1820,14 +1826,14 @@ torch = ">=1.4"
 tqdm = ">=4.41.0"
 
 [package.extras]
-all = ["matplotlib (>3.1)", "horovod (>=0.21.2)", "omegaconf (>=2.0.1)", "torchtext (>=0.5,<0.7)", "onnx (>=1.7.0)", "onnxruntime (>=1.3.0)", "hydra-core (>=1.0)", "neptune-client (>=0.4.109)", "comet-ml (>=3.1.12)", "mlflow (>=1.0.0)", "test-tube (>=0.7.5)", "wandb (>=0.8.21)", "coverage (>=5.0)", "codecov (>=2.1)", "pytest (>=5.0)", "flake8 (>=3.6)", "check-manifest", "twine (==3.2)", "scikit-learn (>=0.22.2)", "scikit-image (>=0.17.2)", "isort (>=5.6.4)", "mypy (>=0.720,<0.800)", "pre-commit (>=1.0)", "cloudpickle (>=1.3)", "nltk (>=3.3)", "pandas", "torchvision (>=0.5)", "gym (>=0.17.0)"]
-cpu = ["matplotlib (>3.1)", "omegaconf (>=2.0.1)", "torchtext (>=0.5,<0.7)", "onnx (>=1.7.0)", "onnxruntime (>=1.3.0)", "hydra-core (>=1.0)", "neptune-client (>=0.4.109)", "comet-ml (>=3.1.12)", "mlflow (>=1.0.0)", "test-tube (>=0.7.5)", "wandb (>=0.8.21)", "coverage (>=5.0)", "codecov (>=2.1)", "pytest (>=5.0)", "flake8 (>=3.6)", "check-manifest", "twine (==3.2)", "scikit-learn (>=0.22.2)", "scikit-image (>=0.17.2)", "isort (>=5.6.4)", "mypy (>=0.720,<0.800)", "pre-commit (>=1.0)", "cloudpickle (>=1.3)", "nltk (>=3.3)", "pandas", "torchvision (>=0.5)", "gym (>=0.17.0)"]
-cpu-extra = ["matplotlib (>3.1)", "omegaconf (>=2.0.1)", "torchtext (>=0.5,<0.7)", "onnx (>=1.7.0)", "onnxruntime (>=1.3.0)", "hydra-core (>=1.0)"]
-dev = ["matplotlib (>3.1)", "horovod (>=0.21.2)", "omegaconf (>=2.0.1)", "torchtext (>=0.5,<0.7)", "onnx (>=1.7.0)", "onnxruntime (>=1.3.0)", "hydra-core (>=1.0)", "neptune-client (>=0.4.109)", "comet-ml (>=3.1.12)", "mlflow (>=1.0.0)", "test-tube (>=0.7.5)", "wandb (>=0.8.21)", "coverage (>=5.0)", "codecov (>=2.1)", "pytest (>=5.0)", "flake8 (>=3.6)", "check-manifest", "twine (==3.2)", "scikit-learn (>=0.22.2)", "scikit-image (>=0.17.2)", "isort (>=5.6.4)", "mypy (>=0.720,<0.800)", "pre-commit (>=1.0)", "cloudpickle (>=1.3)", "nltk (>=3.3)", "pandas"]
-examples = ["torchvision (>=0.5)", "gym (>=0.17.0)"]
-extra = ["matplotlib (>3.1)", "horovod (>=0.21.2)", "omegaconf (>=2.0.1)", "torchtext (>=0.5,<0.7)", "onnx (>=1.7.0)", "onnxruntime (>=1.3.0)", "hydra-core (>=1.0)"]
-loggers = ["neptune-client (>=0.4.109)", "comet-ml (>=3.1.12)", "mlflow (>=1.0.0)", "test-tube (>=0.7.5)", "wandb (>=0.8.21)"]
-test = ["coverage (>=5.0)", "codecov (>=2.1)", "pytest (>=5.0)", "flake8 (>=3.6)", "check-manifest", "twine (==3.2)", "scikit-learn (>=0.22.2)", "scikit-image (>=0.17.2)", "isort (>=5.6.4)", "mypy (>=0.720,<0.800)", "pre-commit (>=1.0)", "cloudpickle (>=1.3)", "nltk (>=3.3)", "pandas"]
+test = ["pandas", "nltk (>=3.3)", "cloudpickle (>=1.3)", "pre-commit (>=1.0)", "mypy (>=0.720,<0.800)", "isort (>=5.6.4)", "scikit-image (>=0.17.2)", "scikit-learn (>=0.22.2)", "twine (==3.2)", "check-manifest", "flake8 (>=3.6)", "pytest (>=5.0)", "codecov (>=2.1)", "coverage (>=5.0)"]
+loggers = ["wandb (>=0.8.21)", "test-tube (>=0.7.5)", "mlflow (>=1.0.0)", "comet-ml (>=3.1.12)", "neptune-client (>=0.4.109)"]
+extra = ["hydra-core (>=1.0)", "onnxruntime (>=1.3.0)", "onnx (>=1.7.0)", "torchtext (>=0.5,<0.7)", "omegaconf (>=2.0.1)", "horovod (>=0.21.2)", "matplotlib (>3.1)"]
+examples = ["gym (>=0.17.0)", "torchvision (>=0.5)"]
+dev = ["pandas", "nltk (>=3.3)", "cloudpickle (>=1.3)", "pre-commit (>=1.0)", "mypy (>=0.720,<0.800)", "isort (>=5.6.4)", "scikit-image (>=0.17.2)", "scikit-learn (>=0.22.2)", "twine (==3.2)", "check-manifest", "flake8 (>=3.6)", "pytest (>=5.0)", "codecov (>=2.1)", "coverage (>=5.0)", "wandb (>=0.8.21)", "test-tube (>=0.7.5)", "mlflow (>=1.0.0)", "comet-ml (>=3.1.12)", "neptune-client (>=0.4.109)", "hydra-core (>=1.0)", "onnxruntime (>=1.3.0)", "onnx (>=1.7.0)", "torchtext (>=0.5,<0.7)", "omegaconf (>=2.0.1)", "horovod (>=0.21.2)", "matplotlib (>3.1)"]
+cpu-extra = ["hydra-core (>=1.0)", "onnxruntime (>=1.3.0)", "onnx (>=1.7.0)", "torchtext (>=0.5,<0.7)", "omegaconf (>=2.0.1)", "matplotlib (>3.1)"]
+cpu = ["gym (>=0.17.0)", "torchvision (>=0.5)", "pandas", "nltk (>=3.3)", "cloudpickle (>=1.3)", "pre-commit (>=1.0)", "mypy (>=0.720,<0.800)", "isort (>=5.6.4)", "scikit-image (>=0.17.2)", "scikit-learn (>=0.22.2)", "twine (==3.2)", "check-manifest", "flake8 (>=3.6)", "pytest (>=5.0)", "codecov (>=2.1)", "coverage (>=5.0)", "wandb (>=0.8.21)", "test-tube (>=0.7.5)", "mlflow (>=1.0.0)", "comet-ml (>=3.1.12)", "neptune-client (>=0.4.109)", "hydra-core (>=1.0)", "onnxruntime (>=1.3.0)", "onnx (>=1.7.0)", "torchtext (>=0.5,<0.7)", "omegaconf (>=2.0.1)", "matplotlib (>3.1)"]
+all = ["gym (>=0.17.0)", "torchvision (>=0.5)", "pandas", "nltk (>=3.3)", "cloudpickle (>=1.3)", "pre-commit (>=1.0)", "mypy (>=0.720,<0.800)", "isort (>=5.6.4)", "scikit-image (>=0.17.2)", "scikit-learn (>=0.22.2)", "twine (==3.2)", "check-manifest", "flake8 (>=3.6)", "pytest (>=5.0)", "codecov (>=2.1)", "coverage (>=5.0)", "wandb (>=0.8.21)", "test-tube (>=0.7.5)", "mlflow (>=1.0.0)", "comet-ml (>=3.1.12)", "neptune-client (>=0.4.109)", "hydra-core (>=1.0)", "onnxruntime (>=1.3.0)", "onnx (>=1.7.0)", "torchtext (>=0.5,<0.7)", "omegaconf (>=2.0.1)", "horovod (>=0.21.2)", "matplotlib (>3.1)"]
 
 [[package]]
 name = "pytorch-lightning-bolts"
@@ -1842,11 +1848,11 @@ pytorch-lightning = ">=1.1.1"
 torch = ">=1.6"
 
 [package.extras]
-dev = ["torchvision (>=0.7)", "scikit-learn (>=0.23)", "pillow", "opencv-python", "gym (>=0.17.2)", "matplotlib", "wandb", "scipy", "coverage (>=5.0)", "codecov (>=2.1)", "pytest (>=6.0)", "pytest-cov", "pytest-flake8", "flake8 (>=3.6)", "flake8-black", "check-manifest", "twine (==1.13.0)", "isort (>=5.6.4)", "pre-commit (>=1.0)", "mypy", "yapf", "atari-py (==0.2.6)"]
-extra = ["torchvision (>=0.7)", "scikit-learn (>=0.23)", "pillow", "opencv-python", "gym (>=0.17.2)", "matplotlib", "wandb", "scipy"]
-loggers = ["matplotlib", "wandb", "scipy"]
-models = ["torchvision (>=0.7)", "scikit-learn (>=0.23)", "pillow", "opencv-python", "gym (>=0.17.2)"]
-test = ["coverage (>=5.0)", "codecov (>=2.1)", "pytest (>=6.0)", "pytest-cov", "pytest-flake8", "flake8 (>=3.6)", "flake8-black", "check-manifest", "twine (==1.13.0)", "isort (>=5.6.4)", "pre-commit (>=1.0)", "mypy", "yapf", "atari-py (==0.2.6)", "scikit-learn (>=0.23)"]
+test = ["scikit-learn (>=0.23)", "atari-py (==0.2.6)", "yapf", "mypy", "pre-commit (>=1.0)", "isort (>=5.6.4)", "twine (==1.13.0)", "check-manifest", "flake8-black", "flake8 (>=3.6)", "pytest-flake8", "pytest-cov", "pytest (>=6.0)", "codecov (>=2.1)", "coverage (>=5.0)"]
+models = ["gym (>=0.17.2)", "opencv-python", "pillow", "scikit-learn (>=0.23)", "torchvision (>=0.7)"]
+loggers = ["scipy", "wandb", "matplotlib"]
+extra = ["scipy", "wandb", "matplotlib", "gym (>=0.17.2)", "opencv-python", "pillow", "scikit-learn (>=0.23)", "torchvision (>=0.7)"]
+dev = ["atari-py (==0.2.6)", "yapf", "mypy", "pre-commit (>=1.0)", "isort (>=5.6.4)", "twine (==1.13.0)", "check-manifest", "flake8-black", "flake8 (>=3.6)", "pytest-flake8", "pytest-cov", "pytest (>=6.0)", "codecov (>=2.1)", "coverage (>=5.0)", "scipy", "wandb", "matplotlib", "gym (>=0.17.2)", "opencv-python", "pillow", "scikit-learn (>=0.23)", "torchvision (>=0.7)"]
 
 [[package]]
 name = "pytorch-nlp"
@@ -1968,12 +1974,12 @@ tabulate = {version = "*", optional = true, markers = "extra == \"tune\""}
 tensorboardX = {version = "*", optional = true, markers = "extra == \"tune\""}
 
 [package.extras]
-all = ["requests", "pandas", "scipy", "pyyaml", "lz4", "uvicorn", "starlette", "tabulate", "tensorboardx", "colorful", "fastapi", "atari-py", "gym", "dm-tree", "opencv-python-headless (<=4.3.0.36)", "kubernetes", "pydantic (>=1.8)"]
-default = ["colorful"]
+tune = ["tensorboardx", "tabulate", "pandas"]
+serve = ["fastapi", "starlette", "pydantic (>=1.8)", "requests", "uvicorn"]
+rllib = ["scipy", "pyyaml", "opencv-python-headless (<=4.3.0.36)", "lz4", "gym", "dm-tree", "atari-py", "tensorboardx", "tabulate", "pandas"]
 k8s = ["kubernetes"]
-rllib = ["pandas", "tabulate", "tensorboardx", "atari-py", "dm-tree", "gym", "lz4", "opencv-python-headless (<=4.3.0.36)", "pyyaml", "scipy"]
-serve = ["uvicorn", "requests", "pydantic (>=1.8)", "starlette", "fastapi"]
-tune = ["pandas", "tabulate", "tensorboardx"]
+default = ["colorful"]
+all = ["pydantic (>=1.8)", "kubernetes", "opencv-python-headless (<=4.3.0.36)", "dm-tree", "gym", "atari-py", "fastapi", "colorful", "tensorboardx", "tabulate", "starlette", "uvicorn", "lz4", "pyyaml", "scipy", "pandas", "requests"]
 
 [[package]]
 name = "redis"
@@ -2588,10 +2594,10 @@ python-versions = ">=3.6"
 click = ">=7.1.1,<7.2.0"
 
 [package.extras]
-test = ["pytest-xdist (>=1.32.0,<2.0.0)", "pytest-sugar (>=0.9.4,<0.10.0)", "mypy (==0.782)", "black (>=19.10b0,<20.0b0)", "isort (>=5.0.6,<6.0.0)", "shellingham (>=1.3.0,<2.0.0)", "pytest (>=4.4.0,<5.4.0)", "pytest-cov (>=2.10.0,<3.0.0)", "coverage (>=5.2,<6.0)"]
-all = ["colorama (>=0.4.3,<0.5.0)", "shellingham (>=1.3.0,<2.0.0)"]
-dev = ["autoflake (>=1.3.1,<2.0.0)", "flake8 (>=3.8.3,<4.0.0)"]
-doc = ["mkdocs (>=1.1.2,<2.0.0)", "mkdocs-material (>=5.4.0,<6.0.0)", "markdown-include (>=0.5.1,<0.6.0)"]
+test = ["isort (>=5.0.6,<6.0.0)", "black (>=19.10b0,<20.0b0)", "mypy (==0.782)", "pytest-sugar (>=0.9.4,<0.10.0)", "pytest-xdist (>=1.32.0,<2.0.0)", "coverage (>=5.2,<6.0)", "pytest-cov (>=2.10.0,<3.0.0)", "pytest (>=4.4.0,<5.4.0)", "shellingham (>=1.3.0,<2.0.0)"]
+doc = ["markdown-include (>=0.5.1,<0.6.0)", "mkdocs-material (>=5.4.0,<6.0.0)", "mkdocs (>=1.1.2,<2.0.0)"]
+dev = ["flake8 (>=3.8.3,<4.0.0)", "autoflake (>=1.3.1,<2.0.0)"]
+all = ["shellingham (>=1.3.0,<2.0.0)", "colorama (>=0.4.3,<0.5.0)"]
 
 [[package]]
 name = "typing-extensions"
@@ -2720,8 +2726,8 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.extras]
-dev = ["pytest", "pytest-timeout", "coverage", "tox", "sphinx", "pallets-sphinx-themes", "sphinx-issues"]
 watchdog = ["watchdog"]
+dev = ["sphinx-issues", "pallets-sphinx-themes", "sphinx", "tox", "coverage", "pytest-timeout", "pytest"]
 
 [[package]]
 name = "widgetsnbextension"
@@ -2743,7 +2749,7 @@ optional = false
 python-versions = ">=3.5"
 
 [package.extras]
-dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
+dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 
 [[package]]
 name = "yarl"
@@ -3106,8 +3112,8 @@ filelock = [
     {file = "filelock-3.0.12.tar.gz", hash = "sha256:18d82244ee114f543149c66a6e0c14e9c4f8a1044b5cdaadd0f82159d6a6ff59"},
 ]
 fsspec = [
-    {file = "fsspec-2021.6.1-py3-none-any.whl", hash = "sha256:0ca23992f425c1ba61bf11d3cb3af8ad5363be8612e26732b520090556f173f2"},
-    {file = "fsspec-2021.6.1.tar.gz", hash = "sha256:2cdaafb51dd71e062afffcabcbc4925acef95f9bdd8d822d2010e4bf92951bd7"},
+    {file = "fsspec-2022.7.1-py3-none-any.whl", hash = "sha256:36c5a8e7c4fc20cf32ef6934ac0a122accc8a593ddc8478d30c3ca4dbbd95500"},
+    {file = "fsspec-2022.7.1.tar.gz", hash = "sha256:7f9fb19d811b027b97c4636c6073eb53bc4cbee2d3c4b33fa88b9f26906fd7d7"},
 ]
 future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
@@ -3337,14 +3343,18 @@ kiwisolver = [
     {file = "kiwisolver-1.3.1-cp37-cp37m-manylinux2014_ppc64le.whl", hash = "sha256:1e1bc12fb773a7b2ffdeb8380609f4f8064777877b2225dec3da711b421fda31"},
     {file = "kiwisolver-1.3.1-cp37-cp37m-win32.whl", hash = "sha256:72c99e39d005b793fb7d3d4e660aed6b6281b502e8c1eaf8ee8346023c8e03bc"},
     {file = "kiwisolver-1.3.1-cp37-cp37m-win_amd64.whl", hash = "sha256:8be8d84b7d4f2ba4ffff3665bcd0211318aa632395a1a41553250484a871d454"},
+    {file = "kiwisolver-1.3.1-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:24cc411232d14c8abafbd0dddb83e1a4f54d77770b53db72edcfe1d611b3bf11"},
     {file = "kiwisolver-1.3.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:31dfd2ac56edc0ff9ac295193eeaea1c0c923c0355bf948fbd99ed6018010b72"},
+    {file = "kiwisolver-1.3.1-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:ef6eefcf3944e75508cdfa513c06cf80bafd7d179e14c1334ebdca9ebb8c2c66"},
     {file = "kiwisolver-1.3.1-cp38-cp38-manylinux1_i686.whl", hash = "sha256:563c649cfdef27d081c84e72a03b48ea9408c16657500c312575ae9d9f7bc1c3"},
     {file = "kiwisolver-1.3.1-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:78751b33595f7f9511952e7e60ce858c6d64db2e062afb325985ddbd34b5c131"},
     {file = "kiwisolver-1.3.1-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:a357fd4f15ee49b4a98b44ec23a34a95f1e00292a139d6015c11f55774ef10de"},
     {file = "kiwisolver-1.3.1-cp38-cp38-manylinux2014_ppc64le.whl", hash = "sha256:5989db3b3b34b76c09253deeaf7fbc2707616f130e166996606c284395da3f18"},
     {file = "kiwisolver-1.3.1-cp38-cp38-win32.whl", hash = "sha256:c08e95114951dc2090c4a630c2385bef681cacf12636fb0241accdc6b303fd81"},
     {file = "kiwisolver-1.3.1-cp38-cp38-win_amd64.whl", hash = "sha256:44a62e24d9b01ba94ae7a4a6c3fb215dc4af1dde817e7498d901e229aaf50e4e"},
+    {file = "kiwisolver-1.3.1-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:6d9d8d9b31aa8c2d80a690693aebd8b5e2b7a45ab065bb78f1609995d2c79240"},
     {file = "kiwisolver-1.3.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:50af681a36b2a1dee1d3c169ade9fdc59207d3c31e522519181e12f1b3ba7000"},
+    {file = "kiwisolver-1.3.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:792e69140828babe9649de583e1a03a0f2ff39918a71782c76b3c683a67c6dfd"},
     {file = "kiwisolver-1.3.1-cp39-cp39-manylinux1_i686.whl", hash = "sha256:a53d27d0c2a0ebd07e395e56a1fbdf75ffedc4a05943daf472af163413ce9598"},
     {file = "kiwisolver-1.3.1-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:834ee27348c4aefc20b479335fd422a2c69db55f7d9ab61721ac8cd83eb78882"},
     {file = "kiwisolver-1.3.1-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:5c3e6455341008a054cccee8c5d24481bcfe1acdbc9add30aa95798e95c65621"},
@@ -3354,6 +3364,7 @@ kiwisolver = [
     {file = "kiwisolver-1.3.1-pp36-pypy36_pp73-macosx_10_9_x86_64.whl", hash = "sha256:0cd53f403202159b44528498de18f9285b04482bab2a6fc3f5dd8dbb9352e30d"},
     {file = "kiwisolver-1.3.1-pp36-pypy36_pp73-manylinux2010_x86_64.whl", hash = "sha256:33449715e0101e4d34f64990352bce4095c8bf13bed1b390773fc0a7295967b3"},
     {file = "kiwisolver-1.3.1-pp36-pypy36_pp73-win32.whl", hash = "sha256:401a2e9afa8588589775fe34fc22d918ae839aaaf0c0e96441c0fdbce6d8ebe6"},
+    {file = "kiwisolver-1.3.1-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:d6563ccd46b645e966b400bb8a95d3457ca6cf3bba1e908f9e0927901dfebeb1"},
     {file = "kiwisolver-1.3.1.tar.gz", hash = "sha256:950a199911a8d94683a6b10321f9345d5a3a8433ec58b217ace979e18f16e248"},
 ]
 livereload = [
@@ -3605,8 +3616,8 @@ nbclient = [
     {file = "nbclient-0.5.3.tar.gz", hash = "sha256:db17271330c68c8c88d46d72349e24c147bb6f34ec82d8481a8f025c4d26589c"},
 ]
 nbconvert = [
-    {file = "nbconvert-6.0.7-py3-none-any.whl", hash = "sha256:39e9f977920b203baea0be67eea59f7b37a761caa542abe80f5897ce3cf6311d"},
-    {file = "nbconvert-6.0.7.tar.gz", hash = "sha256:cbbc13a86dfbd4d1b5dee106539de0795b4db156c894c2c5dc382062bbc29002"},
+    {file = "nbconvert-6.3.0-py3-none-any.whl", hash = "sha256:8f23fbeabda4a500685d788ee091bf22cf34119304314304fb39f16e2fc32f37"},
+    {file = "nbconvert-6.3.0.tar.gz", hash = "sha256:5e77d6203854944520105e38f2563a813a4a3708e8563aa598928a3b5ee1081a"},
 ]
 nbformat = [
     {file = "nbformat-5.1.2-py3-none-any.whl", hash = "sha256:3949fdc8f5fa0b1afca16fb307546e78494fa7a7bceff880df8168eafda0e7ac"},
