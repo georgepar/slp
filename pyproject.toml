@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "slp"
-version = "1.2.1"
+version = "1.2.2"
 description = "Speech, Language and Multimodal Processing models and utilities in PyTorch"
 authors = ["Giorgos Paraskevopoulos <geopar@central.ntua.gr>"]
 license = "MIT"
@@ -50,7 +50,7 @@ wandb = "^0.10.20"
 omegaconf = "^2.0.6"
 toml = "^0.10.2"
 aiohttp = "^3.7.4"
-mike = "^0.6.0"
+mike = "^1.1.2"
 ray = {extras = ["tune"], version = "^1.2.0"}
 pytorch-lightning-bolts = "^0.3.0"
 gym = "^0.18.0"
