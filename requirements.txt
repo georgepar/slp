@@ -215,7 +215,7 @@ wasabi==0.8.2; python_version >= "3.6"
 watchdog==2.1.6; python_version >= "3.6"
 wcwidth==0.2.5; python_full_version >= "3.6.2" and python_version >= "3.7"
 webencodings==0.5.1; python_version >= "3.7"
-werkzeug==2.0.2; python_version >= "3.6"
+werkzeug==2.2.3; python_version >= "3.6"
 widgetsnbextension==3.5.2
 win32-setctime==1.0.3; sys_platform == "win32" and python_version >= "3.5"
 wrapt==1.13.3; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.6"
